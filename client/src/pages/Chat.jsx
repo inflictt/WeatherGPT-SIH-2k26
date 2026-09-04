@@ -7,6 +7,7 @@ import { t } from '../lib/i18n'
 import Message, { Thinking } from '../components/chat/Message'
 import Composer from '../components/chat/Composer'
 import WarningBanner from '../components/warning/WarningBanner'
+import { cn } from '../lib/utils'
 
 /**
  * The Ask screen — the real round trip.
