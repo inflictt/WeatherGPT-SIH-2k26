@@ -1,0 +1,7 @@
+node_modules
+.env
+.env.local
+*.log
+data/IN.txt
+data/admin1CodesASCII.txt
+data/admin2Codes.txt
