@@ -32,11 +32,17 @@ export default function LocationPicker({ picker, className }) {
   const inputRef = useRef(null)
   const { location, query, setQuery, results, searching, recents, setRecents, gps } = picker
 
+  // Listen to custom global open-location-modal event
+  useEffect(() => {
+    const handleOpen = () => setOpen(true)
+    window.addEventListener('open-location-picker', handleOpen)
+    return () => window.removeEventListener('open-location-picker', handleOpen)
+  }, [])
+
   useEffect(() => {
     if (!open) return undefined
     const onKey = (e) => e.key === 'Escape' && setOpen(false)
     document.addEventListener('keydown', onKey)
-    setTimeout(() => inputRef.current?.focus(), 80)
     return () => document.removeEventListener('keydown', onKey)
   }, [open])
 
@@ -62,12 +68,14 @@ export default function LocationPicker({ picker, className }) {
         { id: '1', name: 'New Delhi', country: 'India', state: 'Delhi', lat: 28.6139, lon: 77.209 },
         { id: '2', name: 'Mumbai', country: 'India', state: 'Maharashtra', lat: 19.076, lon: 72.8777 },
         { id: '3', name: 'Bengaluru', country: 'India', state: 'Karnataka', lat: 12.9716, lon: 77.5946 },
+        { id: '4', name: 'Kolkata', country: 'India', state: 'West Bengal', lat: 22.5726, lon: 88.3639 },
+        { id: '5', name: 'London', country: 'United Kingdom', state: 'England', lat: 51.5074, lon: -0.1278 },
       ]
 
   return (
     <>
       <div className={cn('relative', className)}>
-        {/* Trigger Button */}
+        {/* Trigger Button in Navigation */}
         <button
           type="button"
           onClick={() => setOpen(true)}
@@ -90,24 +98,30 @@ export default function LocationPicker({ picker, className }) {
         </button>
       </div>
 
-      {/* Full Viewport Modal Portal */}
+      {/* Big Centered Modal Portal matching Image 1 */}
       {open && typeof document !== 'undefined' && createPortal(
-        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/80 backdrop-blur-md p-4 animate-fadeIn">
-          <div className="w-full max-w-lg overflow-hidden rounded-3xl glass-panel border border-line bg-[#0d0f12]/95 shadow-2xl space-y-4 p-5 sm:p-6 max-h-[90vh] overflow-y-auto">
+        <div 
+          className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-fadeIn"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setOpen(false)
+          }}
+        >
+          <div className="w-full max-w-[580px] overflow-hidden rounded-[24px] border border-[#1e293b]/80 bg-[#0b101b] shadow-2xl space-y-6 p-6 sm:p-7 max-h-[92vh] overflow-y-auto text-white">
             {/* Modal Header */}
-            <div className="flex items-start justify-between border-b border-line/60 pb-4">
-              <div className="flex items-center gap-3">
-                <div className="h-10 w-10 rounded-2xl bg-surface-2 border border-line flex items-center justify-center text-cyanSignal">
-                  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+            <div className="flex items-start justify-between">
+              <div className="flex items-center gap-3.5">
+                <div className="h-11 w-11 rounded-2xl bg-[#111927] border border-[#1e293b] flex items-center justify-center text-[#38bdf8] shadow-inner">
+                  <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.8">
+                    <circle cx="12" cy="12" r="8" strokeOpacity="0.4" />
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 2v3m0 14v3M2 12h3m14 0h3" />
+                    <circle cx="12" cy="12" r="3" fill="currentColor" fillOpacity="0.2" />
                   </svg>
                 </div>
                 <div>
-                  <h3 className="font-display text-base sm:text-lg font-bold text-ink tracking-tight">
+                  <h3 className="font-display text-xl font-bold text-white tracking-tight">
                     Choose Your Location
                   </h3>
-                  <p className="text-xs text-ink-3 font-mono">
+                  <p className="text-xs text-[#94a3b8] font-mono mt-0.5">
                     Select your city or enable GPS for live weather telemetry
                   </p>
                 </div>
@@ -115,91 +129,31 @@ export default function LocationPicker({ picker, className }) {
 
               <button
                 onClick={() => setOpen(false)}
-                className="text-ink-3 hover:text-ink font-mono text-base p-1 transition-colors"
+                className="text-[#64748b] hover:text-white font-mono text-base p-1 transition-colors"
                 aria-label="Close"
               >
                 ✕
               </button>
             </div>
 
-            {/* GPS Auto-Detect Blue Card */}
-            <button
-              onClick={() => {
-                picker.useMyLocation()
-                setOpen(false)
-              }}
-              disabled={gps === 'locating'}
-              className="w-full rounded-2xl border border-cyanSignal/40 bg-cyanSignal/10 hover:bg-cyanSignal/15 p-3.5 sm:p-4 text-left flex items-center justify-between gap-3 transition-all group shadow-md"
-            >
-              <div className="flex items-center gap-3">
-                <div className="h-9 w-9 rounded-xl bg-cyanSignal text-black flex items-center justify-center font-bold text-lg shadow">
-                  🎯
-                </div>
-                <div>
-                  <span className="font-mono text-xs sm:text-sm font-bold text-cyanSignal block">
-                    {gps === 'locating' ? 'Acquiring GPS Signal…' : 'Use My Current Location (GPS)'}
-                  </span>
-                  <span className="text-[11px] text-ink-3 font-mono">
-                    Auto-detect exact live coordinates from browser
-                  </span>
-                </div>
-              </div>
-              <span className="text-cyanSignal font-bold text-lg group-hover:translate-x-1 transition-transform">
-                →
-              </span>
-            </button>
-
-            {/* Search Input Box */}
-            <div className="relative">
-              <span className="absolute left-3.5 top-3.5 text-ink-3 text-xs">🔍</span>
-              <input
-                ref={inputRef}
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                placeholder="Search any global city, region or town..."
-                className="w-full rounded-2xl border border-line bg-surface-2/80 py-3 pl-9 pr-4 text-xs font-mono text-ink placeholder:text-ink-3 focus:border-cyanSignal focus:outline-none transition-all shadow-inner"
-              />
-              {searching && (
-                <span className="absolute right-3.5 top-3.5 text-xs font-mono text-cyanSignal animate-pulse">
-                  Searching…
-                </span>
-              )}
-            </div>
-
-            {/* Search Results Dropdown if query entered */}
-            {query.trim().length > 0 && results && results.length > 0 && (
-              <div className="max-h-48 overflow-y-auto space-y-1 rounded-2xl border border-line bg-surface-2 p-2">
-                {results.map((r, i) => (
-                  <button
-                    key={i}
-                    onClick={() => choose(r)}
-                    className="w-full text-left px-3 py-2.5 rounded-xl text-xs font-mono text-ink hover:bg-surface-3 transition-colors flex items-center justify-between"
-                  >
-                    <span>{r.name}, {r.district || r.state}</span>
-                    <span className="text-ink-3 text-[10px] uppercase">{r.country || r.state}</span>
-                  </button>
-                ))}
-              </div>
-            )}
-
-            {/* Popular Cities 3x3 Grid */}
-            <div className="space-y-2 pt-1">
-              <span className="font-mono text-[10.5px] uppercase tracking-wider text-ink-3 font-semibold flex items-center gap-1.5">
-                <span>🌍</span>
+            {/* Popular Cities Section */}
+            <div className="space-y-3">
+              <div className="font-mono text-[11px] uppercase tracking-wider text-[#94a3b8] font-semibold flex items-center gap-2">
+                <span>🌐</span>
                 <span>POPULAR CITIES</span>
-              </span>
+              </div>
 
-              <div className="grid grid-cols-3 gap-2">
+              <div className="grid grid-cols-3 gap-2.5">
                 {POPULAR_CITIES.map((c) => (
                   <button
                     key={c.name}
                     onClick={() => choose(c)}
-                    className="rounded-2xl border border-line bg-surface-2/60 hover:bg-surface-2 hover:border-line-hover p-2.5 sm:p-3 text-left transition-all shadow-sm flex flex-col justify-between min-h-[58px]"
+                    className="rounded-2xl border border-[#1e293b] bg-[#111726]/80 hover:bg-[#162035] hover:border-[#38bdf8]/40 p-3.5 text-left transition-all shadow-sm flex flex-col justify-center min-h-[64px] group"
                   >
-                    <span className="font-mono text-xs font-bold text-ink leading-tight truncate">
+                    <span className="font-mono text-[13px] font-bold text-white leading-tight group-hover:text-[#38bdf8] transition-colors truncate">
                       {c.name}
                     </span>
-                    <span className="text-[10px] text-ink-3 font-mono truncate">
+                    <span className="text-[11px] text-[#64748b] font-mono mt-0.5 truncate">
                       {c.country}
                     </span>
                   </button>
@@ -207,32 +161,32 @@ export default function LocationPicker({ picker, className }) {
               </div>
             </div>
 
-            {/* Saved Favorites / Recents */}
-            <div className="space-y-2 pt-2 border-t border-line/50">
-              <span className="font-mono text-[10.5px] uppercase tracking-wider text-ink-3 font-semibold flex items-center gap-1.5">
+            {/* Saved Favorites Section */}
+            <div className="space-y-3 pt-2">
+              <div className="font-mono text-[11px] uppercase tracking-wider text-[#94a3b8] font-semibold flex items-center gap-2">
                 <span>⭐</span>
                 <span>SAVED FAVORITES</span>
-              </span>
+              </div>
 
-              <div className="space-y-1.5">
-                {activeRecents.slice(0, 3).map((fav, idx) => (
+              <div className="space-y-2">
+                {activeRecents.map((fav, idx) => (
                   <div
                     key={idx}
                     onClick={() => choose(fav)}
-                    className="cursor-pointer rounded-2xl border border-line bg-surface-2/40 hover:bg-surface-2 px-3.5 py-2.5 flex items-center justify-between transition-colors"
+                    className="cursor-pointer rounded-2xl border border-[#1e293b] bg-[#111726]/60 hover:bg-[#162035] hover:border-[#38bdf8]/40 px-4 py-3 flex items-center justify-between transition-all group"
                   >
-                    <div className="flex items-center gap-2">
-                      <span className="text-amber-400 text-xs">⭐</span>
-                      <span className="font-mono text-xs font-semibold text-ink">
+                    <div className="flex items-center gap-3">
+                      <span className="text-[#f59e0b] text-xs">⭐</span>
+                      <span className="font-mono text-[13px] font-semibold text-white group-hover:text-[#38bdf8] transition-colors">
                         {fav.name}
                       </span>
-                      <span className="text-[10px] text-ink-3 font-mono">
+                      <span className="text-[11px] text-[#64748b] font-mono">
                         {fav.country || fav.state || 'India'}
                       </span>
                     </div>
                     <button
                       onClick={(e) => removeRecent(e, fav.id || `${fav.lat},${fav.lon}`)}
-                      className="text-ink-3 hover:text-rose-400 text-xs p-1 transition-colors"
+                      className="text-[#64748b] hover:text-[#f43f5e] text-xs p-1 transition-colors"
                       aria-label="Remove"
                     >
                       ✕

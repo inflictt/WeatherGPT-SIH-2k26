@@ -15,6 +15,8 @@ export default function Hero({ prefs, onSelectCity }) {
   const { current: c, location: LOCATION, hourly, forecast, loading } = useData()
   const fmt = formatters(prefs?.units)
 
+  const hasLocation = Boolean(LOCATION?.name)
+
   // 1. High / Low
   const todayForecast = forecast?.[0]
   const highTemp = todayForecast?.tempMax !== undefined ? Math.round(todayForecast.tempMax) : Math.round((c?.tempC || 28) + 2)
@@ -71,141 +73,101 @@ export default function Hero({ prefs, onSelectCity }) {
 
   if (loading) {
     return (
-      <section className="shell pb-4 pt-6" aria-busy="true">
-        <Skeleton className="h-64 w-full rounded-3xl" />
-      </section>
+      <div className="h-full rounded-[24px] border border-[#1e293b]/80 bg-[#090d16] p-6 shadow-xl" aria-busy="true">
+        <Skeleton className="h-64 w-full rounded-2xl" />
+      </div>
     )
   }
 
   return (
-    <section className="relative overflow-hidden">
-      <div className="shell relative pb-3 pt-4">
-        <Reveal>
-          <div className="glass-panel rounded-3xl p-6 sm:p-7 shadow-2xl relative overflow-hidden border border-line bg-surface/95">
-            {/* Ambient Lighting Gradient */}
-            <div className="absolute -right-20 -top-20 w-72 h-72 rounded-full bg-amber-500/10 blur-3xl pointer-events-none" />
-            <div className="absolute -left-20 -bottom-20 w-72 h-72 rounded-full bg-iris/10 blur-3xl pointer-events-none" />
+    <div className="h-full rounded-[24px] border border-[#1e293b]/80 bg-[#090d16] p-6 shadow-xl flex flex-col justify-between space-y-4">
+      {/* Top Header matching Image 2 */}
+      <div className="flex items-start justify-between pb-3 border-b border-[#1e293b]/60">
+        <div>
+          <h3 className="font-mono text-xs uppercase tracking-wider font-bold text-[#94a3b8]">
+            TODAY'S TIMELINE & TEMP CURVE
+          </h3>
+          <p className="text-[11px] text-[#64748b] font-mono mt-0.5">
+            24-hour meteorological projection
+          </p>
+        </div>
 
-            {/* Top Location Bar & Nearby Pills */}
-            <div className="flex flex-wrap items-center justify-between gap-3 pb-5 border-b border-line/60">
-              <div className="flex items-center gap-2.5">
-                <span className="text-amber-400 text-lg">📍</span>
-                <h2 className="text-lg sm:text-xl font-bold font-display text-ink flex items-center gap-2">
-                  <span>{LOCATION?.name || 'New Delhi'}, {LOCATION?.country || 'India'}</span>
-                </h2>
-                <span className="text-xs text-ink-3 font-mono pl-2.5 border-l border-line">
-                  Today
-                </span>
-              </div>
-
-              {/* Nearby Quick Pills */}
-              <div className="flex items-center gap-2 text-xs">
-                <span className="text-ink-3 font-medium hidden sm:inline font-mono">Nearby:</span>
-                <div className="flex items-center gap-1.5">
-                  {nearbyList.map((city) => (
-                    <button
-                      key={city.name}
-                      onClick={() => onSelectCity?.(city)}
-                      className="px-2.5 py-1 rounded-lg bg-surface-2/80 hover:bg-surface-3 text-ink-2 hover:text-ink border border-line text-[11px] font-mono transition-colors shadow-sm"
-                    >
-                      {city.name}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            </div>
-
-            {/* Temperature & Condition Main Banner */}
-            <div className="flex flex-wrap items-center justify-between gap-6 pt-5 pb-3">
-              <div className="flex items-center gap-5 sm:gap-6">
-                <div className="text-5xl sm:text-6xl drop-shadow-md select-none">
-                  {weatherIcon}
-                </div>
-                <div>
-                  <div className="flex items-baseline gap-2">
-                    <span className="text-5xl sm:text-6xl font-bold font-display text-ink tracking-tight tnum">
-                      {fmt.temp(c?.tempC ?? 28)}{fmt.tempUnit}
-                    </span>
-                  </div>
-                  <p className="text-lg sm:text-xl font-bold text-ink/90 capitalize leading-snug">
-                    {c?.condition || 'Overcast'}
-                  </p>
-                  <p className="text-xs font-mono text-ink-3 mt-0.5">
-                    Feels like <span className="text-ink font-semibold">{fmt.temp(c?.feelsLikeC ?? 34)}{fmt.tempUnit}</span>
-                  </p>
-                </div>
-              </div>
-
-              {/* 3 Metrics Pills (High/Low, Humidity, Wind) */}
-              <div className="flex items-center gap-2 sm:gap-3 text-xs">
-                <div className="bg-surface-2/80 border border-line rounded-2xl px-4 py-2.5 text-center min-w-[85px] shadow-sm">
-                  <span className="text-[10px] text-ink-3 uppercase block font-mono font-semibold">High / Low</span>
-                  <span className="font-bold text-ink text-sm sm:text-base font-mono tnum">
-                    {highTemp}° / {lowTemp}°
-                  </span>
-                </div>
-
-                <div className="bg-surface-2/80 border border-line rounded-2xl px-4 py-2.5 text-center min-w-[85px] shadow-sm">
-                  <span className="text-[10px] text-ink-3 uppercase block font-mono font-semibold">Humidity</span>
-                  <span className="font-bold text-sky-400 text-sm sm:text-base font-mono tnum">
-                    {Math.round(c?.humidity ?? 89)}%
-                  </span>
-                </div>
-
-                <div className="bg-surface-2/80 border border-line rounded-2xl px-4 py-2.5 text-center min-w-[85px] shadow-sm">
-                  <span className="text-[10px] text-ink-3 uppercase block font-mono font-semibold">Wind</span>
-                  <span className="font-bold text-emerald-400 text-sm sm:text-base font-mono tnum">
-                    {Math.round(c?.windKmh ?? 5)} km/h
-                  </span>
-                </div>
-              </div>
-            </div>
-
-            {/* Bezier Spline Temperature Graph SVG */}
-            <div className="pt-4 border-t border-line/40">
-              <svg viewBox="0 0 500 75" className="w-full h-16 sm:h-20 overflow-visible">
-                <path
-                  d={bezierData.path}
-                  fill="none"
-                  stroke="rgba(245, 158, 11, 0.9)"
-                  strokeWidth="3.5"
-                  strokeLinecap="round"
-                />
-                {/* Active Current Temperature Glowing Node */}
-                {bezierData.points[0] && (
-                  <>
-                    <circle
-                      cx={bezierData.points[0].x}
-                      cy={bezierData.points[0].y}
-                      r="6"
-                      fill="#f59e0b"
-                      className="animate-pulse"
-                    />
-                    <circle
-                      cx={bezierData.points[0].x}
-                      cy={bezierData.points[0].y}
-                      r="3"
-                      fill="#ffffff"
-                    />
-                  </>
-                )}
-              </svg>
-
-              {/* Dynamic Hourly Temperature Labels */}
-              <div className="flex justify-between px-2 text-xs font-mono font-semibold text-ink-3 mt-1">
-                {bezierData.temps.map((tempVal, idx) => (
-                  <span
-                    key={idx}
-                    className={idx === 0 ? 'text-amber-400 font-extrabold text-sm' : 'text-ink-2'}
-                  >
-                    {tempVal}°c
-                  </span>
-                ))}
-              </div>
-            </div>
-          </div>
-        </Reveal>
+        <span className="rounded-xl border border-[#1e293b] bg-[#111726] px-3 py-1 font-mono text-[10px] font-semibold uppercase tracking-wider text-[#94a3b8]">
+          {hasLocation ? `${LOCATION.name}` : 'AWAITING LOCATION'}
+        </span>
       </div>
-    </section>
+
+      {/* Temperature & Metrics Bar */}
+      <div className="flex flex-wrap items-center justify-between gap-4 py-2">
+        <div className="flex items-center gap-4">
+          <span className="text-4xl sm:text-5xl select-none">{weatherIcon}</span>
+          <div>
+            <div className="text-3xl sm:text-4xl font-bold font-display text-white tracking-tight tnum">
+              {fmt.temp(c?.tempC ?? 28)}{fmt.tempUnit}
+            </div>
+            <p className="text-xs font-mono text-[#94a3b8] capitalize">
+              {c?.condition || 'Overcast'} · Feels like {fmt.temp(c?.feelsLikeC ?? 34)}{fmt.tempUnit}
+            </p>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-2 text-xs">
+          <div className="bg-[#111726] border border-[#1e293b] rounded-xl px-3 py-1.5 text-center">
+            <span className="text-[9.5px] text-[#64748b] uppercase block font-mono font-medium">H / L</span>
+            <span className="font-bold text-white font-mono text-xs tnum">
+              {highTemp}° / {lowTemp}°
+            </span>
+          </div>
+          <div className="bg-[#111726] border border-[#1e293b] rounded-xl px-3 py-1.5 text-center">
+            <span className="text-[9.5px] text-[#64748b] uppercase block font-mono font-medium">Humidity</span>
+            <span className="font-bold text-[#38bdf8] font-mono text-xs tnum">
+              {Math.round(c?.humidity ?? 89)}%
+            </span>
+          </div>
+        </div>
+      </div>
+
+      {/* Bezier Spline Temperature Graph SVG */}
+      <div className="pt-2 border-t border-[#1e293b]/40">
+        <svg viewBox="0 0 500 75" className="w-full h-14 sm:h-16 overflow-visible">
+          <path
+            d={bezierData.path}
+            fill="none"
+            stroke="#f59e0b"
+            strokeWidth="3.5"
+            strokeLinecap="round"
+          />
+          {bezierData.points[0] && (
+            <>
+              <circle
+                cx={bezierData.points[0].x}
+                cy={bezierData.points[0].y}
+                r="6"
+                fill="#f59e0b"
+                className="animate-pulse"
+              />
+              <circle
+                cx={bezierData.points[0].x}
+                cy={bezierData.points[0].y}
+                r="3"
+                fill="#ffffff"
+              />
+            </>
+          )}
+        </svg>
+
+        {/* Dynamic Hourly Temperature Labels */}
+        <div className="flex justify-between px-2 text-xs font-mono font-semibold text-[#64748b] mt-1">
+          {bezierData.temps.map((tempVal, idx) => (
+            <span
+              key={idx}
+              className={idx === 0 ? 'text-[#f59e0b] font-extrabold text-xs' : 'text-[#94a3b8] text-[11px]'}
+            >
+              {tempVal}°c
+            </span>
+          ))}
+        </div>
+      </div>
+    </div>
   )
 }
