@@ -1,0 +1,97 @@
+import { z } from 'zod'
+import { answerQuestion } from '../services/chatPipeline.js'
+import { Conversation } from '../models/Conversation.js'
+import { log } from '../utils/logger.js'
+
+/**
+ * POST /api/chat/query — one conversational turn.
+ *
+ * The route is thin on purpose: validate, run the pipeline, persist if the
+ * caller is signed in, return. Everything interesting is in chatPipeline.js,
+ * where it can be tested without a database.
+ */
+
+export const querySchema = z
+  .object({
+    text: z.string().trim().min(1).max(500),
+    lang: z.enum(['en', 'hi', 'hinglish']).optional(),
+    persona: z.enum(['general', 'farmer', 'traveller', 'official']).optional(),
+    // Where the user currently is, or what they have selected. One of these is
+    // needed for a question that names no place.
+    q: z.string().trim().min(2).max(80).optional(),
+    lat: z.coerce.number().min(-90).max(90).optional(),
+    lon: z.coerce.number().min(-180).max(180).optional(),
+    conversationId: z.string().trim().max(64).optional(),
+  })
+  .refine((v) => v.q || (v.lat != null && v.lon != null) || v.conversationId, {
+    message: 'Provide a location (q, or lat and lon) or a conversationId to continue',
+  })
+
+/** How many prior turns are consulted when resolving a follow-up. */
+const HISTORY_TURNS = 6
+
+export async function query(req, res) {
+  const input = req.body
+  const started = Date.now()
+
+  // Prior turns give a follow-up its location. Anonymous callers get none,
+  // which is why the client also sends its selected location every time.
+  let conversation = null
+  let history = []
+  if (input.conversationId && req.user) {
+    conversation = await Conversation.findOne({
+      _id: input.conversationId,
+      userId: req.user._id,
+    }).catch(() => null)
+    history = (conversation?.turns || []).slice(-HISTORY_TURNS)
+  }
+
+  const result = await answerQuestion({
+    text: input.text,
+    lang: input.lang || req.user?.language || null,
+    persona: input.persona || req.user?.persona || 'general',
+    q: input.q,
+    lat: input.lat,
+    lon: input.lon,
+    history,
+  })
+
+  // Persistence is best-effort: a database hiccup must not cost the user the
+  // answer we already computed.
+  if (req.user) {
+    try {
+      const turn = {
+        text: input.text,
+        language: result.nlu?.language,
+        intent: result.nlu?.intent,
+        location: result.location
+          ? {
+              name: result.location.name,
+              district: result.location.district,
+              state: result.location.state,
+              lat: result.location.lat,
+              lon: result.location.lon,
+            }
+          : undefined,
+        summary: result.answer?.summary,
+        riskBand: result.risk?.overall,
+        warningRef: result.answer?.warningRef,
+        at: new Date(),
+      }
+      if (conversation) {
+        conversation.turns.push(turn)
+        await conversation.save()
+      } else {
+        conversation = await Conversation.create({ userId: req.user._id, turns: [turn] })
+      }
+    } catch (err) {
+      log.warn('conversation not persisted', { error: String(err.message || err) })
+    }
+  }
+
+  res.json({
+    ...result,
+    conversationId: conversation?._id ?? null,
+    ms: Date.now() - started,
+  })
+}
