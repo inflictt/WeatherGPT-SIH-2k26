@@ -10,7 +10,11 @@ const int = (v, d) => (v === undefined || v === '' ? d : Number.parseInt(v, 10))
  */
 export const env = {
   nodeEnv: process.env.NODE_ENV || 'development',
-  port: int(process.env.PORT, 5000),
+  // 5050, not 5000. macOS Monterey and later bind port 5000 to the AirPlay
+  // Receiver in ControlCentre, so the obvious default fails on every recent
+  // Mac with an EADDRINUSE nobody can explain. 7000 is taken by the same
+  // process; 5050 is clear.
+  port: int(process.env.PORT, 5050),
   corsOrigins: (process.env.CORS_ORIGINS || 'http://localhost:5173')
     .split(',')
     .map((s) => s.trim())
@@ -31,14 +35,6 @@ export const env = {
     .map((s) => s.trim())
     .filter(Boolean),
   forecastTtlMinutes: int(process.env.FORECAST_TTL_MINUTES, 30),
-
-  // --- OpenWeatherMap (live real-time observations) ---
-  openWeatherApiKey: process.env.OPENWEATHER_API_KEY || '',
-  openWeatherBase: process.env.OPENWEATHER_BASE || 'https://api.openweathermap.org/data/2.5',
-
-  // --- WeatherAPI.com & Tomorrow.io (multi-source providers) ---
-  weatherApiKey: process.env.WEATHERAPI_KEY || '',
-  tomorrowApiKey: process.env.TOMORROW_API_KEY || '',
 
   // --- official warnings: free, public ---
   // The all-India CAP index. NOT `/CapFeed` — that path serves the portal's
@@ -69,6 +65,20 @@ export const env = {
 
   // --- Phase 3 service ---
   aiServiceUrl: process.env.PYTHON_AI_URL || 'http://127.0.0.1:8000',
+
+  // --- agriculture models (PRD §7, §8) ---
+  // One HuggingFace token covers both image models. Absent, the two image
+  // endpoints return a named 503 and the interface says the model is not
+  // connected — it never falls back to a plausible-looking class.
+  hfToken: process.env.HF_TOKEN || '',
+
+  // --- Gemini (PRD §10) ---
+  // Absent, `farmer-friend/chat` still answers: the deterministic composer
+  // produces the whole structured response and Gemini only ever rewrites
+  // prose. Deleting this key must change how well the product reads, never
+  // what it says.
+  geminiApiKey: process.env.GEMINI_API_KEY || '',
+  geminiModel: process.env.GEMINI_MODEL || 'gemini-2.5-flash',
 
   // --- schedules ---
   cronWarnings: process.env.CRON_WARNINGS || '*/5 * * * *',

@@ -30,3 +30,16 @@ export const chatLimiter = rateLimit({
   legacyHeaders: false,
   message: { error: 'Too many questions in a row. Give it a moment.' },
 })
+
+/**
+ * Image analysis. Every call costs a HuggingFace inference and several
+ * seconds of a cold model's time, so this is far tighter than the chat
+ * limiter — and tight enough that a script cannot quietly drain the quota.
+ */
+export const imageLimiter = rateLimit({
+  windowMs: 10 * 60 * 1000,
+  max: 20,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Too many image analyses. Try again in a few minutes.' },
+})
