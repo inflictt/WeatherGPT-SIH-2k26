@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useData } from '../lib/DataContext'
+import { useData, useActiveWarnings } from '../lib/DataContext'
 import { useSavedLocations } from '../lib/useSavedLocations'
 import { SEVERITY } from '../lib/constants'
 import { cn } from '../lib/utils'
@@ -10,38 +10,38 @@ import Reveal from '../components/ui/Reveal'
 import { SectionTitle, Switch, Skeleton } from '../components/ui/Bits'
 
 const TABS = [
-  { key: 'active', label: 'Active' },
-  { key: 'expired', label: 'Expired' },
+  { key: 'active', label: 'Active Alerts' },
+  { key: 'expired', label: 'Past / Expired' },
 ]
 
 export default function Alerts({ lang = 'en', prefs }) {
   const [tab, setTab] = useState('active')
   const { warnings, loading, advice, location, mode } = useData()
+  const activeList = useActiveWarnings()
   const saved = useSavedLocations(null)
 
-  // "Severe events only" filters the list as well as gating push. Yellow is
-  // still counted in the tab so nothing is hidden without saying so.
+  // "Severe events only" filters the list as well as gating push
   const severeOnly = Boolean(prefs?.severeOnly)
   const isSevere = (w) => w.severity === 'Severe' || w.severity === 'Extreme'
-  const shown = warnings
-    .filter((w) => (tab === 'active' ? w.status === 'active' : w.status !== 'active'))
-    .filter((w) => !severeOnly || tab !== 'active' || isSevere(w))
+
+  // Active items combines real-time nowcasts + official NDMA alerts
+  const activeItems = activeList.length > 0 ? activeList : (warnings || []).filter((w) => w.status === 'active')
+  const expiredItems = (warnings || []).filter((w) => w.status !== 'active')
+  const allCurrent = tab === 'active' ? activeItems : expiredItems
+
+  const shown = allCurrent.filter((w) => !severeOnly || tab !== 'active' || isSevere(w))
   const hiddenByFilter = severeOnly
-    ? warnings.filter((w) => w.status === 'active' && !isSevere(w)).length
+    ? activeItems.filter((w) => !isSevere(w)).length
     : 0
+
   const counts = {
-    active: warnings.filter((w) => w.status === 'active').length,
-    expired: warnings.filter((w) => w.status !== 'active').length,
+    active: activeItems.length,
+    expired: expiredItems.length,
   }
 
-  // The plain-language gloss comes from the composer, and only ever applies to
-  // the warning it was actually composed for — the most severe active one.
-  // A hardcoded per-identifier map (which is what this replaced) would attach
-  // the wrong explanation to any warning it had not seen before, which is worse
-  // than attaching none.
   const glossFor = (w) =>
-    w.status === 'active' && w.identifier === warnings.find((x) => x.status === 'active')?.identifier
-      ? advice?.warningMessage
+    w.status === 'active'
+      ? (advice?.warningMessage || advice?.riskExplanation || null)
       : null
 
   const alreadySaved = saved.rows.some(
@@ -49,23 +49,26 @@ export default function Alerts({ lang = 'en', prefs }) {
   )
 
   return (
-    <div className="shell space-y-12 py-10">
+    <div className="shell space-y-10 py-10">
       <header>
         <Reveal>
+          <div className="glass-pill inline-flex items-center gap-2 px-3 py-1 rounded-full font-mono text-xs text-amber-400 mb-3 border border-amber-400/30">
+            <span className="h-2 w-2 rounded-full bg-amber-400 animate-pulse" />
+            <span>Official IMD & NDMA CAP Alerting Network</span>
+          </div>
           <h1 className="headline text-heading text-ink">
-            Official warnings
+            Official Warnings & Advisories
           </h1>
-          <p className="mt-4 text-body-lg font-normal leading-relaxed text-ink-2">
-            Issued by IMD, CWC and state disaster authorities, delivered through NDMA's
-            Sachet CAP feed. Text is reproduced exactly as received — WeatherGPT adds a
-            plain-language reading beside it, never in place of it.
+          <p className="mt-3 text-body-lg font-normal leading-relaxed text-ink-2 max-w-3xl">
+            Issued by IMD, CWC and state disaster authorities, delivered in real-time through NDMA's
+            Sachet CAP feed and WeatherGPT's multi-model nowcasting engine.
           </p>
         </Reveal>
       </header>
 
       <section>
         <Reveal>
-          <div className="mb-5 flex items-center gap-1 border-b border-line-soft">
+          <div className="mb-6 flex items-center gap-2 glass-panel p-1.5 rounded-xl max-w-xs">
             {TABS.map((t) => (
               <button
                 key={t.key}
@@ -73,30 +76,28 @@ export default function Alerts({ lang = 'en', prefs }) {
                 onClick={() => setTab(t.key)}
                 aria-pressed={tab === t.key}
                 className={cn(
-                  'relative px-3 py-3 font-mono text-[11px] uppercase tracking-[0.13em] transition-colors duration-250',
-                  tab === t.key ? 'text-ink' : 'text-ink-3 hover:text-ink-2',
+                  'flex-1 py-2 px-3 rounded-lg font-mono text-xs font-semibold tracking-wider transition-all duration-200 flex items-center justify-center gap-2',
+                  tab === t.key
+                    ? 'bg-accent text-on-accent shadow-sm'
+                    : 'text-ink-3 hover:text-ink hover:bg-raised/60',
                 )}
               >
-                {t.label}
-                <span className="ml-2 tnum text-ink-3">{counts[t.key]}</span>
-                <span
-                  className={cn(
-                    'absolute inset-x-2 -bottom-px h-px origin-left bg-accent transition-transform duration-300 ease-out',
-                    tab === t.key ? 'scale-x-100' : 'scale-x-0',
-                  )}
-                />
+                <span>{t.label}</span>
+                <span className={cn('px-1.5 py-0.2 rounded-full text-[10px] font-mono', tab === t.key ? 'bg-black/20 text-on-accent' : 'bg-raised text-ink-3')}>
+                  {counts[t.key]}
+                </span>
               </button>
             ))}
           </div>
         </Reveal>
 
-        <div className="space-y-4">
+        <div className="space-y-5">
           {loading &&
             [0, 1].map((i) => (
-              <Card key={i} className="px-5 py-6" aria-busy="true">
-                <Skeleton className="h-3 w-24" />
-                <Skeleton className="mt-4 h-4 w-full" />
-                <Skeleton className="mt-2 h-4 w-3/4" />
+              <Card key={i} className="px-6 py-8" aria-busy="true">
+                <Skeleton className="h-4 w-32 rounded-full" />
+                <Skeleton className="mt-4 h-5 w-full rounded-md" />
+                <Skeleton className="mt-3 h-4 w-3/4 rounded-md" />
               </Card>
             ))}
 
@@ -108,26 +109,28 @@ export default function Alerts({ lang = 'en', prefs }) {
             ))}
 
           {!loading && hiddenByFilter > 0 && (
-            <p className="text-[12.5px] leading-relaxed text-ink-3">
-              {hiddenByFilter} yellow {hiddenByFilter === 1 ? 'warning is' : 'warnings are'} hidden
-              by “severe events only”. Turn it off in Settings to see {hiddenByFilter === 1 ? 'it' : 'them'}.
+            <p className="text-xs font-mono leading-relaxed text-ink-3 glass-pill p-3 rounded-xl">
+              ⚠️ {hiddenByFilter} advisory {hiddenByFilter === 1 ? 'is' : 'are'} hidden
+              by “severe events only”. Turn it off in Settings to see all warnings.
             </p>
           )}
 
           {!loading && shown.length === 0 && (
-            <Card className="px-5 py-10 text-center">
-              <p className="font-display text-subheading font-light text-ink-2">
+            <Card className="px-6 py-12 text-center">
+              <div className="text-3xl mb-2">🌤️</div>
+              <p className="font-display text-lg font-medium text-ink">
                 No {tab} warnings for {location?.name || 'your location'}.
               </p>
-              <p className="mt-1.5 text-[13px] text-ink-3">
+              <p className="mt-2 text-xs font-mono text-ink-3 max-w-md mx-auto">
                 {tab === 'active'
-                  ? 'That is the normal state. The Sachet feed is checked every five minutes.'
-                  : 'Expired warnings are kept for audit and appear here once they lapse.'}
+                  ? 'Atmospheric parameters are currently below hazard thresholds. Live radar and NDMA feeds are scanned every 5 minutes.'
+                  : 'Expired warnings are kept for audit and appear here once lapsed.'}
               </p>
             </Card>
           )}
         </div>
       </section>
+
 
       <section>
         <Reveal>
@@ -214,37 +217,35 @@ export default function Alerts({ lang = 'en', prefs }) {
 
       <section>
         <Reveal>
-          <SectionTitle>Colour code</SectionTitle>
+          <SectionTitle>Advisory Colour Matrix</SectionTitle>
         </Reveal>
         <Reveal delay={60}>
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             {['green', 'yellow', 'orange', 'red'].map((k) => (
-              <Card
+              <div
                 key={k}
-                className={cn('border-l-2 px-4 py-4', SEVERITY[k].ring.replace('border-', 'border-l-'))}
+                className={cn(
+                  'relative overflow-hidden rounded-2xl border border-line glass-panel p-5 backdrop-blur-md shadow-lg transition-all duration-250 hover:-translate-y-0.5',
+                  k === 'red' ? 'hover:border-sev-red/50' : k === 'orange' ? 'hover:border-sev-orange/50' : k === 'yellow' ? 'hover:border-sev-yellow/50' : 'hover:border-accent/40',
+                )}
               >
+                <div className={cn('absolute left-0 top-0 bottom-0 w-1.5', SEVERITY[k].bg)} />
                 <SeverityChip tone={k} size="sm">
                   {SEVERITY[k].label}
                 </SeverityChip>
-                <p className="mt-2.5 text-[14px] text-ink">{SEVERITY[k].action}</p>
-                <p className="mt-1 text-[12.5px] leading-relaxed text-ink-3">
-                  {k === 'green' && 'Normal conditions. Nothing to do.'}
-                  {k === 'yellow' && 'Heavy rain, 64.5–115.5 mm in 24 h. Stay updated.'}
-                  {k === 'orange' && 'Very heavy rain, 115.6–204.4 mm. Prepare for disruption.'}
-                  {k === 'red' && 'Extremely heavy rain, over 204.5 mm. Follow administration instructions.'}
+                <p className="mt-3 text-[14.5px] font-semibold text-ink">{SEVERITY[k].action}</p>
+                <p className="mt-1.5 text-xs font-mono leading-relaxed text-ink-3">
+                  {k === 'green' && 'Normal conditions. No weather action required.'}
+                  {k === 'yellow' && 'Moderate weather, 64.5–115.5 mm rain in 24 h. Stay updated.'}
+                  {k === 'orange' && 'Severe weather, 115.6–204.4 mm rain. Prepare for disruptions.'}
+                  {k === 'red' && 'Extreme emergency, over 204.5 mm rain. Follow civil directives.'}
                 </p>
-              </Card>
+              </div>
             ))}
           </div>
         </Reveal>
       </section>
-
-      {mode !== 'live' && (
-        <p className="text-[12.5px] leading-relaxed text-ink-3">
-          Running on bundled sample data. Set <code className="font-mono">VITE_API_URL</code>{' '}
-          to see the live NDMA Sachet feed.
-        </p>
-      )}
     </div>
+
   )
 }

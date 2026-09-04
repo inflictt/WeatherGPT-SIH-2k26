@@ -8,10 +8,10 @@ export function Card({ as: Tag = 'section', tone, interactive, className, childr
   return (
     <Tag
       className={cn(
-        'relative rounded-lg border border-line bg-surface',
-        'transition-colors duration-300 ease-out',
-        interactive && 'hover:bg-raised',
-        tone && 'border-l-2',
+        'relative rounded-2xl border border-line glass-panel backdrop-blur-md shadow-xl',
+        'transition-all duration-300 ease-out',
+        interactive && 'hover:bg-raised/70 hover:border-accent/40 hover:-translate-y-0.5',
+        tone && 'border-l-4',
         className,
       )}
       {...rest}
@@ -20,6 +20,7 @@ export function Card({ as: Tag = 'section', tone, interactive, className, childr
     </Tag>
   )
 }
+
 
 /** Section heading row: mono label on the left, optional meta on the right. */
 export function CardHead({ label, meta, className }) {
