@@ -120,7 +120,6 @@ class NluResponse(BaseModel):
         "rain_forecast", "warning_check", "advice", "temperature", "wind", "general"
     ]
     language: Literal["en", "hi", "hinglish"]
-    persona: Literal["general", "farmer", "traveller", "official"] = "general"
     location: str | None
     location_hint: Literal["self"] | None
     window: WindowOut
@@ -162,7 +161,7 @@ class ComposeRequest(BaseModel):
     warnings: list[dict[str, Any]] = []
     risk: dict[str, Any] | None = None
     confidence: dict[str, Any] | None = None
-    sources: list[dict[str, Any] | str] = []
+    sources: list[dict[str, Any]] = []
 
 
 class ComposeResponse(BaseModel):
@@ -188,3 +187,101 @@ class ComposeResponse(BaseModel):
     composer: str
     llm_rejected: list[str] | None = None
     engine_version: str
+
+
+# ===================================================================
+# Agriculture — PRD §16-20. Every request field is optional, because the
+# engines are built to answer with whatever exists and to report what did
+# not. Making them required would push the "I don't know" case out of the
+# engine and into a 422, where the interface cannot explain it.
+# ===================================================================
+
+
+class IrrigationRequest(BaseModel):
+    rain_24h_mm: float | None = None
+    rain_48h_mm: float | None = None
+    rain_72h_mm: float | None = None
+    temp_c: float | None = None
+    humidity: float | None = None
+    wind_kmh: float | None = None
+    soil_type: str | None = None
+    crop: str | None = None
+    sown_at: str | None = None
+    last_irrigated_days: int | None = None
+    soil_moisture_pct: float | None = None
+
+
+class IrrigationResponse(BaseModel):
+    recommendation: str
+    band: str
+    reason: str
+    confidence: str
+    factors: list[dict] = Field(default_factory=list)
+    inputs_used: list[str] = Field(default_factory=list)
+    inputs_missing: list[str] = Field(default_factory=list)
+    disclaimer: str
+
+
+class FarmRiskRequest(BaseModel):
+    rain_24h_mm: float | None = None
+    rain_72h_mm: float | None = None
+    temp_max_c: float | None = None
+    temp_min_c: float | None = None
+    humidity: float | None = None
+    wind_kmh: float | None = None
+    gust_kmh: float | None = None
+    crop: str | None = None
+    sown_at: str | None = None
+    soil_type: str | None = None
+    warning_colour: str | None = None
+
+
+class FarmRiskResponse(BaseModel):
+    #: `null` means "not assessed", never "fine".
+    overall: str | None = None
+    score: int | None = None
+    floored_by: str | None = None
+    confidence: str
+    unassessed: list[str] = Field(default_factory=list)
+    disclaimer: str
+    categories: list[dict] = Field(default_factory=list)
+
+
+class DiseaseRiskRequest(BaseModel):
+    #: The image model's class, verbatim. This service never produces one.
+    prediction: str | None = None
+    confidence: float | None = None
+    humidity: float | None = None
+    temp_c: float | None = None
+    rain_24h_mm: float | None = None
+    crop: str | None = None
+    sown_at: str | None = None
+
+
+class DiseaseRiskResponse(BaseModel):
+    band: str
+    score: int
+    detected: str | None = None
+    detection_confidence: float | None = None
+    conditions_band: str
+    factors: list[dict] = Field(default_factory=list)
+    actions: list[str] = Field(default_factory=list)
+    confidence: str
+    explanation: str
+    disclaimer: str
+
+
+class CropCalendarResponse(BaseModel):
+    crop: str
+    season: str
+    total_days: int
+    notes: str = ""
+    timeline: list[dict] = Field(default_factory=list)
+    current: dict = Field(default_factory=dict)
+
+
+class AgriContextRequest(BaseModel):
+    location: dict | None = None
+    weather: dict | None = None
+    farm: dict | None = None
+    warnings: list[dict] = Field(default_factory=list)
