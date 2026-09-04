@@ -63,7 +63,7 @@ function WeatherIcon({ type, className = 'w-6 h-6' }) {
 }
 
 export default function MonthlyForecast({ prefs }) {
-  const { location, daily, current } = useData()
+  const { location, daily, current, summary24h } = useData()
   const fmt = formatters(prefs?.units)
   const [selectedMonthIndex, setSelectedMonthIndex] = useState(0) // 0 = Sep 2026
   const [activeDay, setActiveDay] = useState(4) // Default to Day 4 as in reference
