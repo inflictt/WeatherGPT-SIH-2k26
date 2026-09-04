@@ -79,32 +79,9 @@ export async function searchGazetteer(query, { limit = 8, state } = {}) {
     .slice(0, limit)
 }
 
-/** Open-Meteo geocoding: fast (~50ms), zero rate limits, full Indian coverage. */
-export async function geocodeOpenMeteo(query) {
-  try {
-    const url = `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(query)}&count=10&language=en&format=json`
-    const data = await getJson(url, { retries: 0 })
-    if (!data?.results || !Array.isArray(data.results)) return []
-    return data.results.map((r) => ({
-      name: r.name,
-      slug: slugify(r.name || ''),
-      kind: r.feature_code?.startsWith('PPL') ? 'city' : 'town',
-      district: (r.admin2 || r.admin3 || r.name).replace(/\s*district\s*/i, '').trim(),
-      state: [r.admin1, r.country].filter(Boolean).join(', '),
-      lat: Number(r.latitude),
-      lon: Number(r.longitude),
-      source: 'open-meteo',
-    }))
-  } catch (err) {
-    log.warn('open-meteo geocoding failed', { error: String(err.message || err) })
-    return []
-  }
-}
-
-
 let lastNominatim = 0
 
-/** Nominatim: emergency fallback if Open-Meteo fails. */
+/** Nominatim: free, no key, but strictly one request per second and a real UA. */
 export async function geocodeNominatim(query) {
   const wait = 1100 - (Date.now() - lastNominatim)
   if (wait > 0) await sleep(wait)
@@ -165,52 +142,12 @@ export async function nearestLocation(lat, lon, maxMeters = 60000) {
  * resolved place with a district (which the warning matcher needs).
  */
 export async function resolveLocation({ q, lat, lon, state }) {
-  if (q && q !== 'Selected location') {
-    const [best] = await searchGazetteer(q, { limit: 1, state })
-    if (best) {
-      return {
-        id: best._id,
-        name: best.name,
-        district: best.district,
-        state: best.state,
-        lat: Number.isFinite(lat) ? lat : best.lat,
-        lon: Number.isFinite(lon) ? lon : best.lon,
-        kind: best.kind,
-        zone: best.zone || 'plains',
-        urbanFloodProne: best.urbanFloodProne || false,
-        source: 'gazetteer',
-      }
-    }
-
-    const [geoOpenMeteo] = await geocodeOpenMeteo(q)
-    if (geoOpenMeteo) {
-      return {
-        ...geoOpenMeteo,
-        lat: Number.isFinite(lat) ? lat : geoOpenMeteo.lat,
-        lon: Number.isFinite(lon) ? lon : geoOpenMeteo.lon,
-        zone: 'plains',
-        urbanFloodProne: false,
-      }
-    }
-
-    const [geo] = await geocodeNominatim(q)
-    if (geo) {
-      return {
-        ...geo,
-        lat: Number.isFinite(lat) ? lat : geo.lat,
-        lon: Number.isFinite(lon) ? lon : geo.lon,
-        zone: 'plains',
-        urbanFloodProne: false,
-      }
-    }
-  }
-
   if (Number.isFinite(lat) && Number.isFinite(lon)) {
-    const near = await nearestLocation(lat, lon, 25000)
+    const near = await nearestLocation(lat, lon)
     return {
-      name: (near?.name && near.name !== 'Selected location') ? near.name : (q && q !== 'Selected location') ? q : 'Kapriwas',
-      district: near?.district || 'Rewari',
-      state: near?.state || 'Haryana',
+      name: near?.name || 'Selected location',
+      district: near?.district,
+      state: near?.state,
       lat,
       lon,
       kind: near?.kind || 'village',
@@ -220,19 +157,26 @@ export async function resolveLocation({ q, lat, lon, state }) {
     }
   }
 
-  if (q) {
+  if (!q) return null
+
+  const [best] = await searchGazetteer(q, { limit: 1, state })
+  if (best) {
     return {
-      name: q,
-      lat: 26.9124,
-      lon: 75.7873,
-      kind: 'city',
-      zone: 'plains',
-      urbanFloodProne: false,
-      source: 'fallback',
+      id: best._id,
+      name: best.name,
+      district: best.district,
+      state: best.state,
+      lat: best.lat,
+      lon: best.lon,
+      kind: best.kind,
+      zone: best.zone || 'plains',
+      urbanFloodProne: best.urbanFloodProne || false,
+      source: 'gazetteer',
     }
   }
 
-  return null
+  const [geo] = await geocodeNominatim(q)
+  return geo ? { ...geo, zone: 'plains', urbanFloodProne: false } : null
 }
 
 const escapeRe = (s) => String(s).replace(/[.*+?^${}()|[\]\\]/g, '\\$&')

@@ -1,18 +1,5 @@
 [
  {
-  "name": "Kapriwas",
-  "slug": "kapriwas",
-  "aliases": ["Kapriwas Haryana", "Kapriwas Rewari"],
-  "kind": "village",
-  "district": "Rewari",
-  "state": "Haryana",
-  "lat": 28.2435,
-  "lon": 76.8453,
-  "zone": "plains",
-  "urbanFloodProne": false,
-  "population": 5000
- },
- {
   "name": "Udaipur",
   "slug": "udaipur",
   "aliases": [],
