@@ -1,0 +1,13 @@
+# Phase 3–4 — all free, all open source. The only optional key is the LLM one,
+# and the service is fully functional without it (see app/llm.py).
+#
+# Version floors rather than pins: pydantic 2.10 has no wheel for Python 3.14
+# and falls back to a Rust build, which fails on a machine without a toolchain.
+# Floors keep a fresh clone installable on 3.10 through 3.14 alike.
+fastapi>=0.115,<1.0
+uvicorn[standard]>=0.32,<1.0
+pydantic>=2.10,<3.0
+
+# Tests only
+pytest>=8.3,<9.0
+httpx>=0.28,<1.0
