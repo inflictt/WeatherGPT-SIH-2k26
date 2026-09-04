@@ -29,10 +29,10 @@ export default function WarningBanner({ warning }) {
       to="/alerts"
       aria-live="assertive"
       className={cn(
-        'group block border-b transition-colors duration-300 ease-out',
+        'group block border-b bg-surface/90 backdrop-blur-md transition-colors duration-300 ease-out',
         s.ring,
         s.wash,
-        'hover:bg-raised/60',
+        'hover:bg-raised/80',
         // A red alert gets a real edge, not a hairline.
         warning.colour === 'red' && 'border-b-2',
       )}
