@@ -23,7 +23,7 @@ export default function TopHeader({ lang, setLang, picker, resolved, toggleTheme
           <div className="flex items-center gap-2 glass-pill px-3 py-1.5 rounded-lg">
             <span className="text-iris text-sm">📍</span>
             <span className="font-display font-light text-sm text-ink">
-              {location?.name || 'Udaipur'}{location?.district ? `, ${location.district}` : ''}
+              {location?.name || 'Kapriwas'}{location?.district ? `, ${location.district}` : ''}
             </span>
           </div>
 

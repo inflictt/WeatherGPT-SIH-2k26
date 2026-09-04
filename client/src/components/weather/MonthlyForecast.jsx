@@ -152,7 +152,7 @@ export default function MonthlyForecast({ prefs }) {
 
         <div className="flex items-center gap-2">
           <span className="glass-pill px-3 py-1.5 rounded-full font-mono text-xs text-ink-2">
-            📍 {location?.name || 'Udaipur'}, {location?.state || 'Rajasthan'}
+            📍 {location?.name || 'Kapriwas'}, {location?.state || 'Haryana'}
           </span>
         </div>
       </div>

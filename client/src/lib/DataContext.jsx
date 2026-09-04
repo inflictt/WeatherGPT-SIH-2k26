@@ -45,7 +45,7 @@ const MOCK = {
 
 const DataContext = createContext(MOCK)
 
-export function DataProvider({ children, query = { q: 'Udaipur' }, persona = 'general', lang = 'en' }) {
+export function DataProvider({ children, query = { q: 'Kapriwas' }, persona = 'general', lang = 'en' }) {
   const [state, setState] = useState({ ...MOCK, loading: LIVE })
   const key = JSON.stringify(query)
 

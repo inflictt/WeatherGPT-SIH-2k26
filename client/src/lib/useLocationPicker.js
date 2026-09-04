@@ -184,7 +184,7 @@ export function useLocationPicker() {
     asQuery:
       location?.lat != null && location?.lon != null
         ? { lat: location.lat, lon: location.lon }
-        : { q: location?.name || 'Udaipur' },
+        : { q: location?.name || 'Kapriwas' },
   }
 }
 

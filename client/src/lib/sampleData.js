@@ -11,20 +11,20 @@ const now = new Date()
 const iso = (hoursFromNow) => new Date(now.getTime() + hoursFromNow * 3600e3).toISOString()
 
 export const LOCATION = {
-  id: 'loc_udaipur',
-  name: 'Udaipur',
-  district: 'Udaipur',
-  state: 'Rajasthan',
-  lat: 24.5854,
-  lon: 73.7125,
-  kind: 'city',
+  id: 'loc_kapriwas',
+  name: 'Kapriwas',
+  district: 'Rewari',
+  state: 'Haryana',
+  lat: 28.2435,
+  lon: 76.8453,
+  kind: 'village',
 }
 
 export const SAVED_LOCATIONS = [
-  { id: 'loc_udaipur', name: 'Udaipur', district: 'Udaipur', state: 'Rajasthan', tone: 'orange', label: 'Orange' },
-  { id: 'loc_bhinder', name: 'Bhinder', district: 'Udaipur', state: 'Rajasthan', tone: 'orange', label: 'Orange' },
-  { id: 'loc_jaipur', name: 'Jaipur', district: 'Jaipur', state: 'Rajasthan', tone: 'yellow', label: 'Yellow' },
-  { id: 'loc_kota', name: 'Kota', district: 'Kota', state: 'Rajasthan', tone: 'green', label: 'Clear' },
+  { id: 'loc_kapriwas', name: 'Kapriwas', district: 'Rewari', state: 'Haryana', tone: 'orange', label: 'Orange' },
+  { id: 'loc_delhi', name: 'Delhi', district: 'New Delhi', state: 'Delhi', tone: 'orange', label: 'Orange' },
+  { id: 'loc_gurugram', name: 'Gurugram', district: 'Gurugram', state: 'Haryana', tone: 'yellow', label: 'Yellow' },
+  { id: 'loc_udaipur', name: 'Udaipur', district: 'Udaipur', state: 'Rajasthan', tone: 'green', label: 'Clear' },
 ]
 
 export const CURRENT = {
