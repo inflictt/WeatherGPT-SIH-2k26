@@ -1,6 +1,6 @@
 import { useEffect } from 'react'
 import { useLocation } from 'react-router-dom'
-import { useActiveWarnings } from '../lib/DataContext'
+import { useActiveWarnings, useData } from '../lib/DataContext'
 import TopBar from './TopBar'
 import TabNav from './TabNav'
 import MobileNav from './MobileNav'
@@ -16,6 +16,8 @@ import Footer from './Footer'
 export default function AppShell({ children, ...bar }) {
   const { pathname } = useLocation()
   const warnings = useActiveWarnings()
+  const data = useData()
+  const location = bar.picker?.location || data?.location
 
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: 'auto' })
@@ -31,8 +33,8 @@ export default function AppShell({ children, ...bar }) {
       </a>
 
       <header className="sticky top-0 z-[60]">
-        <TopBar {...bar} />
-        <TabNav warningCount={warnings.length} />
+        <TopBar {...bar} activeLocation={location} />
+        <TabNav warningCount={warnings.length} location={location} onChangeLocation={bar.onChangeLocation} />
       </header>
 
       {/* keyed so each screen animates in rather than snapping */}
