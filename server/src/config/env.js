@@ -36,6 +36,10 @@ export const env = {
   openWeatherApiKey: process.env.OPENWEATHER_API_KEY || '',
   openWeatherBase: process.env.OPENWEATHER_BASE || 'https://api.openweathermap.org/data/2.5',
 
+  // --- WeatherAPI.com & Tomorrow.io (multi-source providers) ---
+  weatherApiKey: process.env.WEATHERAPI_KEY || '',
+  tomorrowApiKey: process.env.TOMORROW_API_KEY || '',
+
   // --- official warnings: free, public ---
   // The all-India CAP index. NOT `/CapFeed` — that path serves the portal's
   // HTML app shell, which parses to zero alerts and silently falls through to
