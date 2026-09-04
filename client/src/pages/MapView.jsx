@@ -6,6 +6,7 @@ import { Card, CardHead } from '../components/ui/Card'
 import { SeverityChip } from '../components/ui/Severity'
 import Reveal from '../components/ui/Reveal'
 import WarningMap from '../components/map/WarningMap'
+import ShelterLocator from '../components/disaster/ShelterLocator'
 
 /**
  * Warnings on a real map.
@@ -244,6 +245,14 @@ export default function MapView({ prefs }) {
           )}
         </div>
       </div>
+
+      <Reveal delay={280}>
+        <ShelterLocator
+          lat={location?.lat}
+          lon={location?.lon}
+          activeWarning={active}
+        />
+      </Reveal>
     </div>
   )
 }

@@ -11,9 +11,13 @@ import * as warnings from '../controllers/warnings.js'
 import * as risk from '../controllers/risk.js'
 import * as chat from '../controllers/chat.js'
 import * as alerts from '../controllers/alerts.js'
+import * as shelter from '../controllers/shelter.js'
 import { health, telemetry } from '../controllers/health.js'
 
 const r = Router()
+
+/* --- disaster relief shelters ------------------------------------------ */
+r.get('/shelters', wrap(shelter.getShelters))
 
 /* --- diagnostics ------------------------------------------------------- */
 r.get('/health', wrap(health))

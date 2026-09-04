@@ -4,6 +4,7 @@ import { useSavedLocations } from '../lib/useSavedLocations'
 import { SEVERITY } from '../lib/constants'
 import { cn } from '../lib/utils'
 import WarningCard from '../components/warning/WarningCard'
+import ShelterLocator from '../components/disaster/ShelterLocator'
 import { Card, CardHead } from '../components/ui/Card'
 import { SeverityChip } from '../components/ui/Severity'
 import Reveal from '../components/ui/Reveal'
@@ -131,6 +132,15 @@ export default function Alerts({ lang = 'en', prefs }) {
         </div>
       </section>
 
+      <section>
+        <Reveal>
+          <ShelterLocator
+            lat={location?.lat}
+            lon={location?.lon}
+            activeWarning={activeItems.length > 0 ? activeItems[0] : null}
+          />
+        </Reveal>
+      </section>
 
       <section>
         <Reveal>
