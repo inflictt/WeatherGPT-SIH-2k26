@@ -2,43 +2,63 @@ import { useState } from 'react'
 import { useData } from '../lib/DataContext'
 import { useFarm, stageFor } from '../lib/useFarm'
 import { CROP_STAGES } from '../lib/constants'
+import { t } from '../lib/i18n'
 import { cn, placeLine } from '../lib/utils'
 import Icon from '../ui/Icon'
-import { Card, CardHead, CardBody, Shell, PageHead, SubTabs, Meter, Fact } from '../ui/Bits'
+import { Card, CardHead, CardBody, Shell, PageHead, SubTabs, Meter } from '../ui/Bits'
 import Reveal from '../ui/Reveal'
 import ImageAnalyser from '../weather/ImageAnalyser'
-
-/**
- * Farm Connect — the profile the rest of the product reads.
- *
- * Nothing here is pre-filled. An empty profile is shown as empty, because a
- * demo farm would make every recommendation on the Today screen look personal
- * when it was not.
- */
-const TABS = [
-  { key: 'farm', label: 'My farm' },
-  { key: 'doctor', label: 'Crop doctor' },
-  { key: 'soil', label: 'Soil check' },
-  { key: 'planner', label: 'Planner' },
-]
 
 const SOILS = ['Alluvial', 'Black (regur)', 'Red', 'Laterite', 'Loamy', 'Sandy', 'Clay', 'Silty']
 const IRRIGATION = ['Rain-fed', 'Tube well', 'Canal', 'Drip', 'Sprinkler', 'Tank / pond']
 const WATER = ['Adequate', 'Limited', 'Scarce']
 
-export default function Farm() {
+export default function Farm({ audience = 'farm', setAudience, lang = 'en' }) {
   const [tab, setTab] = useState('farm')
   const { farm, set, addCrop, updateCrop, removeCrop, logObservation, completeness } = useFarm()
   const { location } = useData()
 
+  const isGeneral = audience === 'everyone'
+
+  const tabs = [
+    { key: 'farm', label: t('subTabMyFarm', lang) },
+    { key: 'doctor', label: t('subTabCropDoctor', lang) },
+    { key: 'soil', label: t('subTabSoilCheck', lang) },
+    { key: 'planner', label: t('subTabPlanner', lang) },
+  ]
+
   return (
     <Shell className="space-y-4 pb-8">
+      {isGeneral && (
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-accent/30 bg-accent-soft p-4 shadow-sm">
+          <div className="flex items-center gap-3">
+            <span className="grid h-10 w-10 flex-none place-items-center rounded-xl bg-accent text-on-accent">
+              <Icon name="sprout" size={20} />
+            </span>
+            <div>
+              <h4 className="text-body-sm font-bold text-ink">
+                {t('farmerViewNotice', lang)}
+              </h4>
+            </div>
+          </div>
+          {setAudience && (
+            <button
+              type="button"
+              onClick={() => setAudience('farm')}
+              className="flex items-center gap-2 rounded-xl bg-accent px-4 py-2 text-caption font-bold text-on-accent shadow-sm hover:opacity-95"
+            >
+              <span>{t('switchToFarmerMode', lang)}</span>
+            </button>
+          )}
+        </div>
+      )}
+
       <PageHead
         eyebrow={placeLine(location)}
-        title="Farm Connect"
+        title={t('farmConnectTitle', lang)}
         aside={
           <div className="flex items-center gap-3">
-            <span className="lbl">Profile</span>
+            <span className="lbl">{t('tabFarmShort', lang)}</span>
             <span className="h-1.5 w-24 overflow-hidden rounded-full bg-sunk">
               <span
                 className="block h-full origin-left rounded-full bg-accent transition-transform duration-700"
@@ -49,21 +69,19 @@ export default function Farm() {
           </div>
         }
       >
-        Your plots, crops and scans. Everything here stays on this device and is read by
-        Farmer's Friend before it answers — which is what lets “what should I do tomorrow?”
-        resolve against your actual field.
+        Your plots, crops and scans. Everything here stays on this device.
       </PageHead>
 
-      <SubTabs tabs={TABS} value={tab} onChange={setTab} />
+      <SubTabs tabs={tabs} value={tab} onChange={setTab} />
 
       {/* ------------------------------------------------------------ my farm */}
       {tab === 'farm' && (
         <div className="space-y-3 pt-1">
           <Card>
-            <CardHead title="Plot" meta={farm.name ? 'Saved on this device' : 'Not set up yet'} />
+            <CardHead title={t('subTabMyFarm', lang)} meta={farm.name ? 'Saved on this device' : 'Not set up yet'} />
             <CardBody>
               <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                <Field label="Farm name" icon="sprout">
+                <Field label={t('farmName', lang)} icon="sprout">
                   <input
                     value={farm.name}
                     onChange={(e) => set({ name: e.target.value })}
@@ -71,7 +89,7 @@ export default function Farm() {
                     className={inputCls}
                   />
                 </Field>
-                <Field label="Area under crop" icon="layers">
+                <Field label={t('areaUnderCrop', lang)} icon="layers">
                   <div className="flex items-center gap-2">
                     <input
                       value={farm.areaHa}
@@ -83,20 +101,15 @@ export default function Farm() {
                     <span className="lbl flex-none">ha</span>
                   </div>
                 </Field>
-                <Field label="Soil type" icon="flask">
+                <Field label={t('soilType', lang)} icon="flask">
                   <select value={farm.soilType} onChange={(e) => set({ soilType: e.target.value, soilSource: 'manual', soilConfidence: null })} className={inputCls}>
                     <option value="">Not set</option>
                     {SOILS.map((s) => (
                       <option key={s} value={s}>{s}</option>
                     ))}
                   </select>
-                  {farm.soilSource === 'model' && farm.soilConfidence != null && (
-                    <span className="mt-1 block text-data text-ink-3">
-                      Image classifier · {Math.round(farm.soilConfidence * 100)}% confidence
-                    </span>
-                  )}
                 </Field>
-                <Field label="Irrigation" icon="drop">
+                <Field label={t('irrigationSource', lang)} icon="drop">
                   <select value={farm.irrigation} onChange={(e) => set({ irrigation: e.target.value })} className={inputCls}>
                     <option value="">Not set</option>
                     {IRRIGATION.map((s) => (
@@ -104,7 +117,7 @@ export default function Farm() {
                     ))}
                   </select>
                 </Field>
-                <Field label="Water availability" icon="drop">
+                <Field label={t('waterAvailability', lang)} icon="drop">
                   <select value={farm.water} onChange={(e) => set({ water: e.target.value })} className={inputCls}>
                     <option value="">Not set</option>
                     {WATER.map((s) => (
@@ -112,7 +125,7 @@ export default function Farm() {
                     ))}
                   </select>
                 </Field>
-                <Field label="Season" icon="calendar">
+                <Field label={t('seasonLabel', lang)} icon="calendar">
                   <input
                     value={farm.season}
                     onChange={(e) => set({ season: e.target.value })}
@@ -127,7 +140,7 @@ export default function Farm() {
           {/* ---- crops ---- */}
           <Card>
             <CardHead
-              title="Crops this season"
+              title={t('cropsThisSeason', lang)}
               action={
                 <button
                   type="button"
@@ -135,15 +148,14 @@ export default function Farm() {
                   className="lbl inline-flex items-center gap-1.5 text-accent hover:text-accent-2"
                 >
                   <Icon name="plus" size={13} />
-                  Add crop
+                  {t('addCrop', lang)}
                 </button>
               }
             />
             <CardBody className="space-y-3">
               {farm.crops.length === 0 && (
                 <p className="text-data leading-relaxed text-ink-3">
-                  No crops yet. Add one and the Today screen starts answering with your crop
-                  stage instead of generic advice.
+                  No crops yet. Add one to customize your daily brief.
                 </p>
               )}
               {farm.crops.map((c) => {
@@ -151,15 +163,15 @@ export default function Farm() {
                 return (
                   <div key={c.id} className="rounded-lg border border-line p-4">
                     <div className="grid gap-3 sm:grid-cols-[1fr_1fr_auto]">
-                      <Field label="Crop">
+                      <Field label={t('cropName', lang)}>
                         <input
                           value={c.name}
                           onChange={(e) => updateCrop(c.id, { name: e.target.value })}
-                          placeholder="Wheat"
+                          placeholder="Wheat / Gehu"
                           className={inputCls}
                         />
                       </Field>
-                      <Field label="Sown on">
+                      <Field label={t('sownOn', lang)}>
                         <input
                           type="date"
                           value={c.sownAt || ''}
@@ -184,10 +196,6 @@ export default function Farm() {
                           <span className="tnum text-data text-ink-3">Day {st.days}</span>
                         </div>
                         <Meter value={st.progress} max={1} className="mt-2" />
-                        <p className="mt-2 text-data leading-relaxed text-ink-3">
-                          Estimated from the sowing date against a ~140-day cereal calendar. Set
-                          the stage yourself if your variety runs shorter or longer.
-                        </p>
                       </div>
                     )}
                   </div>
@@ -198,12 +206,11 @@ export default function Farm() {
 
           {/* ---- observation log ---- */}
           <Card>
-            <CardHead title="Observation log" meta={`${farm.observations.length} recorded`} />
+            <CardHead title={t('observationLog', lang)} meta={`${farm.observations.length} recorded`} />
             <CardBody className="space-y-2.5">
               {farm.observations.length === 0 && (
                 <p className="text-data leading-relaxed text-ink-3">
-                  Nothing scanned yet. Every Crop Doctor and Soil Check run is logged here, with
-                  what the model said and how confident it was — including the runs that failed.
+                  {t('noObservationsYet', lang)}
                 </p>
               )}
               {farm.observations.map((o) => (
@@ -217,7 +224,7 @@ export default function Farm() {
                       <span className="tnum lbl">{Math.round((o.confidence || 0) * 100)}%</span>
                     </div>
                     <div className="text-data text-ink-3">
-                      {new Date(o.at).toLocaleString()} · {o.mode === 'soil' ? 'Soil check' : 'Crop doctor'}
+                      {new Date(o.at).toLocaleString()} · {o.mode === 'soil' ? t('subTabSoilCheck', lang) : t('subTabCropDoctor', lang)}
                     </div>
                   </div>
                 </div>
@@ -234,6 +241,7 @@ export default function Farm() {
             mode="leaf"
             crop={farm.crops[0]?.name}
             location={location}
+            lang={lang}
             onResult={(r) => logObservation({ mode: 'leaf', prediction: r.prediction, confidence: r.confidence })}
           />
         </div>
@@ -244,6 +252,7 @@ export default function Farm() {
         <div className="space-y-3 pt-1">
           <ImageAnalyser
             mode="soil"
+            lang={lang}
             onResult={(r) => {
               logObservation({ mode: 'soil', prediction: r.prediction, confidence: r.confidence })
               set({ soilType: r.prediction, soilConfidence: r.confidence, soilSource: 'model' })
@@ -262,8 +271,7 @@ export default function Farm() {
               </span>
               <p className="mt-3 text-subheading font-medium text-ink">No crop to plan yet</p>
               <p className="mx-auto mt-1.5 max-w-measure text-data leading-relaxed text-ink-3">
-                Add a crop and a sowing date under <strong className="font-medium text-ink">My farm</strong>{' '}
-                and its lifecycle appears here, with the current stage marked.
+                Add a crop and a sowing date under <strong className="font-medium text-ink">{t('subTabMyFarm', lang)}</strong> to view lifecycle stages.
               </p>
             </Card>
           ) : (
@@ -274,7 +282,7 @@ export default function Farm() {
                 <Reveal key={c.id}>
                   <Card>
                     <CardHead
-                      title={c.name || 'Unnamed crop'}
+                      title={c.name || 'Crop'}
                       meta={st.days != null ? `Day ${st.days} · ${st.label}` : 'No sowing date'}
                     />
                     <CardBody>
@@ -303,11 +311,6 @@ export default function Farm() {
                               </span>
                               <span className={cn('pb-4', now ? 'text-ink' : done ? 'text-ink-2' : 'text-ink-3')}>
                                 <span className="block text-caption font-medium">{s.label}</span>
-                                {now && (
-                                  <span className="mt-0.5 block text-data text-ink-3">
-                                    Where this crop is now, estimated from the sowing date.
-                                  </span>
-                                )}
                               </span>
                             </li>
                           )

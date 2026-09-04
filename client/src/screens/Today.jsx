@@ -3,25 +3,15 @@ import { useActiveWarnings, useData } from '../lib/DataContext'
 import { formatters } from '../lib/usePreferences'
 import { greeting, statement, briefTiles, irrigation, actions } from '../lib/brief'
 import { SEVERITY } from '../lib/constants'
+import { t } from '../lib/i18n'
 import { cn, placeLine } from '../lib/utils'
 import Icon from '../ui/Icon'
 import { Card, CardHead, CardBody, Shell, Skeleton, Meter, ConfidenceBars } from '../ui/Bits'
-import { SeverityTile, PulseDot } from '../ui/Severity'
+import { SeverityTile } from '../ui/Severity'
 import Reveal from '../ui/Reveal'
 import SkyCanvas from '../weather/SkyCanvas'
 
-/**
- * Today — the brief.
- *
- * The screen opens with a *sentence*, not a figure, because "31 °C" does not
- * answer the question anyone actually arrived with. The sentence is composed
- * from thresholds in `lib/brief.js`, so it moves with the data and can be
- * checked against the numbers printed directly underneath it.
- *
- * The warning, when there is one, still comes first — above the greeting,
- * above the temperature, above everything.
- */
-export default function Today({ prefs, audience }) {
+export default function Today({ prefs, audience, lang = 'en' }) {
   const { current, daily, summary24h, risk, confidence, location, loading, mode, error, degraded } = useData()
   const active = useActiveWarnings()
   const fmt = formatters(prefs?.units)
@@ -29,10 +19,10 @@ export default function Today({ prefs, audience }) {
 
   const warning = active[0]
   const sev = warning ? SEVERITY[warning.colour] || SEVERITY.green : null
-  const st = statement({ current, summary24h, daily, audience, fmt })
-  const tiles = briefTiles({ current, summary24h, risk, daily, audience, fmt })
-  const irr = irrigation({ current, summary24h, daily })
-  const todo = actions({ current, summary24h, daily, audience })
+  const st = statement({ current, summary24h, daily, audience, fmt, lang })
+  const tiles = briefTiles({ current, summary24h, risk, daily, audience, fmt, lang })
+  const irr = irrigation({ current, summary24h, daily, lang })
+  const todo = actions({ current, summary24h, daily, audience, lang })
 
   const mm = summary24h?.rainMm ?? daily?.[0]?.mm ?? 0
   const isNight = (() => {
@@ -53,6 +43,9 @@ export default function Today({ prefs, audience }) {
     )
   }
 
+  const sevLabel = sev ? (lang === 'hi' ? t(`sev${sev.label}Label`, lang) : sev.label) : ''
+  const sevAction = sev ? (lang === 'hi' ? t(`sev${sev.label}Action`, lang) : sev.action) : ''
+
   return (
     <Shell className="space-y-4 py-5 sm:py-7">
       {/* ---------------------------------------------------------- warning */}
@@ -69,7 +62,7 @@ export default function Today({ prefs, audience }) {
           <SeverityTile tone={warning.colour} />
           <span className="min-w-0 flex-1">
             <span className={cn('lbl block', sev.text)}>
-              {sev.label} · {sev.action}
+              {sevLabel} · {sevAction}
             </span>
             <span className="mt-0.5 block text-caption font-medium leading-snug text-ink">
               {warning.event}
@@ -77,7 +70,7 @@ export default function Today({ prefs, audience }) {
             </span>
           </span>
           <span className="lbl hidden flex-none items-center gap-1.5 text-ink-2 transition-colors group-hover:text-ink sm:flex">
-            What this means
+            {t('whatThisMeans', lang)}
             <Icon name="chevronRight" size={13} />
           </span>
         </Link>
@@ -85,8 +78,6 @@ export default function Today({ prefs, audience }) {
 
       {/* ------------------------------------------------------------- hero */}
       <section className="relative overflow-hidden rounded-xl border border-line bg-surface shadow-card">
-        {/* The sky reads the same numbers printed beside it: drop count and
-            speed from mm/h, slant from the wind bearing. */}
         <SkyCanvas
           mmPerHour={mm / 24}
           windKmh={current?.windKmh || 0}
@@ -100,7 +91,7 @@ export default function Today({ prefs, audience }) {
         <div className="relative grid gap-6 p-5 sm:p-7 lg:grid-cols-[1.15fr_1fr] lg:gap-10 lg:p-9">
           <div className="min-w-0">
             <span className="lbl">
-              {greeting()} · {placeLine(location)}
+              {greeting(new Date(), lang)} · {placeLine(location)}
             </span>
 
             <h1 className="headline mt-3 max-w-[15ch] text-display text-ink">{st.headline}</h1>
@@ -110,16 +101,16 @@ export default function Today({ prefs, audience }) {
             <div className="mt-6 flex flex-wrap gap-2.5">
               <button type="button" onClick={() => navigate('/chat')} className="btn">
                 <Icon name="message" size={16} />
-                Ask Farmer's Friend
+                {audience === 'farm' ? t('askKrishivaani', lang) : t('askAkashvaani', lang)}
               </button>
               <button type="button" onClick={() => navigate('/forecast')} className="btn-ghost">
-                Full forecast
+                {t('fullForecast', lang)}
                 <Icon name="chevronRight" size={15} />
               </button>
             </div>
           </div>
 
-          {/* ---- the figures the sentence turned on ---- */}
+          {/* ---- figures ---- */}
           <div className="min-w-0 lg:border-l lg:border-line-soft lg:pl-9">
             <div className="flex items-start gap-4">
               <Icon name={mm > 2 ? 'cloudRain' : isNight ? 'moon' : 'sun'} size={54} className="flex-none text-accent" />
@@ -128,18 +119,20 @@ export default function Today({ prefs, audience }) {
                   <span className="tnum text-figure font-semibold text-ink">{fmt.temp(current?.tempC)}</span>
                   <span className="mt-2 text-subheading font-medium text-ink-3">{fmt.tempUnit}</span>
                 </div>
-                <div className="mt-1 text-body-sm font-medium text-ink">{current?.condition}</div>
+                <div className="mt-1 text-body-sm font-medium text-ink">
+                  {current?.condition || t('condUnknown', lang)}
+                </div>
                 <div className="mt-0.5 text-data text-ink-3">
-                  Feels like {fmt.temp(current?.feelsLikeC)}{fmt.tempUnit}
+                  {t('feelsLike', lang)} {fmt.temp(current?.feelsLikeC)}{fmt.tempUnit}
                 </div>
               </div>
             </div>
 
             <dl className="mt-6 grid grid-cols-3 gap-2">
               {[
-                ['Rain chance', `${Math.round((current?.rainProb ?? 0) * 100)}%`],
-                ['Wind', `${fmt.speed(current?.windKmh)} ${fmt.speedUnit}`],
-                ['Humidity', `${current?.humidity ?? '—'}%`],
+                [t('rainChance', lang), `${Math.round((current?.rainProb ?? 0) * 100)}%`],
+                [t('wind', lang), `${fmt.speed(current?.windKmh)} ${fmt.speedUnit}`],
+                [t('humidity', lang), `${current?.humidity ?? '—'}%`],
               ].map(([k, v]) => (
                 <div key={k} className="rounded-lg bg-sunk px-3 py-2.5">
                   <dt className="lbl">{k}</dt>
@@ -154,42 +147,44 @@ export default function Today({ prefs, audience }) {
       {/* ------------------------------------------------------- status tiles */}
       <Reveal>
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-          {tiles.map((t) => (
-            <div key={t.key} className="rounded-xl border border-line bg-surface p-4 shadow-card">
+          {tiles.map((tile) => (
+            <div key={tile.key} className="rounded-xl border border-line bg-surface p-4 shadow-card">
               <div className="flex items-center justify-between gap-2">
-                <span className="lbl truncate">{t.label}</span>
+                <span className="lbl truncate">{tile.label}</span>
                 <span
                   className={cn(
                     'h-2 w-2 flex-none rounded-full',
-                    t.tone ? SEVERITY[t.tone].bg : 'bg-ink-3',
+                    tile.tone ? SEVERITY[tile.tone].bg : 'bg-ink-3',
                   )}
                   aria-hidden="true"
                 />
               </div>
               <div className="mt-2.5 truncate text-subheading font-semibold tracking-[-0.02em] text-ink">
-                {t.value}
+                {tile.value}
               </div>
-              <div className="mt-1 text-data leading-snug text-ink-3">{t.note}</div>
+              <div className="mt-1 text-data leading-snug text-ink-3">{tile.note}</div>
             </div>
           ))}
         </div>
       </Reveal>
 
-      {/* ---------------------------------------------- farm: actions + water */}
+      {/* ---------------------------------------------- farm: actions + water (Farmer View Only) */}
       {audience === 'farm' && (
         <Reveal delay={60}>
           <div className="grid gap-3 lg:grid-cols-2">
             <Card>
-              <CardHead title="Today's actions" meta={`${todo.length} · from today's figures`} />
+              <CardHead
+                title={t('todaysActions', lang)}
+                meta={`${todo.length} · ${t('fromTodaysFigures', lang)}`}
+              />
               <CardBody className="space-y-3">
                 {todo.length === 0 && (
                   <p className="text-data leading-relaxed text-ink-3">
-                    Nothing to plan around today — conditions are inside every threshold this
-                    engine watches. That is a real answer, not an empty list.
+                    {t('noActionsNeeded', lang)}
                   </p>
                 )}
                 {todo.map((a, i) => (
-                  <div key={a.text} className="flex gap-3">
+                  <div key={a.text + i} className="flex gap-3">
                     <span className="tnum grid h-6 w-6 flex-none place-items-center rounded-md bg-accent-soft font-mono text-[11px] font-medium text-accent">
                       {i + 1}
                     </span>
@@ -203,7 +198,7 @@ export default function Today({ prefs, audience }) {
             </Card>
 
             <Card>
-              <CardHead title="Irrigation" meta="Computed · not generated" />
+              <CardHead title={t('irrigationTitle', lang)} meta={t('irrigationMeta', lang)} />
               <CardBody className="space-y-4">
                 <div className="flex items-center gap-3">
                   <span
@@ -226,31 +221,28 @@ export default function Today({ prefs, audience }) {
 
                 <div className="space-y-2.5 border-t border-line-soft pt-3.5">
                   <div className="flex items-center gap-2.5">
-                    <span className="lbl">Confidence</span>
+                    <span className="lbl">{t('irrConfidence', lang)}</span>
                     <ConfidenceBars level={irr.confidence} />
                     <span className="text-data text-ink-2">{irr.confidence}</span>
                   </div>
                   <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-                    <span className="lbl">Used</span>
-                    {irr.inputs.map((i) => (
-                      <span key={i} className="rounded-md bg-sunk px-2 py-0.5 text-data text-ink-2">
-                        {i}
+                    <span className="lbl">{t('irrUsed', lang)}</span>
+                    {irr.inputs.map((inp) => (
+                      <span key={inp} className="rounded-md bg-sunk px-2 py-0.5 text-data text-ink-2">
+                        {inp}
                       </span>
                     ))}
                   </div>
-                  {/* Naming the gaps is the point — a recommendation that hides
-                      what it did not know is the one you should not trust. */}
                   <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-                    <span className="lbl">Not used</span>
-                    {irr.missing.map((i) => (
-                      <span key={i} className="rounded-md border border-dashed border-line px-2 py-0.5 text-data text-ink-3">
-                        {i}
+                    <span className="lbl">{t('irrNotUsed', lang)}</span>
+                    {irr.missing.map((mis) => (
+                      <span key={mis} className="rounded-md border border-dashed border-line px-2 py-0.5 text-data text-ink-3">
+                        {mis}
                       </span>
                     ))}
                   </div>
                   <p className="text-data leading-relaxed text-ink-3">
-                    Rainfall-based guidance only. It does not replace checking the soil at root
-                    depth, and it is not agronomic advice.
+                    {t('irrDisclaimer', lang)}
                   </p>
                 </div>
               </CardBody>
@@ -264,14 +256,13 @@ export default function Today({ prefs, audience }) {
         <div className="grid gap-3 lg:grid-cols-2">
           <Card>
             <CardHead
-              title={audience === 'farm' ? 'Farm risk' : 'Composite risk'}
-              meta={risk?.score != null ? `Score ${risk.score}/100` : 'Unavailable'}
+              title={audience === 'farm' ? t('tileFarmRisk', lang) : t('compositeRisk', lang)}
+              meta={risk?.score != null ? `${t('tileRisk', lang)} ${risk.score}/100` : '—'}
             />
             <CardBody>
               {!risk ? (
                 <p className="text-data leading-relaxed text-ink-3">
-                  The risk engine is unreachable, so no score is shown. Forecast and warnings
-                  above are unaffected.
+                  Risk score currently unavailable.
                 </p>
               ) : (
                 <>
@@ -285,7 +276,7 @@ export default function Today({ prefs, audience }) {
                       {risk.overall}
                     </span>
                     {risk.floorApplied && (
-                      <span className="lbl mb-1">Safety floor applied</span>
+                      <span className="lbl mb-1">{t('safetyFloorApplied', lang)}</span>
                     )}
                   </div>
                   <div className="mt-4 space-y-3">
@@ -310,7 +301,7 @@ export default function Today({ prefs, audience }) {
           </Card>
 
           <Card>
-            <CardHead title="Forecast confidence" meta="Model spread" />
+            <CardHead title={t('forecastConfidence', lang)} meta={t('modelSpread', lang)} />
             <CardBody>
               {!confidence ? (
                 <p className="text-data leading-relaxed text-ink-3">Confidence is unavailable.</p>
@@ -321,7 +312,7 @@ export default function Today({ prefs, audience }) {
                     <span className="text-subheading font-semibold tracking-[-0.02em] text-ink">
                       {confidence.level}
                     </span>
-                    <span className="lbl ml-auto">{confidence.leadHours} h ahead</span>
+                    <span className="lbl ml-auto">{confidence.leadHours} {t('hoursAhead', lang)}</span>
                   </div>
                   <ul className="mt-4 space-y-2">
                     {(confidence.reasons || []).map((r) => (
@@ -338,27 +329,29 @@ export default function Today({ prefs, audience }) {
         </div>
       </Reveal>
 
-      {/* ------------------------------------------------------- farm connect */}
-      <Reveal delay={120}>
-        <Link
-          to="/farm"
-          className="flex items-center gap-4 rounded-xl border border-line bg-surface p-4 shadow-card transition-colors duration-200 hover:border-accent sm:p-5"
-        >
-          <span className="grid h-11 w-11 flex-none place-items-center rounded-lg bg-accent-soft text-accent">
-            <Icon name="sprout" size={21} />
-          </span>
-          <span className="min-w-0 flex-1">
-            <span className="lbl block">Farm Connect</span>
-            <span className="mt-0.5 block text-caption font-medium text-ink">
-              {audience === 'farm' ? 'Your plots, crops and scans' : 'Set up a farm profile'}
+      {/* ------------------------------------------------------- farm connect (FARM ONLY) */}
+      {audience === 'farm' && (
+        <Reveal delay={120}>
+          <Link
+            to="/farm"
+            className="flex items-center gap-4 rounded-xl border border-line bg-surface p-4 shadow-card transition-colors duration-200 hover:border-accent sm:p-5"
+          >
+            <span className="grid h-11 w-11 flex-none place-items-center rounded-lg bg-accent-soft text-accent">
+              <Icon name="sprout" size={21} />
             </span>
-            <span className="mt-0.5 block text-data text-ink-3">
-              Soil check, Crop Doctor and the season planner live here.
+            <span className="min-w-0 flex-1">
+              <span className="lbl block">{t('farmConnectCardTitle', lang)}</span>
+              <span className="mt-0.5 block text-caption font-medium text-ink">
+                {t('farmConnectCardSub', lang)}
+              </span>
+              <span className="mt-0.5 block text-data text-ink-3">
+                {t('farmConnectCardDesc', lang)}
+              </span>
             </span>
-          </span>
-          <Icon name="chevronRight" size={18} className="flex-none text-ink-3" />
-        </Link>
-      </Reveal>
+            <Icon name="chevronRight" size={18} className="flex-none text-ink-3" />
+          </Link>
+        </Reveal>
+      )}
 
       {/* ------------------------------------------------------------- notice */}
       {(mode !== 'live' || degraded) && (
@@ -366,8 +359,8 @@ export default function Today({ prefs, audience }) {
           <span className="lbl mr-2">{mode !== 'live' ? 'Sample data' : 'Degraded'}</span>
           {mode !== 'live'
             ? error
-              ? `Live API unreachable (${error}) — every figure here comes from the bundled sample.`
-              : 'Running on bundled sample data. Set VITE_API_URL to connect the live API.'
+              ? `Live API unreachable (${error}) — figures come from bundled sample.`
+              : 'Running on bundled sample data.'
             : 'The risk engine is unreachable, so forecast and warnings are shown without a score.'}
         </p>
       )}

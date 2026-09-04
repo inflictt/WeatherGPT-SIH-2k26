@@ -1,29 +1,18 @@
 import { useEffect, useRef, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { AUDIENCES, ACTIVE_LANGUAGES } from '../lib/constants'
+import { ACTIVE_LANGUAGES } from '../lib/constants'
 import { searchDistricts } from '../lib/districts'
-import { cn } from '../lib/utils'
+import { t } from '../lib/i18n'
 import Icon from '../ui/Icon'
 import { Segmented, IconButton, Shell } from '../ui/Bits'
 
-/**
- * The header: mark, search, and the controls that change what the whole
- * product says rather than what one card shows.
- *
- * `audience` sits beside the unit toggle deliberately. It is not a filter —
- * it decides whether the same forecast is read as "take an umbrella" or as
- * "the spray window closes at 14:00", which is a bigger switch than °C/°F and
- * belongs at the same level.
- */
 export default function TopBar({
   picker,
   activeLocation,
-  lang,
+  lang = 'en',
   setLang,
   units,
   setUnits,
-  audience,
-  setAudience,
   theme,
   toggleTheme,
   onChangeLocation,
@@ -34,7 +23,7 @@ export default function TopBar({
   const navigate = useNavigate()
 
   const currentLoc = activeLocation || picker?.location
-  const locName = currentLoc?.name || currentLoc?.district || 'Location'
+  const locName = currentLoc?.name || currentLoc?.district || t('changeLocation', lang)
 
   const results = query.trim() ? searchDistricts(query, 6) : []
 
@@ -59,7 +48,7 @@ export default function TopBar({
           <span className="grid h-[30px] w-[30px] place-items-center rounded-md bg-accent text-on-accent">
             <Icon name="cloudRain" size={18} />
           </span>
-          <span className="text-body-sm font-semibold tracking-[-0.02em] text-ink">WeatherGPT</span>
+          <span className="text-body-sm font-semibold tracking-[-0.02em] text-ink">{t('appName', lang)}</span>
         </Link>
 
         {/* --- search --- */}
@@ -84,7 +73,7 @@ export default function TopBar({
               if (e.key === 'Enter' && results[0]) pick(results[0])
               if (e.key === 'Escape') setOpen(false)
             }}
-            placeholder="Search village, district or city"
+            placeholder={t('searchPlaceholder', lang)}
             aria-label="Search for a place"
             className="h-10 w-full rounded-lg border border-line bg-sunk pl-9 pr-3 text-caption text-ink outline-none transition-colors duration-150 placeholder:text-ink-3 focus:border-accent focus:bg-surface"
           />
@@ -92,7 +81,7 @@ export default function TopBar({
           {open && query.trim() && (
             <div className="absolute inset-x-0 top-[calc(100%+6px)] z-50 overflow-hidden rounded-lg border border-line bg-surface shadow-card">
               <div className="border-b border-line-soft px-3 py-2">
-                <span className="lbl">{results.length ? 'Bundled gazetteer' : 'No match'}</span>
+                <span className="lbl">{results.length ? t('bundledGazetteer', lang) : t('noMatch', lang)}</span>
               </div>
               {results.map((r) => (
                 <button
@@ -112,7 +101,7 @@ export default function TopBar({
               ))}
               {!results.length && (
                 <p className="px-3 py-3 text-data leading-relaxed text-ink-3">
-                  Nothing bundled matches that. Connect the API for village-level search.
+                  {t('noMatchDetail', lang)}
                 </p>
               )}
             </div>
@@ -121,12 +110,6 @@ export default function TopBar({
 
         {/* --- controls --- */}
         <div className="flex flex-1 items-center justify-end gap-2 sm:flex-none">
-          <Segmented
-            label="Who this is for"
-            options={AUDIENCES.map((a) => ({ key: a.key, label: a.label }))}
-            value={audience}
-            onChange={setAudience}
-          />
           <Segmented
             label="Units"
             size="sm"
@@ -141,7 +124,7 @@ export default function TopBar({
           <Segmented
             label="Language"
             size="sm"
-            className="hidden min-[430px]:flex"
+            className="flex"
             options={ACTIVE_LANGUAGES.map((l) => ({
               key: l.code,
               label: l.tiny || l.short,
@@ -150,11 +133,11 @@ export default function TopBar({
             value={lang}
             onChange={setLang}
           />
-          <IconButton icon="pin" label="Change location" onClick={onChangeLocation} />
-          <IconButton icon="map" label="Warning map" onClick={() => navigate('/map')} className="hidden sm:grid" />
+          <IconButton icon="pin" label={t('changeLocation', lang)} onClick={onChangeLocation} />
+          <IconButton icon="map" label={t('warningMap', lang)} onClick={() => navigate('/map')} className="hidden sm:grid" />
           <IconButton
             icon="settings"
-            label="Settings"
+            label={t('settings', lang)}
             onClick={() => navigate('/settings')}
             className="hidden sm:grid"
           />

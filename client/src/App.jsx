@@ -15,12 +15,6 @@ import Farm from './screens/Farm'
 import Ask from './screens/Ask'
 import Settings from './screens/Settings'
 
-/**
- * Leaflet is ~46 kB gzipped — more than the rest of the app put together, and
- * this product's users are on slow connections. Splitting it out keeps the
- * Today screen (the one carrying the warning) fast and pays the cost only when
- * someone actually opens the map.
- */
 const MapView = lazy(() => import('./screens/MapView'))
 
 function RouteFallback() {
@@ -38,11 +32,6 @@ export default function App() {
   const prefs = usePreferences()
   const theme = useTheme()
 
-  // The gate is not a preference — it is a precondition. Everything this
-  // product computes is for one place, and there is no honest default, so the
-  // app does not start until someone has chosen. `chosen` is stored separately
-  // from the location itself so that "never asked" and "asked, picked the
-  // sample's home district" stay distinguishable.
   const [chosen, setChosen] = useState(() => {
     try {
       return localStorage.getItem(GATE_KEY) === '1'
@@ -56,13 +45,13 @@ export default function App() {
     try {
       localStorage.setItem(GATE_KEY, '1')
     } catch {
-      /* private mode: the session still works, the gate just returns next time */
+      /* private mode */
     }
     setChosen(true)
     setReopening(false)
   }, [])
 
-  const [lang, setLang] = useState(() => prefs.value.language)
+  const [lang, setLang] = useState(() => prefs.value.language || 'en')
   const [audience, setAudience] = useState(() =>
     prefs.value.persona === 'farmer' ? 'farm' : 'everyone',
   )
@@ -89,10 +78,11 @@ export default function App() {
         {gateOpen && (
           <LocationGate
             picker={picker}
+            audience={audience}
+            setAudience={changeAudience}
+            lang={lang}
+            setLang={changeLang}
             onDone={closeGate}
-            // Escape only closes it when a place already exists to fall back
-            // on. On a first visit there is nothing behind the gate to return
-            // to, so it stays put.
             onCancel={chosen ? () => setReopening(false) : undefined}
           />
         )}
@@ -111,16 +101,26 @@ export default function App() {
         >
           <ErrorBoundary>
             <Routes>
-              <Route path="/" element={<Today prefs={prefs.value} audience={audience} />} />
-              <Route path="/forecast" element={<Forecast prefs={prefs.value} />} />
+              <Route path="/" element={<Today prefs={prefs.value} audience={audience} lang={lang} />} />
+              <Route path="/forecast" element={<Forecast prefs={prefs.value} lang={lang} />} />
               <Route path="/alerts" element={<Alerts prefs={prefs.value} lang={lang} />} />
-              <Route path="/farm" element={<Farm prefs={prefs.value} />} />
+              <Route
+                path="/farm"
+                element={
+                  <Farm
+                    prefs={prefs.value}
+                    audience={audience}
+                    setAudience={changeAudience}
+                    lang={lang}
+                  />
+                }
+              />
               <Route path="/chat" element={<Ask lang={lang} prefs={prefs.value} audience={audience} />} />
               <Route
                 path="/map"
                 element={
                   <Suspense fallback={<RouteFallback />}>
-                    <MapView prefs={prefs.value} />
+                    <MapView prefs={prefs.value} lang={lang} />
                   </Suspense>
                 }
               />

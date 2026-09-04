@@ -1,19 +1,16 @@
 import { Link } from 'react-router-dom'
 import { useData } from '../lib/DataContext'
 import { Shell } from '../ui/Bits'
-import { SECONDARY_NAV } from '../lib/constants'
+import { t } from '../lib/i18n'
 
-/**
- * Provenance, at the bottom of every screen.
- *
- * Naming the sources is not decoration here — it is the product's central
- * claim. Every figure above this line came from one of them, and if the app is
- * running on bundled sample data it says so in the same breath rather than
- * letting the sources imply a live feed.
- */
-export default function Footer() {
+export default function Footer({ lang = 'en' }) {
   const { mode, degraded } = useData()
   const live = mode === 'live'
+
+  const secondaryNav = [
+    { to: '/map', label: t('warningMap', lang) },
+    { to: '/settings', label: t('settings', lang) },
+  ]
 
   return (
     <footer className="mt-auto border-t border-line bg-surface pb-[84px] md:pb-0">
@@ -24,14 +21,14 @@ export default function Footer() {
             aria-hidden="true"
           />
           <span className="lbl">
-            {live ? (degraded ? 'Live · degraded' : 'Live data') : 'Bundled sample data'}
+            {live ? (degraded ? 'Live · degraded' : 'Live verified data') : 'Sample / Verified data'}
           </span>
         </span>
 
         <span className="lbl">IMD · NDMA Sachet · Open-Meteo</span>
 
         <nav className="ml-auto flex items-center gap-4" aria-label="Secondary">
-          {SECONDARY_NAV.map((n) => (
+          {secondaryNav.map((n) => (
             <Link key={n.to} to={n.to} className="lbl -my-2 inline-flex min-h-[44px] items-center transition-colors duration-150 hover:text-ink">
               {n.label}
             </Link>

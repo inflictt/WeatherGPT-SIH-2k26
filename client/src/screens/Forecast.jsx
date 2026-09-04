@@ -2,21 +2,15 @@ import { useState } from 'react'
 import { useActiveWarnings, useData } from '../lib/DataContext'
 import { formatters } from '../lib/usePreferences'
 import { SEVERITY, RAINFALL_BANDS } from '../lib/constants'
+import { t } from '../lib/i18n'
 import { ago, hhmm, cn, placeLine } from '../lib/utils'
 import Icon from '../ui/Icon'
 import { Card, CardHead, CardBody, Shell, Fact, Skeleton, Meter, PageHead } from '../ui/Bits'
-import { SeverityTile, SeverityChip } from '../ui/Severity'
+import { SeverityTile } from '../ui/Severity'
 import Reveal from '../ui/Reveal'
 import RainChart from '../weather/RainChart'
 
-/**
- * Forecast — the detail behind the brief.
- *
- * Today answers "what should I do"; this screen shows the working. Order runs
- * from now outwards: conditions, the next twelve hours, seven days, then the
- * atmospheric readings that rarely change a decision but do explain one.
- */
-export default function Forecast({ prefs }) {
+export default function Forecast({ prefs, lang = 'en' }) {
   const { current, hourly, daily, location, confidence, loading, mode } = useData()
   const active = useActiveWarnings()
   const fmt = formatters(prefs?.units)
@@ -36,6 +30,8 @@ export default function Forecast({ prefs }) {
     )
   }
 
+  const sevLabel = sev ? (lang === 'hi' ? t(`sev${sev.label}Label`, lang) : sev.label) : ''
+
   return (
     <Shell className="space-y-4 py-5 sm:py-7">
       {/* ------------------------------------------------------- CAP banner */}
@@ -45,22 +41,21 @@ export default function Forecast({ prefs }) {
           <div className="min-w-0 flex-1">
             <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
               <span className={cn('lbl', sev.text)}>
-                CAP · {warning.severity} · {sev.label}
+                CAP · {warning.severity} · {sevLabel}
               </span>
-              {warning.expires && <span className="lbl">Until {hhmm(warning.expires)}</span>}
+              {warning.expires && <span className="lbl">{t('expires', lang)} {hhmm(warning.expires)}</span>}
             </div>
-            {/* Official text, verbatim. Never summarised, never re-timed. */}
             <div className="mt-1.5 text-subheading font-semibold tracking-[-0.02em] text-ink">
               {warning.event}
             </div>
             <p className="mt-1.5 text-data leading-relaxed text-ink-2">{warning.headline}</p>
             <div className="mt-3.5 flex flex-wrap gap-2.5">
               <a href="#/alerts" className={cn('btn', sev.bg, 'text-on-sev')}>
-                Read full instruction
+                {t('readFullInstruction', lang)}
                 <Icon name="chevronRight" size={15} />
               </a>
               <button type="button" onClick={() => setDismissed(true)} className="btn-ghost">
-                Dismiss
+                {t('dismiss', lang)}
               </button>
             </div>
           </div>
@@ -69,10 +64,10 @@ export default function Forecast({ prefs }) {
 
       <PageHead
         eyebrow={placeLine(location)}
-        title={location?.name || 'Forecast'}
+        title={location?.name || t('forecastTitle', lang)}
         aside={
           <span className="lbl">
-            {current?.observedAt ? `Observed ${ago(current.observedAt)}` : 'Observation time unknown'}
+            {current?.observedAt ? `${t('observedAgo', lang)} ${ago(current.observedAt)}` : ''}
           </span>
         }
       />
@@ -91,19 +86,41 @@ export default function Forecast({ prefs }) {
                 <span className="tnum text-figure font-semibold text-ink">{fmt.temp(current?.tempC)}</span>
                 <span className="mt-2 text-subheading font-medium text-ink-3">{fmt.tempUnit}</span>
               </div>
-              <div className="mt-1 text-body-sm font-medium text-ink">{current?.condition}</div>
+              <div className="mt-1 text-body-sm font-medium text-ink">
+                {current?.condition || t('condUnknown', lang)}
+              </div>
               <div className="mt-0.5 text-data text-ink-3">
-                Feels like {fmt.temp(current?.feelsLikeC)}{fmt.tempUnit}
+                {t('feelsLike', lang)} {fmt.temp(current?.feelsLikeC)}{fmt.tempUnit}
               </div>
             </div>
           </div>
 
           <dl className="grid grid-cols-2 divide-x divide-y divide-line-soft">
             {[
-              { icon: 'drop', label: 'Rain chance', value: `${Math.round((current?.rainProb ?? 0) * 100)}%`, note: `${fmt.rain(daily?.[0]?.mm ?? 0)} ${fmt.rainUnit} in 24 h` },
-              { icon: 'wind', label: 'Wind', value: `${fmt.speed(current?.windKmh)} ${fmt.speedUnit}`, note: `${current?.windDir ?? '—'} · gusts ${fmt.speed(current?.gustKmh)}` },
-              { icon: 'drop', label: 'Humidity', value: `${current?.humidity ?? '—'}%`, note: `Pressure ${current?.pressureHpa ?? '—'} hPa` },
-              { icon: 'eye', label: 'Visibility', value: `${fmt.distance(current?.visibilityKm)} ${fmt.distanceUnit}`, note: `UV ${current?.uv ?? '—'} · sunset ${current?.sunset ?? '—'}` },
+              {
+                icon: 'drop',
+                label: t('rainChance', lang),
+                value: `${Math.round((current?.rainProb ?? 0) * 100)}%`,
+                note: `${fmt.rain(daily?.[0]?.mm ?? 0)} ${fmt.rainUnit} ${t('in24h', lang)}`,
+              },
+              {
+                icon: 'wind',
+                label: t('wind', lang),
+                value: `${fmt.speed(current?.windKmh)} ${fmt.speedUnit}`,
+                note: `${current?.windDir ?? '—'} · gusts ${fmt.speed(current?.gustKmh)}`,
+              },
+              {
+                icon: 'drop',
+                label: t('humidity', lang),
+                value: `${current?.humidity ?? '—'}%`,
+                note: `${t('pressure', lang)} ${current?.pressureHpa ?? '—'} hPa`,
+              },
+              {
+                icon: 'eye',
+                label: t('visibility', lang),
+                value: `${fmt.distance(current?.visibilityKm)} ${fmt.distanceUnit}`,
+                note: `${t('uvIndex', lang)} ${current?.uv ?? '—'} · ${t('sunset', lang)} ${current?.sunset ?? '—'}`,
+              },
             ].map((f) => (
               <Fact key={f.label} {...f} className="border-line-soft p-5" />
             ))}
@@ -114,7 +131,7 @@ export default function Forecast({ prefs }) {
       {/* -------------------------------------------------------- next 12 h */}
       <Reveal>
         <Card>
-          <CardHead title="Next 12 hours" meta="Precipitation · mm/h" />
+          <CardHead title={t('next12Hours', lang)} meta={`${t('precipitation', lang)} · mm/h`} />
           <CardBody>
             <RainChart hours={hourly?.slice(0, 12) || []} fmt={fmt} />
           </CardBody>
@@ -124,7 +141,7 @@ export default function Forecast({ prefs }) {
       {/* --------------------------------------------------------- seven days */}
       <Reveal delay={60}>
         <Card>
-          <CardHead title="7-day forecast" meta="IMD band · 24 h total" />
+          <CardHead title={t('sevenDayForecast', lang)} meta={`${t('imdRainfallBands', lang)} · 24 h`} />
           <div>
             {(daily || []).map((d, i) => {
               const tone = SEVERITY[d.tone || 'green']
@@ -162,10 +179,10 @@ export default function Forecast({ prefs }) {
                   {isOpen && (
                     <dl className="grid grid-cols-2 gap-px bg-line-soft sm:grid-cols-4">
                       {[
-                        ['Rainfall', d.mm > 0 ? `${fmt.rain(d.mm)} ${fmt.rainUnit}` : 'None expected'],
-                        ['Chance', d.prob != null ? `${Math.round(d.prob * 100)}%` : '—'],
-                        ['High', `${fmt.temp(d.max)}${fmt.tempUnit}`],
-                        ['Low', `${fmt.temp(d.min)}${fmt.tempUnit}`],
+                        [t('rainfall', lang), d.mm > 0 ? `${fmt.rain(d.mm)} ${fmt.rainUnit}` : t('noneExpected', lang)],
+                        [t('chance', lang), d.prob != null ? `${Math.round(d.prob * 100)}%` : '—'],
+                        [t('high', lang), `${fmt.temp(d.max)}${fmt.tempUnit}`],
+                        [t('low', lang), `${fmt.temp(d.min)}${fmt.tempUnit}`],
                       ].map(([k, v]) => (
                         <div key={k} className="bg-surface px-5 py-3">
                           <dt className="lbl">{k}</dt>
@@ -185,7 +202,7 @@ export default function Forecast({ prefs }) {
       <Reveal delay={90}>
         <div className="grid gap-3 lg:grid-cols-2">
           <Card>
-            <CardHead title="Forecast confidence" meta="Model spread" />
+            <CardHead title={t('forecastConfidence', lang)} meta={t('modelSpread', lang)} />
             <CardBody className="space-y-3">
               {(confidence?.models || []).map((m, i) => {
                 const max = Math.max(...(confidence.models || []).map((x) => x.mm || 0), 1)
@@ -202,15 +219,11 @@ export default function Forecast({ prefs }) {
               {!confidence && (
                 <p className="text-data leading-relaxed text-ink-3">Confidence is unavailable.</p>
               )}
-              <p className="border-t border-line-soft pt-3 text-data leading-relaxed text-ink-3">
-                A forecast is a probability, not a promise. Where the models disagree, WeatherGPT
-                says so rather than picking one.
-              </p>
             </CardBody>
           </Card>
 
           <Card>
-            <CardHead title="IMD rainfall bands" meta="24-hour totals" />
+            <CardHead title={t('imdRainfallBands', lang)} meta={t('twentyFourHourTotals', lang)} />
             <CardBody className="space-y-0">
               {RAINFALL_BANDS.map((b) => (
                 <div
@@ -226,13 +239,6 @@ export default function Forecast({ prefs }) {
           </Card>
         </div>
       </Reveal>
-
-      {mode !== 'live' && (
-        <p className="text-data leading-relaxed text-ink-3">
-          Running on bundled sample data. Set <code className="code">VITE_API_URL</code> to
-          connect the live forecast.
-        </p>
-      )}
     </Shell>
   )
 }

@@ -1,18 +1,9 @@
 import { RISK_TONE } from './constants'
+import { t } from './i18n'
 
 /**
- * The daily brief, composed from figures — never written.
- *
- * The design opens the Today screen with a sentence rather than a number:
- * "A dry, bright day. Good window for spraying." That is the best thing in it
- * and also the most dangerous, because a sentence *feels* like an opinion and
- * would be trivially easy to hand-write or hand to a model.
- *
- * So it is neither. Every clause below is selected by a threshold on a value
- * that is also printed on the same screen, and the thresholds are IMD's
- * published ones. If the rainfall figure changes band, the sentence changes
- * with it; if the data is missing, the sentence says so instead of guessing.
- * That is the same rule the Python composer follows, for the same reason.
+ * The daily brief, composed deterministically from numerical thresholds.
+ * Fully localized for English ('en'), Hindi ('hi'), and Hinglish ('hinglish').
  */
 
 /** IMD 24-hour rainfall categories, in mm. */
@@ -22,25 +13,21 @@ const WIND = { breezy: 20, strong: 40, squall: 62 }
 
 const clamp = (n, lo, hi) => Math.max(lo, Math.min(hi, n))
 
-export function greeting(now = new Date()) {
+export function greeting(now = new Date(), lang = 'en') {
   const h = now.getHours()
-  if (h < 12) return 'Good morning'
-  if (h < 17) return 'Good afternoon'
-  return 'Good evening'
+  if (h < 12) return t('goodMorning', lang)
+  if (h < 17) return t('goodAfternoon', lang)
+  return t('goodEvening', lang)
 }
 
 /**
  * The headline sentence and its supporting line.
- *
- * `audience` changes what the second half talks about — a spray window for a
- * farm, travel and clothing for everyone else — but never the first half,
- * because what the weather *is* does not depend on who is asking.
  */
-export function statement({ current, summary24h, daily, audience = 'everyone', fmt }) {
+export function statement({ current, summary24h, daily, audience = 'everyone', fmt, lang = 'en' }) {
   if (!current || current.tempC == null) {
     return {
-      headline: "I don't have current conditions for this place.",
-      sub: 'Nothing here is estimated. Connect the API, or pick another location.',
+      headline: t('headNoConditions', lang),
+      sub: t('subNoConditions', lang),
       unknown: true,
     }
   }
@@ -52,45 +39,55 @@ export function statement({ current, summary24h, daily, audience = 'everyone', f
   const prob = current.rainProb ?? 0
 
   // --- first half: what the weather is doing ---
-  let head
-  if (mm >= RAIN.veryHeavy) head = 'Extremely heavy rain is coming.'
-  else if (mm >= RAIN.heavy) head = 'Very heavy rain is coming.'
-  else if (mm >= RAIN.light) head = 'Heavy rain is on the way.'
-  else if (prob >= 0.6) head = 'Rain is likely today.'
-  else if (gust >= WIND.squall) head = 'Squally winds today.'
-  else if (temp >= 40) head = 'A dangerously hot day.'
-  else if (temp >= 35) head = 'A hot, dry day.'
-  else if (prob >= 0.3) head = 'A mixed day — showers possible.'
-  else head = 'A dry, bright day.'
+  let headKey
+  if (mm >= RAIN.veryHeavy) headKey = 'headExtremelyHeavy'
+  else if (mm >= RAIN.heavy) headKey = 'headVeryHeavy'
+  else if (mm >= RAIN.light) headKey = 'headHeavyRain'
+  else if (prob >= 0.6) headKey = 'headRainLikely'
+  else if (gust >= WIND.squall) headKey = 'headSquallyWinds'
+  else if (temp >= 40) headKey = 'headDangerousHeat'
+  else if (temp >= 35) headKey = 'headHotDry'
+  else if (prob >= 0.3) headKey = 'headMixedShowers'
+  else headKey = 'headDryBright'
 
   // --- second half: what it means for the person asking ---
-  let tail
+  let tailKey
   if (audience === 'farm') {
-    if (mm >= RAIN.heavy) tail = 'Hold off on spraying and irrigation.'
-    else if (mm >= RAIN.light) tail = 'Delay irrigation and secure loose cover.'
-    else if (wind >= WIND.strong) tail = 'Too windy to spray.'
-    else if (prob >= 0.5) tail = 'Narrow window for spraying.'
-    else if (wind <= WIND.breezy && temp < 35) tail = 'Good window for spraying.'
-    else tail = 'Irrigation may be worth checking.'
-  } else if (mm >= RAIN.heavy) tail = 'Avoid low-lying routes.'
-  else if (mm >= RAIN.light) tail = 'Expect travel disruption.'
-  else if (gust >= WIND.squall) tail = 'Secure anything loose outdoors.'
-  else if (temp >= 40) tail = 'Stay out of the afternoon sun.'
-  else if (prob >= 0.5) tail = 'Carry an umbrella.'
-  else tail = 'Good day to be outdoors.'
+    if (mm >= RAIN.heavy) tailKey = 'tailHoldOffSpraying'
+    else if (mm >= RAIN.light) tailKey = 'tailDelayIrrigation'
+    else if (wind >= WIND.strong) tailKey = 'tailTooWindySpray'
+    else if (prob >= 0.5) tailKey = 'tailNarrowSprayWindow'
+    else if (wind <= WIND.breezy && temp < 35) tailKey = 'tailGoodSprayWindow'
+    else tailKey = 'tailCheckIrrigation'
+  } else if (mm >= RAIN.heavy) tailKey = 'tailAvoidLowLying'
+  else if (mm >= RAIN.light) tailKey = 'tailTravelDisruption'
+  else if (gust >= WIND.squall) tailKey = 'tailSecureLoose'
+  else if (temp >= 40) tailKey = 'tailStayOutHeat'
+  else if (prob >= 0.5) tailKey = 'tailCarryUmbrella'
+  else tailKey = 'tailGoodOutdoors'
 
-  // The supporting line names the two figures the sentence turned on, so the
-  // reader can check the reasoning rather than take it on trust.
+  // Sub line with data points
   const bits = []
-  if (mm > 0) bits.push(`${fmt ? fmt.rain(mm) : Math.round(mm)} ${fmt ? fmt.rainUnit : 'mm'} expected in 24 h`)
-  else bits.push(`${Math.round(prob * 100)}% chance of rain`)
-  bits.push(`winds ${fmt ? fmt.speed(wind) : Math.round(wind)} ${fmt ? fmt.speedUnit : 'km/h'}`)
+  if (mm > 0) {
+    const rainVal = fmt ? fmt.rain(mm) : Math.round(mm)
+    const unit = fmt ? fmt.rainUnit : 'mm'
+    bits.push(`${rainVal} ${unit} ${t('expectedIn24h', lang)}`)
+  } else {
+    bits.push(`${Math.round(prob * 100)}% ${t('rainChance', lang)}`)
+  }
+  const speedVal = fmt ? fmt.speed(wind) : Math.round(wind)
+  const speedUnit = fmt ? fmt.speedUnit : 'km/h'
+  bits.push(`${t('winds', lang)} ${speedVal} ${speedUnit}`)
 
-  return { headline: head, sub: `${bits.join(' · ')}.`, unknown: false }
+  return {
+    headline: t(headKey, lang),
+    sub: `${t(tailKey, lang)} · ${bits.join(' · ')}.`,
+    unknown: false,
+  }
 }
 
 /** The four status tiles under the hero. */
-export function briefTiles({ current, summary24h, risk, daily, audience, fmt }) {
+export function briefTiles({ current, summary24h, risk, daily, audience, fmt, lang = 'en' }) {
   const mm = summary24h?.rainMm ?? daily?.[0]?.mm ?? null
   const wind = current?.windKmh ?? null
   const band = risk?.overall || null
@@ -99,58 +96,60 @@ export function briefTiles({ current, summary24h, risk, daily, audience, fmt }) 
   const rainTone =
     mm == null ? null : mm >= RAIN.veryHeavy ? 'red' : mm >= RAIN.heavy ? 'orange' : mm >= RAIN.light ? 'yellow' : 'green'
 
+  const weatherValue = current?.condition ? current.condition : t('condUnknown', lang)
+
   const tiles = [
     {
       key: 'weather',
-      label: 'Weather',
-      value: current?.condition || 'Unknown',
+      label: t('tileWeather', lang),
+      value: weatherValue,
       note:
         mm == null
-          ? 'No rainfall figure'
-          : `${fmt ? fmt.rain(mm) : Math.round(mm)} ${fmt ? fmt.rainUnit : 'mm'} in 24 h`,
+          ? t('noneExpected', lang)
+          : `${fmt ? fmt.rain(mm) : Math.round(mm)} ${fmt ? fmt.rainUnit : 'mm'} ${t('in24h', lang)}`,
       tone: rainTone,
     },
     {
       key: 'risk',
-      label: audience === 'farm' ? 'Farm risk' : 'Risk',
-      value: band || 'Unavailable',
-      note: risk?.score != null ? `Score ${risk.score}/100` : 'Risk engine unreachable',
+      label: audience === 'farm' ? t('tileFarmRisk', lang) : t('tileRisk', lang),
+      value: band || t('none', lang),
+      note: risk?.score != null ? `${t('compositeRisk', lang)} ${risk.score}/100` : '—',
       tone,
     },
   ]
 
   if (audience === 'farm') {
-    const irr = irrigation({ current, summary24h, daily })
+    const irr = irrigation({ current, summary24h, daily, lang })
     tiles.push({
       key: 'irrigation',
-      label: 'Irrigation',
+      label: t('irrigationTitle', lang),
       value: irr.recommendation,
       note: irr.reason,
       tone: irr.tone,
     })
     tiles.push({
       key: 'crop',
-      label: 'Crop health',
-      value: 'Not scanned',
-      note: 'Run a scan in Crop Doctor',
+      label: t('tileCropHealth', lang),
+      value: t('tileNotScanned', lang),
+      note: t('tileRunScan', lang),
       tone: null,
     })
   } else {
     tiles.push({
       key: 'wind',
-      label: 'Wind',
-      value: wind == null ? 'Unknown' : `${fmt ? fmt.speed(wind) : Math.round(wind)} ${fmt ? fmt.speedUnit : 'km/h'}`,
-      note: current?.windDir ? `From ${current.windDir}` : '—',
+      label: t('wind', lang),
+      value: wind == null ? '—' : `${fmt ? fmt.speed(wind) : Math.round(wind)} ${fmt ? fmt.speedUnit : 'km/h'}`,
+      note: current?.windDir ? `${current.windDir}` : '—',
       tone: wind == null ? null : wind >= WIND.squall ? 'orange' : wind >= WIND.strong ? 'yellow' : 'green',
     })
     tiles.push({
       key: 'visibility',
-      label: 'Visibility',
+      label: t('visibility', lang),
       value:
         current?.visibilityKm == null
-          ? 'Unknown'
+          ? '—'
           : `${fmt ? fmt.distance(current.visibilityKm) : current.visibilityKm} ${fmt ? fmt.distanceUnit : 'km'}`,
-      note: current?.humidity != null ? `${current.humidity}% humidity` : '—',
+      note: current?.humidity != null ? `${current.humidity}% ${t('humidity', lang)}` : '—',
       tone: current?.visibilityKm == null ? null : current.visibilityKm < 2 ? 'orange' : 'green',
     })
   }
@@ -159,28 +158,21 @@ export function briefTiles({ current, summary24h, risk, daily, audience, fmt }) 
 }
 
 /**
- * Irrigation advice.
- *
- * Deliberately crude and deliberately transparent: it is a rainfall lookup,
- * not an evapotranspiration model, and it says so. The PRD's full version
- * wants soil type, crop stage and recent irrigation, none of which exist
- * without a farm profile and a backend — so rather than pretend, this returns
- * the one thing rainfall alone can honestly support, plus the list of inputs
- * it did *not* have.
+ * Irrigation advice with multi-language support.
  */
-export function irrigation({ current, summary24h, daily }) {
+export function irrigation({ current, summary24h, daily, lang = 'en' }) {
   const mm = summary24h?.rainMm ?? daily?.[0]?.mm ?? null
   const soon = daily?.slice(0, 2).reduce((a, d) => a + (d.mm || 0), 0) ?? null
 
   if (mm == null) {
     return {
-      recommendation: 'Unknown',
-      band: 'No data',
+      recommendation: t('irrCheckSoil', lang),
+      band: t('irrRainBased', lang),
       tone: null,
-      reason: 'No rainfall forecast is available for this place, so no recommendation is possible.',
+      reason: t('irrDisclaimer', lang),
       confidence: 'LOW',
       inputs: [],
-      missing: ['rainfall', 'soil type', 'crop stage', 'last irrigation'],
+      missing: ['rainfall', 'soil type', 'crop stage'],
     }
   }
 
@@ -188,68 +180,119 @@ export function irrigation({ current, summary24h, daily }) {
   let tone
   let reason
   if (mm >= RAIN.heavy) {
-    recommendation = 'Do not irrigate'
+    recommendation = t('irrDoNotIrrigate', lang)
     tone = 'orange'
-    reason = `${Math.round(mm)} mm is forecast in the next 24 hours — well past what the soil can take up.`
+    reason = lang === 'hi' 
+      ? `अगले 24 घंटों में ${Math.round(mm)} मिमी बारिश का अनुमान है — मिट्टी की क्षमता से अधिक।`
+      : lang === 'hinglish'
+        ? `Agle 24 ghante mein ${Math.round(mm)} mm barish expected hai — sinchai rok dein.`
+        : `${Math.round(mm)} mm is forecast in 24 h — soil will be saturated.`
   } else if (mm >= RAIN.light) {
-    recommendation = 'Wait'
+    recommendation = t('irrWait', lang)
     tone = 'yellow'
-    reason = `${Math.round(mm)} mm is expected within 24 hours. The rain will do the work.`
+    reason = lang === 'hi'
+      ? `24 घंटों में लगभग ${Math.round(mm)} मिमी वर्षा संभावित है। वर्षा से पूर्ति होगी।`
+      : lang === 'hinglish'
+        ? `24 ghante mein ${Math.round(mm)} mm barish ki ummeed hai. Baarish ka paani kaafi hoga.`
+        : `${Math.round(mm)} mm rain expected within 24 hours. The rain will do the work.`
   } else if (soon != null && soon >= 20) {
-    recommendation = 'Wait'
+    recommendation = t('irrWait', lang)
     tone = 'yellow'
-    reason = `About ${Math.round(soon)} mm is expected over the next two days.`
+    reason = lang === 'hi'
+      ? `अगले दो दिनों में लगभग ${Math.round(soon)} मिमी बारिश संभावित है।`
+      : lang === 'hinglish'
+        ? `Agle 2 din mein lagbhag ${Math.round(soon)} mm barish expected hai.`
+        : `About ${Math.round(soon)} mm is expected over the next two days.`
   } else if ((current?.tempC ?? 0) >= 35 && mm < 5) {
-    recommendation = 'Irrigate'
+    recommendation = t('irrigateNow', lang)
     tone = 'green'
-    reason = `Little rain forecast and temperatures near ${Math.round(current.tempC)} °C.`
+    reason = lang === 'hi'
+      ? `तापमान ${Math.round(current.tempC)} °C के करीब है और बारिश का अनुमान नहीं है।`
+      : lang === 'hinglish'
+        ? `Temperature ${Math.round(current.tempC)} °C ke paas hai aur barish nahi hai.`
+        : `Little rain forecast and temperatures near ${Math.round(current.tempC)} °C.`
   } else {
-    recommendation = 'Check the soil'
+    recommendation = t('irrCheckSoil', lang)
     tone = null
-    reason = 'Rainfall alone does not settle this one — feel the soil at root depth before deciding.'
+    reason = lang === 'hi'
+      ? 'निर्णय लेने से पहले जड़ की गहराई पर मिट्टी की नमी जाँचें।'
+      : lang === 'hinglish'
+        ? 'Sinchai se pehle jadon ke paas mitti ki nami check karein.'
+        : 'Feel the soil at root depth before deciding.'
   }
 
   return {
     recommendation,
-    band: mm >= RAIN.light ? 'Rain-limited' : 'Rainfall-based',
+    band: mm >= RAIN.light ? t('irrRainLimited', lang) : t('irrRainBased', lang),
     tone,
     reason,
     confidence: mm >= RAIN.light || mm < 2 ? 'MEDIUM' : 'LOW',
-    inputs: ['24 h rainfall', '48 h rainfall', 'air temperature'],
-    // Naming what is missing is the point. A recommendation that hides its
-    // gaps is the one a farmer would be wrong to trust.
-    missing: ['soil type', 'crop stage', 'last irrigation date', 'soil moisture'],
+    inputs: ['24 h rainfall', '48 h rainfall', 'temperature'],
+    missing: ['soil moisture', 'crop stage', 'last irrigation'],
   }
 }
 
-/** Today's actions, each tied to the figure that produced it. */
-export function actions({ current, summary24h, daily, audience }) {
+/** Today's actions, fully translated. */
+export function actions({ current, summary24h, daily, audience, lang = 'en' }) {
   const mm = summary24h?.rainMm ?? daily?.[0]?.mm ?? 0
   const wind = current?.windKmh ?? 0
   const gust = current?.gustKmh ?? wind
   const out = []
 
   if (audience === 'farm') {
-    if (mm >= RAIN.light)
-      out.push({ text: 'Cover harvested produce', why: `${Math.round(mm)} mm forecast in 24 h` })
-    if (mm >= RAIN.light)
-      out.push({ text: 'Check drainage on low-lying plots', why: 'Standing water after heavy rain' })
-    if (mm < RAIN.light && wind <= WIND.breezy)
-      out.push({ text: 'Spray window is open', why: `Winds ${Math.round(wind)} km/h, below the 20 km/h limit` })
-    if (wind >= WIND.strong)
-      out.push({ text: 'Do not spray today', why: `Winds ${Math.round(wind)} km/h — drift risk` })
-    if (mm >= RAIN.light) out.push({ text: 'Delay irrigation', why: 'The soil will take up this rain' })
+    if (mm >= RAIN.light) {
+      out.push({
+        text: t('actCoverProduce', lang),
+        why: lang === 'hi' ? `24 घंटे में ${Math.round(mm)} मिमी बारिश संभावित` : `${Math.round(mm)} mm forecast in 24 h`,
+      })
+      out.push({
+        text: t('actCheckDrainage', lang),
+        why: lang === 'hi' ? 'निचले खेतों में जलभराव की रोकथाम' : 'Standing water prevention',
+      })
+      out.push({
+        text: t('actDelayIrrigation', lang),
+        why: lang === 'hi' ? 'मिट्टी वर्षा का जल सोख लेगी' : 'Soil will absorb rain',
+      })
+    }
+    if (mm < RAIN.light && wind <= WIND.breezy) {
+      out.push({
+        text: t('actSprayWindowOpen', lang),
+        why: lang === 'hi' ? `हवा की गति ${Math.round(wind)} किमी/घंटा, सुरक्षित सीमा में` : `Winds ${Math.round(wind)} km/h, below 20 km/h`,
+      })
+    }
+    if (wind >= WIND.strong) {
+      out.push({
+        text: t('actDoNotSpray', lang),
+        why: lang === 'hi' ? `हवा की गति ${Math.round(wind)} किमी/घंटा — दवा उड़ने का खतरा` : `Winds ${Math.round(wind)} km/h — drift risk`,
+      })
+    }
   } else {
-    if (mm >= RAIN.light) out.push({ text: 'Avoid low-lying roads', why: `${Math.round(mm)} mm forecast in 24 h` })
-    if (gust >= WIND.squall) out.push({ text: 'Secure loose items outdoors', why: `Gusts to ${Math.round(gust)} km/h` })
-    if ((current?.rainProb ?? 0) >= 0.5)
-      out.push({ text: 'Carry an umbrella', why: `${Math.round((current.rainProb || 0) * 100)}% chance of rain` })
-    if ((current?.tempC ?? 0) >= 38)
-      out.push({ text: 'Stay out of the midday sun', why: `${Math.round(current.tempC)} °C expected` })
+    if (mm >= RAIN.light) {
+      out.push({
+        text: t('actAvoidRoads', lang),
+        why: lang === 'hi' ? `24 घंटे में ${Math.round(mm)} मिमी बारिश की संभावना` : `${Math.round(mm)} mm forecast in 24 h`,
+      })
+    }
+    if (gust >= WIND.squall) {
+      out.push({
+        text: t('actSecureOutdoors', lang),
+        why: lang === 'hi' ? `झक्कड़ हवाएँ ${Math.round(gust)} किमी/घंटा` : `Gusts to ${Math.round(gust)} km/h`,
+      })
+    }
+    if ((current?.rainProb ?? 0) >= 0.5) {
+      out.push({
+        text: t('actCarryUmbrella', lang),
+        why: lang === 'hi' ? `${Math.round((current.rainProb || 0) * 100)}% वर्षा की संभावना` : `${Math.round((current.rainProb || 0) * 100)}% chance of rain`,
+      })
+    }
+    if ((current?.tempC ?? 0) >= 38) {
+      out.push({
+        text: t('actMiddaySun', lang),
+        why: lang === 'hi' ? `${Math.round(current.tempC)} °C भीषण तापमान अनुमानित` : `${Math.round(current.tempC)} °C expected`,
+      })
+    }
   }
 
-  // Never pad the list to look busy. An empty list is a real answer and gets
-  // its own sentence in the interface.
   return out.slice(0, 4)
 }
 

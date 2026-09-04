@@ -6,13 +6,6 @@ import TabNav from './TabNav'
 import MobileNav from './MobileNav'
 import Footer from './Footer'
 
-/**
- * The chrome. Sticky header (mark, search, controls) over a tab row on
- * desktop; the same header over a thumb-reachable bar at the bottom on a
- * phone. The header is sticky because the location control lives in it, and
- * "which place am I looking at?" is the question you need answerable from
- * anywhere on a long page.
- */
 export default function AppShell({ children, ...bar }) {
   const { pathname } = useLocation()
   const warnings = useActiveWarnings()
@@ -34,7 +27,14 @@ export default function AppShell({ children, ...bar }) {
 
       <header className="sticky top-0 z-[60]">
         <TopBar {...bar} activeLocation={location} />
-        <TabNav warningCount={warnings.length} location={location} onChangeLocation={bar.onChangeLocation} />
+        <TabNav
+          warningCount={warnings.length}
+          location={location}
+          onChangeLocation={bar.onChangeLocation}
+          audience={bar.audience}
+          setAudience={bar.setAudience}
+          lang={bar.lang}
+        />
       </header>
 
       {/* keyed so each screen animates in rather than snapping */}
@@ -42,8 +42,8 @@ export default function AppShell({ children, ...bar }) {
         {children}
       </main>
 
-      <Footer />
-      <MobileNav warningCount={warnings.length} />
+      <Footer lang={bar.lang} />
+      <MobileNav warningCount={warnings.length} audience={bar.audience} lang={bar.lang} />
     </div>
   )
 }

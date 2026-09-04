@@ -30,6 +30,8 @@ export const DISTRICTS = [
   { id: 'd_gorakhpur', name: 'Gorakhpur', district: 'Gorakhpur', state: 'Uttar Pradesh', lat: 26.7606, lon: 83.3732, zone: 'plains' },
 
   // --- Punjab / Haryana grain belt ---
+  { id: 'd_kapriwas', name: 'Kapriwas', district: 'Rewari', state: 'Haryana', lat: 28.2435, lon: 76.8453, zone: 'plains', kind: 'village' },
+  { id: 'd_rewari', name: 'Rewari', district: 'Rewari', state: 'Haryana', lat: 28.1920, lon: 76.6190, zone: 'plains' },
   { id: 'd_ludhiana', name: 'Ludhiana', district: 'Ludhiana', state: 'Punjab', lat: 30.9010, lon: 75.8573, zone: 'plains' },
   { id: 'd_karnal', name: 'Karnal', district: 'Karnal', state: 'Haryana', lat: 29.6857, lon: 76.9905, zone: 'plains' },
   { id: 'd_delhi', name: 'New Delhi', district: 'New Delhi', state: 'Delhi', lat: 28.6139, lon: 77.2090, zone: 'plains' },

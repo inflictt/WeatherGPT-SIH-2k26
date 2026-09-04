@@ -1,21 +1,11 @@
 import { useSavedLocations } from '../lib/useSavedLocations'
 import { useData } from '../lib/DataContext'
 import { placeLine } from '../lib/utils'
+import { t } from '../lib/i18n'
 import Icon from '../ui/Icon'
 import { Card, CardHead, CardBody, Switch } from '../ui/Bits'
 
-/**
- * The places you get told about.
- *
- * Distinct from the place you are *looking at*: people watch their own field
- * and their parents' village and the road they drive, and want to be
- * interrupted about all three regardless of which one is on screen.
- *
- * Stored on the device until you sign in, and the card says which of the two
- * it is doing — because "these are on this device only" is the difference
- * between a notification arriving and not.
- */
-export default function SavedLocations({ token }) {
+export default function SavedLocations({ token, lang = 'en' }) {
   const saved = useSavedLocations(token)
   const { location } = useData()
 
@@ -33,8 +23,7 @@ export default function SavedLocations({ token }) {
         {saved.rows.length === 0 ? (
           <div className="px-5 py-5">
             <p className="text-data leading-relaxed text-ink-3">
-              No saved locations yet. Save one to be told when a severe warning is issued for it,
-              even when the app is closed.
+              No saved locations yet. Save one to be told when a severe warning is issued for it.
             </p>
             {location && (
               <button type="button" onClick={() => saved.add(location)} className="btn mt-3.5">
@@ -72,8 +61,8 @@ export default function SavedLocations({ token }) {
         <div className="border-t border-line-soft px-5 py-3.5">
           <p className="text-data leading-relaxed text-ink-3">
             {saved.persisted
-              ? 'You are notified once per warning. An update re-notifies only when the severity or the validity window changes.'
-              : 'Stored on this device only. Sign in below to receive notifications when the app is closed.'}
+              ? 'You are notified once per warning.'
+              : 'Stored on this device only. Severe alerts are monitored automatically.'}
           </p>
           {location && saved.rows.length > 0 && !already && (
             <button

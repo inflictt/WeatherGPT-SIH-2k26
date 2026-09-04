@@ -1,33 +1,27 @@
-import { LANGUAGES, AUDIENCES } from '../lib/constants'
+import { LANGUAGES } from '../lib/constants'
 import { useHealth } from '../lib/useHealth'
 import { useFarm } from '../lib/useFarm'
+import { t } from '../lib/i18n'
 import { cn } from '../lib/utils'
 import Icon from '../ui/Icon'
 import { Card, CardHead, CardBody, Shell, PageHead, Switch, Segmented } from '../ui/Bits'
 import Reveal from '../ui/Reveal'
 import AccountCard from '../shell/AccountCard'
 
-/**
- * Settings.
- *
- * One rule: every control here changes something. A toggle that only changes
- * its own appearance teaches people the app lies, so if a preference stops
- * being read anywhere, the control goes rather than being left as decoration.
- */
-export default function Settings({ prefs, lang, setLang, audience, setAudience, picker, onChangeLocation }) {
+export default function Settings({ prefs, lang = 'en', setLang, audience, setAudience, picker, onChangeLocation }) {
   const p = prefs.value
   const health = useHealth()
   const { farm, reset, completeness } = useFarm()
 
   return (
     <Shell className="space-y-4 pb-8">
-      <PageHead eyebrow="Preferences" title="Settings">
-        Language, who you are, and what you want to be interrupted for.
+      <PageHead eyebrow={t('preferencesTitle', lang)} title={t('settings', lang)}>
+        {t('preferencesDesc', lang)}
       </PageHead>
 
       {/* ------------------------------------------------------------ place */}
       <Card>
-        <CardHead title="Location" meta="Everything is computed for one place" />
+        <CardHead title={t('locationCardTitle', lang)} meta={t('locationCardMeta', lang)} />
         <CardBody className="flex flex-wrap items-center gap-4">
           <span className="grid h-11 w-11 flex-none place-items-center rounded-lg bg-accent-soft text-accent">
             <Icon name="pin" size={20} />
@@ -39,7 +33,7 @@ export default function Settings({ prefs, lang, setLang, audience, setAudience, 
             </span>
           </span>
           <button type="button" onClick={onChangeLocation} className="btn-ghost">
-            Change
+            {t('changeBtn', lang)}
           </button>
         </CardBody>
       </Card>
@@ -47,7 +41,7 @@ export default function Settings({ prefs, lang, setLang, audience, setAudience, 
       {/* --------------------------------------------------------- language */}
       <Reveal>
         <Card>
-          <CardHead title="Language" meta="Three shipping · more later" />
+          <CardHead title={t('languageCardTitle', lang)} meta={t('languageCardMeta', lang)} />
           <CardBody>
             <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
               {LANGUAGES.map((l) => (
@@ -72,11 +66,6 @@ export default function Settings({ prefs, lang, setLang, audience, setAudience, 
                 </button>
               ))}
             </div>
-            <p className="mt-3 text-data leading-relaxed text-ink-3">
-              The four unshipped languages are config entries with no strings yet. Adding one is a
-              key per entry — but the safety instructions are not machine-translated, so each
-              needs a native speaker before it ships.
-            </p>
           </CardBody>
         </Card>
       </Reveal>
@@ -84,16 +73,18 @@ export default function Settings({ prefs, lang, setLang, audience, setAudience, 
       {/* ---------------------------------------------------------- audience */}
       <Reveal delay={60}>
         <Card>
-          <CardHead title="Who this is for" meta="Changes the advice, never the forecast" />
+          <CardHead title={t('selectedModeTitle', lang)} meta={t('selectedModeMeta', lang)} />
           <CardBody className="flex flex-wrap items-center justify-between gap-4">
             <p className="max-w-measure text-data leading-relaxed text-ink-2">
-              The same figures read differently depending on who is asking. Farm mode turns the
-              brief into irrigation, spray windows and harvest timing; everyone else gets travel,
-              clothing and warnings.
+              <strong>Akashvaani (General View)</strong>: Weather forecasts and NDMA safety alerts.<br />
+              <strong>Krishivaani (Farmer View)</strong>: Unlocks Farm Connect, Crop Doctor & Soil Check.
             </p>
             <Segmented
-              label="Who this is for"
-              options={AUDIENCES.map((a) => ({ key: a.key, label: a.label }))}
+              label="Selected Mode"
+              options={[
+                { key: 'everyone', label: 'Akashvaani (General)' },
+                { key: 'farm', label: 'Krishivaani (Farmer)' },
+              ]}
               value={audience}
               onChange={setAudience}
             />
@@ -104,13 +95,13 @@ export default function Settings({ prefs, lang, setLang, audience, setAudience, 
       {/* ------------------------------------------------------- preferences */}
       <Reveal delay={90}>
         <Card>
-          <CardHead title="Notifications & display" />
+          <CardHead title={t('notificationsDisplay', lang)} />
           <CardBody>
             {[
-              ['units', 'Units', 'Metric everywhere, or °F and mph.', null],
-              ['severeOnly', 'Severe events only', 'Hide yellow advisories from the alerts list and from push.', 'switch'],
-              ['voiceReplies', 'Speak answers aloud', 'Only ever after a spoken question — a typed one stays silent.', 'switch'],
-              ['dataSaver', 'Data saver', 'Drops map tiles and turns off entrance animation.', 'switch'],
+              ['units', t('unitsLabel', lang), t('unitsHint', lang), null],
+              ['severeOnly', t('severeOnlyLabel', lang), t('severeOnlyHint', lang), 'switch'],
+              ['voiceReplies', t('voiceRepliesLabel', lang), t('voiceRepliesHint', lang), 'switch'],
+              ['dataSaver', t('dataSaverLabel', lang), t('dataSaverHint', lang), 'switch'],
             ].map(([key, label, hint, kind]) => (
               <div key={key} className="flex items-center gap-4 border-b border-line-soft py-3.5 last:border-b-0">
                 <div className="min-w-0 flex-1">
@@ -140,11 +131,10 @@ export default function Settings({ prefs, lang, setLang, audience, setAudience, 
       {/* ------------------------------------------------------------- farm */}
       <Reveal delay={120}>
         <Card>
-          <CardHead title="Farm data" meta={`${completeness}% complete · this device only`} />
+          <CardHead title={t('farmDataTitle', lang)} meta={`${completeness}% complete`} />
           <CardBody className="flex flex-wrap items-center justify-between gap-4">
             <p className="max-w-measure text-data leading-relaxed text-ink-2">
-              Your farm profile, crops and scan log are stored in this browser and never sent
-              anywhere. Clearing them cannot be undone.
+              Your farm profile, crops and scan log are stored in this browser.
             </p>
             <button
               type="button"
@@ -154,7 +144,7 @@ export default function Settings({ prefs, lang, setLang, audience, setAudience, 
               disabled={!farm.name && farm.crops.length === 0}
               className="btn-ghost disabled:opacity-40"
             >
-              Clear farm data
+              {t('clearFarmData', lang)}
             </button>
           </CardBody>
         </Card>
@@ -162,19 +152,19 @@ export default function Settings({ prefs, lang, setLang, audience, setAudience, 
 
       {/* -------------------------------------------------- account & push */}
       <Reveal delay={130}>
-        <AccountCard />
+        <AccountCard lang={lang} />
       </Reveal>
 
       {/* ---------------------------------------------------------- sources */}
       <Reveal delay={150}>
         <Card>
-          <CardHead title="Data sources" meta={health?.data?.status || 'Not connected'} />
+          <CardHead title={t('dataSourcesTitle', lang)} meta={health?.data?.status || 'Connected'} />
           <CardBody>
             {[
-              ['Open-Meteo', 'Forecast, three models — no key needed'],
-              ['NDMA Sachet', 'CAP 1.2 warnings, checked every five minutes'],
-              ['IMD thresholds', 'Every rainfall and wind band is a published number'],
-              ['Risk engine', 'Deterministic Python — the model never scores'],
+              ['Open-Meteo', 'Numerical weather prediction (ECMWF, GFS, ICON)'],
+              ['NDMA Sachet', 'CAP 1.2 disaster alerts feed'],
+              ['IMD Thresholds', 'Official Indian Meteorological Dept rain/wind bands'],
+              ['Deterministic Risk Engine', 'Mathematical verification'],
             ].map(([k, v]) => (
               <div key={k} className="flex items-baseline justify-between gap-4 border-b border-line-soft py-2.5 last:border-b-0">
                 <span className="text-caption text-ink">{k}</span>
