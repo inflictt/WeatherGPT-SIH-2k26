@@ -150,17 +150,7 @@ export default function TopBar({
             value={lang}
             onChange={setLang}
           />
-          <button
-            type="button"
-            onClick={onChangeLocation}
-            title={`Current location: ${locName} — click to change`}
-            className="flex items-center gap-1.5 rounded-lg border border-line bg-sunk/70 px-2.5 py-1.5 text-caption font-medium text-ink transition-colors hover:border-accent hover:bg-surface focus-visible:outline-accent"
-          >
-            <Icon name="pin" size={14} className="flex-none text-accent" />
-            <span className="max-w-[85px] min-[480px]:max-w-[130px] truncate text-[12px] font-semibold text-ink">
-              {locName}
-            </span>
-          </button>
+          <IconButton icon="pin" label="Change location" onClick={onChangeLocation} />
           <IconButton icon="map" label="Warning map" onClick={() => navigate('/map')} className="hidden sm:grid" />
           <IconButton
             icon="settings"

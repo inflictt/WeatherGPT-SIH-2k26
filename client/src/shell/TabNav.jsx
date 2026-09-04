@@ -68,29 +68,13 @@ export default function TabNav({ warningCount = 0, location, onChangeLocation })
           <button
             type="button"
             onClick={onChangeLocation}
-            title={`Current location: ${placeName}${subPlace ? `, ${subPlace}` : ''} (Click to change)`}
-            className="group flex flex-none items-center gap-2 rounded-lg border border-line bg-sunk/60 px-3 py-1.5 text-left transition-all duration-150 hover:border-accent/40 hover:bg-surface hover:shadow-subtle focus-visible:outline-accent"
+            title={`Current location: ${placeName} (Click to change)`}
+            className="flex flex-none items-center gap-2 rounded-full border border-line bg-surface px-3.5 py-1 text-caption font-medium text-ink shadow-sm transition-all duration-150 hover:border-accent hover:bg-sunk hover:shadow focus-visible:outline-accent"
           >
-            <span className="grid h-6 w-6 flex-none place-items-center rounded-md bg-accent/10 text-accent transition-colors group-hover:bg-accent group-hover:text-on-accent">
-              <Icon name="pin" size={13} />
+            <Icon name="pin" size={15} className="text-accent flex-none" />
+            <span className="text-[13px] font-medium text-ink tracking-tight">
+              {placeName}
             </span>
-            <div className="flex flex-col text-left">
-              <div className="flex items-center gap-1.5">
-                <span className="text-[10px] uppercase font-mono tracking-wider text-ink-3 group-hover:text-accent font-semibold transition-colors">
-                  Location
-                </span>
-                <span className="text-[10px] text-ink-3 font-normal">·</span>
-                <span className="text-[10px] text-accent font-medium opacity-0 group-hover:opacity-100 transition-opacity">
-                  Change
-                </span>
-              </div>
-              <span className="max-w-[200px] truncate text-[12px] font-semibold text-ink leading-tight">
-                {placeName}
-                {subPlace && (
-                  <span className="font-normal text-ink-3 ml-1 text-[11px]">({subPlace})</span>
-                )}
-              </span>
-            </div>
           </button>
         )}
       </Shell>
