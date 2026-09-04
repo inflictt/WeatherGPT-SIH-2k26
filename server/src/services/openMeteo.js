@@ -249,6 +249,52 @@ export function antecedentRainfall(forecast, hours = 72) {
   )
 }
 
+const round1 = (n) => Number(n.toFixed(1))
+
+/**
+ * The next 24 hours, summarised.
+ *
+ * Shared by the risk controller and the farm brief. It lived in the former
+ * until the latter needed it; two copies of a windowing function is exactly
+ * how "the brief says 118 mm and the risk panel says 121" happens.
+ */
+export function window24h(hourly, now) {
+  const start = now.getTime()
+  const end = start + 24 * 3600e3
+  const rows = (hourly || []).filter((h) => {
+    const t = new Date(h.time).getTime()
+    return t >= start && t < end
+  })
+
+  const rainMm = rows.reduce((s, h) => s + (h.precipMm || 0), 0)
+  const wetHours = rows.filter((h) => (h.precipMm || 0) >= 0.5).length
+  const maxWindKmh = Math.max(0, ...rows.map((h) => h.windKmh || 0))
+  const maxGustKmh = Math.max(0, ...rows.map((h) => h.gustKmh || 0))
+  const vis = rows.map((h) => h.visibilityM).filter((v) => v != null)
+  const minVisibilityKm = vis.length ? Number((Math.min(...vis) / 1000).toFixed(1)) : null
+
+  // The heaviest contiguous stretch — this is what "expected 17:00–20:00" means.
+  let peakWindow = null
+  if (rows.length) {
+    let bestSum = -1
+    let bestIdx = 0
+    for (let i = 0; i + 3 <= rows.length; i += 1) {
+      const sum = rows.slice(i, i + 3).reduce((s, h) => s + (h.precipMm || 0), 0)
+      if (sum > bestSum) { bestSum = sum; bestIdx = i }
+    }
+    if (bestSum > 1) {
+      peakWindow = { from: rows[bestIdx].time, to: rows[Math.min(bestIdx + 3, rows.length - 1)].time, mm: round1(bestSum) }
+    }
+  }
+
+  // Hours until the event we are actually forecasting.
+  const leadHours = peakWindow
+    ? Math.max(0, Math.round((new Date(peakWindow.from).getTime() - start) / 3600e3))
+    : 12
+
+  return { rainMm, wetHours, maxWindKmh, maxGustKmh, minVisibilityKm, peakWindow, leadHours }
+}
+
 /** WMO weather interpretation codes → short English. */
 export const WEATHER_CODES = {
   0: 'Clear sky', 1: 'Mainly clear', 2: 'Partly cloudy', 3: 'Overcast',
@@ -262,58 +308,4 @@ export const WEATHER_CODES = {
   85: 'Slight snow showers', 86: 'Heavy snow showers',
   95: 'Thunderstorm', 96: 'Thunderstorm with slight hail', 99: 'Thunderstorm with heavy hail',
 }
-
 export const describeCode = (code) => WEATHER_CODES[code] ?? 'Unknown'
-
-
-/**
- * Smart nowcasting condition resolver.
- * Combines WMO code, active precipitation, and immediate hourly window.
- */
-export function deriveCurrentCondition(current, hourly = [], summary24h = null) {
-  if (!current) return 'Unknown'
-  const code = current.weatherCode
-
-  // 1. Direct severe codes take top priority
-  if (code >= 95) {
-    if (code === 96 || code === 99) return 'Thunderstorm with Hail'
-    return 'Thunderstorm & Heavy Rain'
-  }
-  if (code === 82 || code === 65) return 'Heavy Rain Showers'
-  if (code === 81 || code === 63) return 'Moderate Rain Showers'
-  if (code === 80 || code === 61) return 'Rain Showers'
-  if (code >= 51 && code <= 55) return 'Drizzle & Light Rain'
-
-  // 2. Active precipitation rate right now
-  const precip = current.precipMm ?? 0
-  if (precip >= 5) return 'Heavy Rain Showers'
-  if (precip >= 1.5) return 'Rain Showers'
-  if (precip > 0) return 'Light Rain'
-
-  // 3. Current hourly nowcasting window
-  const now = Date.now()
-  const currentHourData = (hourly || []).find((h) => {
-    const t = new Date(h.time).getTime()
-    return Math.abs(t - now) <= 3600e3
-  })
-
-  if (currentHourData) {
-    const hCode = currentHourData.weatherCode
-    if (hCode >= 95) return 'Thunderstorm & Rain'
-    if (hCode >= 80 && hCode <= 82) return 'Rain Showers'
-    if (hCode >= 61 && hCode <= 65) return 'Heavy Rain'
-    if ((currentHourData.precipMm || 0) >= 2) return 'Heavy Rain Showers'
-    if ((currentHourData.precipMm || 0) > 0) return 'Rain Showers'
-    if ((currentHourData.precipProb || 0) >= 70 && (current.cloudCover || 0) >= 80) return 'Rain Showers Likely'
-  }
-
-  // 4. High-humidity convective rain pattern
-  if (summary24h && (summary24h.rain_24h_mm >= 25 || (summary24h.rain_duration_hours >= 6 && (summary24h.rain_probability || 0) >= 0.5))) {
-    if ((current.humidity || 0) >= 80 && (current.cloudCover || 0) >= 80) {
-      return 'Thunderstorm & Heavy Rain'
-    }
-  }
-
-  return describeCode(code)
-}
-
