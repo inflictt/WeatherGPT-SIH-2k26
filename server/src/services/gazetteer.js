@@ -79,9 +79,33 @@ export async function searchGazetteer(query, { limit = 8, state } = {}) {
     .slice(0, limit)
 }
 
+/** Open-Meteo geocoding: fast (~50ms), zero rate limits, full Indian coverage. */
+export async function geocodeOpenMeteo(query) {
+  try {
+    const url = `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(query)}&count=10&language=en&format=json&country_code=IN`
+    const data = await getJson(url, { retries: 0 })
+    if (!data?.results || !Array.isArray(data.results)) return []
+    return data.results
+      .filter((r) => r.country_code === 'IN' || r.country === 'India')
+      .map((r) => ({
+        name: r.name,
+        slug: slugify(r.name || ''),
+        kind: r.feature_code?.startsWith('PPL') ? 'city' : 'town',
+        district: (r.admin2 || r.admin3 || r.name).replace(/\s*district\s*/i, '').trim(),
+        state: r.admin1 || '',
+        lat: Number(r.latitude),
+        lon: Number(r.longitude),
+        source: 'open-meteo',
+      }))
+  } catch (err) {
+    log.warn('open-meteo geocoding failed', { error: String(err.message || err) })
+    return []
+  }
+}
+
 let lastNominatim = 0
 
-/** Nominatim: free, no key, but strictly one request per second and a real UA. */
+/** Nominatim: emergency fallback if Open-Meteo fails. */
 export async function geocodeNominatim(query) {
   const wait = 1100 - (Date.now() - lastNominatim)
   if (wait > 0) await sleep(wait)
@@ -157,6 +181,11 @@ export async function resolveLocation({ q, lat, lon, state }) {
         urbanFloodProne: best.urbanFloodProne || false,
         source: 'gazetteer',
       }
+    }
+
+    const [geoOpenMeteo] = await geocodeOpenMeteo(q)
+    if (geoOpenMeteo) {
+      return { ...geoOpenMeteo, zone: 'plains', urbanFloodProne: false }
     }
 
     const [geo] = await geocodeNominatim(q)

@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import { searchGazetteer, geocodeNominatim, nearestLocation, resolveLocation } from '../services/gazetteer.js'
+import { searchGazetteer, geocodeOpenMeteo, geocodeNominatim, nearestLocation, resolveLocation } from '../services/gazetteer.js'
 import { notFound } from '../utils/AppError.js'
 
 export const searchSchema = z.object({
@@ -15,21 +15,32 @@ export const coordSchema = z.object({
 
 export async function search(req, res) {
   const { q, state, limit = 8 } = req.validQuery
-  const local = await searchGazetteer(q, { limit, state })
+  
+  // Fast local search + fast Open-Meteo geocoding (<50ms)
+  const [local, remoteOpenMeteo] = await Promise.all([
+    searchGazetteer(q, { limit, state }),
+    geocodeOpenMeteo(q),
+  ])
 
-  // Only reach for the network when our own table came up short.
-  const remote = local.length >= 3 ? [] : await geocodeNominatim(q)
-  const seen = new Set(local.map((r) => `${r.name}|${r.state}`))
+  const seen = new Set(local.map((r) => `${r.name?.toLowerCase()}|${r.state?.toLowerCase()}`))
+  
+  const combined = [
+    ...local.map((r) => ({
+      id: r._id, name: r.name, kind: r.kind, district: r.district,
+      state: r.state, lat: r.lat, lon: r.lon, source: 'gazetteer',
+    })),
+    ...remoteOpenMeteo
+      .filter((r) => !seen.has(`${r.name?.toLowerCase()}|${r.state?.toLowerCase()}`))
+      .slice(0, 5),
+  ]
 
-  res.json({
-    results: [
-      ...local.map((r) => ({
-        id: r._id, name: r.name, kind: r.kind, district: r.district,
-        state: r.state, lat: r.lat, lon: r.lon, source: 'gazetteer',
-      })),
-      ...remote.filter((r) => !seen.has(`${r.name}|${r.state}`)).slice(0, 5),
-    ],
-  })
+  // If still empty, try Nominatim as last resort
+  if (combined.length === 0) {
+    const remoteNominatim = await geocodeNominatim(q)
+    combined.push(...remoteNominatim)
+  }
+
+  res.json({ results: combined.slice(0, limit) })
 }
 
 export async function reverse(req, res) {
