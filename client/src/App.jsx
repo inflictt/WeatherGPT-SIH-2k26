@@ -1,4 +1,4 @@
-import { Suspense, lazy, useState } from 'react'
+import { Suspense, lazy, useState, useEffect } from 'react'
 import { HashRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { DataProvider } from './lib/DataContext'
 import { useLocationPicker } from './lib/useLocationPicker'
@@ -10,6 +10,7 @@ import Home from './pages/Home'
 import Chat from './pages/Chat'
 import Alerts from './pages/Alerts'
 import Settings from './pages/Settings'
+import DevDashboard from './pages/DevDashboard'
 
 /**
  * Leaflet is ~46 kB gzipped — more than the rest of the app put together, and
@@ -58,6 +59,7 @@ export default function App() {
 
   return (
     <HashRouter>
+      <GlobalDevShortcut />
       <DataProvider query={picker.asQuery} persona={persona} lang={lang}>
         <AppShell lang={lang} setLang={changeLang} picker={picker} prefs={prefs.value} setPrefs={prefs.set}>
           <ErrorBoundary>
@@ -78,6 +80,7 @@ export default function App() {
                   </Suspense>
                 }
               />
+              <Route path="/dev" element={<DevDashboard />} />
               <Route
                 path="/settings"
                 element={
@@ -99,4 +102,23 @@ export default function App() {
       </DataProvider>
     </HashRouter>
   )
+}
+
+function GlobalDevShortcut() {
+  const navigate = HashRouter ? null : null
+  useEffect(() => {
+    const onKey = (e) => {
+      if (e.shiftKey && (e.key === 'D' || e.key === 'd')) {
+        const hash = window.location.hash
+        if (hash.includes('/dev')) {
+          window.location.hash = '#/'
+        } else {
+          window.location.hash = '#/dev'
+        }
+      }
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [])
+  return null
 }

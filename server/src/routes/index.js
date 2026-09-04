@@ -11,12 +11,13 @@ import * as warnings from '../controllers/warnings.js'
 import * as risk from '../controllers/risk.js'
 import * as chat from '../controllers/chat.js'
 import * as alerts from '../controllers/alerts.js'
-import { health } from '../controllers/health.js'
+import { health, telemetry } from '../controllers/health.js'
 
 const r = Router()
 
 /* --- diagnostics ------------------------------------------------------- */
 r.get('/health', wrap(health))
+r.get('/telemetry', wrap(telemetry))
 
 /* --- auth -------------------------------------------------------------- */
 r.post('/auth/register', authLimiter, validate(auth.registerSchema), wrap(auth.register))
