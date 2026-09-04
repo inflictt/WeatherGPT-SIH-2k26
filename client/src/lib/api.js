@@ -5,8 +5,9 @@
  * server; leave it unset and the app runs entirely on the Phase 1 mock data.
  * That is what lets the UI be demoed on a laptop with no backend at all.
  */
-export const API_URL = (import.meta.env?.VITE_API_URL || '').replace(/\/$/, '')
-export const LIVE = Boolean(API_URL)
+export const API_URL = (import.meta.env?.VITE_API_URL || 'http://localhost:5001').replace(/\/$/, '')
+export const LIVE = true
+
 
 class ApiError extends Error {
   constructor(status, message) {

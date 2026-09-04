@@ -28,24 +28,7 @@ export default function Home({ persona, setPersona, prefs }) {
       {/* 2. Weather Hero Section */}
       <Hero prefs={prefs} />
 
-      {/* Graceful degradation banner if needed */}
-      {(mode !== 'live' || degraded) && (
-        <div className="shell">
-          <div className="glass-pill px-4 py-2.5 text-[12.5px] text-ink-2 rounded-xl flex items-center justify-between">
-            <div>
-              <span className="lbl mr-2 text-[9.5px]">
-                {mode !== 'live' ? 'Demo data' : 'Degraded'}
-              </span>
-              {mode !== 'live'
-                ? error
-                  ? `Live API unreachable (${error}) — showing the bundled sample.`
-                  : 'Running on bundled sample data. Set VITE_API_URL to connect the Phase 2 API.'
-                : 'The risk engine is unreachable, so forecast and warnings are shown without a score.'}
-            </div>
-            <span className="text-amber-400 text-xs">● Local Fallback</span>
-          </div>
-        </div>
-      )}
+
 
       {/* 3. Navigation View Switcher (Origin Financial Style) */}
       <div className="shell">
