@@ -87,11 +87,11 @@ export default function AnswerCard({ m, lang = 'en', onSpeak, speaking }) {
       )}
 
       {/* 3 — Primary Answer Card */}
-      <div className="rounded-xl rounded-tl-xs border border-white/10 bg-[#161719] p-4 shadow-xl space-y-3.5">
+      <div className="rounded-xl rounded-tl-xs border border-line bg-surface p-4 shadow-xl space-y-3.5">
         {/* Answer Summary & Speech Button */}
         <div className="flex items-start justify-between gap-3">
           <div className="space-y-1.5 flex-1">
-            <p className="font-sans text-[15.5px] font-medium leading-relaxed text-pure">
+            <p className="font-sans text-[15.5px] font-medium leading-relaxed text-ink">
               {m.summary}
             </p>
           </div>
@@ -104,7 +104,7 @@ export default function AnswerCard({ m, lang = 'en', onSpeak, speaking }) {
                 'flex-none rounded-full border p-2 transition-all duration-200',
                 speaking
                   ? 'border-iris bg-iris/20 text-iris animate-pulse'
-                  : 'border-white/15 text-ash hover:border-white/40 hover:text-pure hover:bg-white/5'
+                  : 'border-line text-ink-2 hover:border-accent/40 hover:text-ink hover:bg-raised'
               )}
             >
               <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none"
@@ -125,12 +125,12 @@ export default function AnswerCard({ m, lang = 'en', onSpeak, speaking }) {
 
         {/* 4 — Dual-Language Translation Card (Always Bilingual) */}
         {m.gloss && (
-          <div className="rounded-lg border border-white/8 bg-white/[0.03] px-3 py-2.5">
-            <div className="flex items-center gap-1.5 font-mono text-[9px] uppercase tracking-[0.13em] text-ash">
+          <div className="rounded-lg border border-line bg-raised/50 px-3 py-2.5">
+            <div className="flex items-center gap-1.5 font-mono text-[9px] uppercase tracking-[0.13em] text-ink-3">
               <span>🌐</span>
               <span>{isEnglish ? 'हिन्दी अनुवाद (Hindi Translation)' : 'English Translation'}</span>
             </div>
-            <p className="mt-1 text-[13px] leading-relaxed text-cloud font-sans">
+            <p className="mt-1 text-[13px] leading-relaxed text-ink font-sans">
               {m.gloss}
             </p>
           </div>
@@ -138,28 +138,28 @@ export default function AnswerCard({ m, lang = 'en', onSpeak, speaking }) {
 
         {/* 5 — Key Meteorological Facts Strip */}
         {forecast && (forecast.tmax != null || forecast.rain_mm != null || forecast.wind_kmh != null) && (
-          <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 border-t border-white/8 pt-3">
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 border-t border-line pt-3">
             {forecast.tmax != null && (
-              <div className="rounded-md border border-white/5 bg-white/[0.02] p-2">
-                <span className="block font-mono text-[9px] uppercase tracking-[0.11em] text-ash">Temperature</span>
-                <span className="font-mono text-[13px] font-semibold text-pure">
-                  {forecast.tmax}°C <span className="text-ash font-normal">/ {forecast.tmin}°C</span>
+              <div className="rounded-md border border-line bg-raised/40 p-2">
+                <span className="block font-mono text-[9px] uppercase tracking-[0.11em] text-ink-3">Temperature</span>
+                <span className="font-mono text-[13px] font-semibold text-ink">
+                  {forecast.tmax}°C <span className="text-ink-3 font-normal">/ {forecast.tmin}°C</span>
                 </span>
               </div>
             )}
             {forecast.rain_mm != null && (
-              <div className="rounded-md border border-white/5 bg-white/[0.02] p-2">
-                <span className="block font-mono text-[9px] uppercase tracking-[0.11em] text-ash">Rainfall</span>
-                <span className="font-mono text-[13px] font-semibold text-pure">
+              <div className="rounded-md border border-line bg-raised/40 p-2">
+                <span className="block font-mono text-[9px] uppercase tracking-[0.11em] text-ink-3">Rainfall</span>
+                <span className="font-mono text-[13px] font-semibold text-ink">
                   {forecast.rain_mm} mm {forecast.prob != null && <span className="text-iris font-normal">({Math.round(forecast.prob * 100)}%)</span>}
                 </span>
               </div>
             )}
             {forecast.wind_kmh != null && (
-              <div className="rounded-md border border-white/5 bg-white/[0.02] p-2 col-span-2 sm:col-span-1">
-                <span className="block font-mono text-[9px] uppercase tracking-[0.11em] text-ash">Wind & Gusts</span>
-                <span className="font-mono text-[13px] font-semibold text-pure">
-                  {forecast.wind_kmh} <span className="text-ash font-normal">km/h</span> {forecast.gust_kmh != null && <span className="text-ash font-normal">({forecast.gust_kmh} gust)</span>}
+              <div className="rounded-md border border-line bg-raised/40 p-2 col-span-2 sm:col-span-1">
+                <span className="block font-mono text-[9px] uppercase tracking-[0.11em] text-ink-3">Wind & Gusts</span>
+                <span className="font-mono text-[13px] font-semibold text-ink">
+                  {forecast.wind_kmh} <span className="text-ink-3 font-normal">km/h</span> {forecast.gust_kmh != null && <span className="text-ink-3 font-normal">({forecast.gust_kmh} gust)</span>}
                 </span>
               </div>
             )}
@@ -168,23 +168,23 @@ export default function AnswerCard({ m, lang = 'en', onSpeak, speaking }) {
 
         {/* 6 — IMD Risk Assessment & Model Confidence Meters */}
         {(m.riskBand || m.confidence) && (
-          <div className="space-y-2 border-t border-white/8 pt-3">
+          <div className="space-y-2 border-t border-line pt-3">
             <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
               {m.riskBand && (
                 <span className="flex items-center gap-2">
-                  <span className="font-mono text-[9.5px] uppercase tracking-[0.12em] text-ash">{t('risk', lang)}</span>
-                  <span className={cn('font-mono text-[11.5px] uppercase font-bold tracking-[0.12em]', SEVERITY[tone]?.text || 'text-pure')}>
+                  <span className="font-mono text-[9.5px] uppercase tracking-[0.12em] text-ink-3">{t('risk', lang)}</span>
+                  <span className={cn('font-mono text-[11.5px] uppercase font-bold tracking-[0.12em]', SEVERITY[tone]?.text || 'text-ink')}>
                     {m.riskBand}
                   </span>
                   {m.riskScore != null && (
-                    <span className="tnum font-mono text-[10.5px] text-ash">({m.riskScore}/100)</span>
+                    <span className="tnum font-mono text-[10.5px] text-ink-3">({m.riskScore}/100)</span>
                   )}
                 </span>
               )}
               {m.confidence && (
                 <span className="flex items-center gap-2">
-                  <span className="font-mono text-[9.5px] uppercase tracking-[0.12em] text-ash">{t('confidence', lang)}</span>
-                  <span className="font-mono text-[11.5px] uppercase font-semibold tracking-[0.12em] text-cloud">
+                  <span className="font-mono text-[9.5px] uppercase tracking-[0.12em] text-ink-3">{t('confidence', lang)}</span>
+                  <span className="font-mono text-[11.5px] uppercase font-semibold tracking-[0.12em] text-ink">
                     {m.confidence}
                   </span>
                   <ConfidenceBars level={m.confidence} />
@@ -194,14 +194,14 @@ export default function AnswerCard({ m, lang = 'en', onSpeak, speaking }) {
 
             {/* Detailed Risk Explanation */}
             {m.riskExplanation && (
-              <p className="text-[12.5px] leading-relaxed text-cloud/90 font-sans">
+              <p className="text-[12.5px] leading-relaxed text-ink font-sans">
                 {m.riskExplanation}
               </p>
             )}
 
             {/* Model Ensemble Agreement Reasons */}
             {m.uncertaintyExplanation && (
-              <p className="text-[12px] leading-relaxed text-ash font-sans italic">
+              <p className="text-[12px] leading-relaxed text-ink-3 font-sans italic">
                 {m.uncertaintyExplanation}
               </p>
             )}
@@ -211,18 +211,18 @@ export default function AnswerCard({ m, lang = 'en', onSpeak, speaking }) {
 
       {/* 7 — Actionable Recommendations List */}
       {m.actions?.length > 0 && (
-        <div className="rounded-xl border border-white/8 bg-[#141517] p-3.5 space-y-2">
-          <p className="font-mono text-[9.5px] uppercase tracking-[0.13em] text-ash flex items-center gap-1.5">
+        <div className="rounded-xl border border-line bg-surface p-3.5 space-y-2">
+          <p className="font-mono text-[9.5px] uppercase tracking-[0.13em] text-ink-3 flex items-center gap-1.5">
             <span className="text-iris">⚡</span> Actionable Guidance
           </p>
           <ul className="space-y-2 pl-1">
             {m.actions.map((a, i) => (
-              <li key={a} className="flex items-start gap-2.5 text-[13.5px] leading-relaxed text-cloud">
+              <li key={a} className="flex items-start gap-2.5 text-[13.5px] leading-relaxed text-ink">
                 <span className="mt-[7px] h-1.5 w-1.5 rounded-full flex-none bg-iris" aria-hidden="true" />
                 <span>
-                  <span className="text-pure font-normal">{a}</span>
+                  <span className="text-ink font-normal">{a}</span>
                   {m.actionsGloss?.[i] && (
-                    <span className="block mt-0.5 text-[12px] text-ash">
+                    <span className="block mt-0.5 text-[12px] text-ink-3">
                       {m.actionsGloss[i]}
                     </span>
                   )}

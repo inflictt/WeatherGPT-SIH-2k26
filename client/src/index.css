@@ -55,10 +55,12 @@
     --c-sunk:        9 10 11;      /* #090a0b Abyss */
     --c-line:        255 255 255;  /* Line stroke */
     --c-line-soft:   255 255 255;
+    --c-steel:       63 64 65;
+    --c-silver:      202 202 202;
 
     --c-ink:         245 245 247;  /* #f5f5f7 Cloud */
-    --c-ink-2:       196 197 199;
-    --c-ink-3:       147 148 150;
+    --c-ink-2:       176 177 179;
+    --c-ink-3:       142 143 144;
 
     --c-accent:      255 255 255;  /* #ffffff Pure */
     --c-on-accent:   0 0 0;        /* #000000 Void */
@@ -90,8 +92,8 @@
     --color-surface:        #ffffff;
     --color-raised:         #e2e8f0;
     --color-sunk:           #cbd5e1;
-    --color-line:           rgba(0, 0, 0, 0.1);
-    --color-line-soft:      rgba(0, 0, 0, 0.05);
+    --color-line:           rgba(15, 23, 42, 0.1);
+    --color-line-soft:      rgba(15, 23, 42, 0.05);
 
     --color-ink:            #0f172a;
     --color-ink-2:          #334155;
@@ -105,8 +107,10 @@
     --c-surface:     255 255 255;
     --c-raised:      226 232 240;
     --c-sunk:        203 213 225;
-    --c-line:        0 0 0;
-    --c-line-soft:   0 0 0;
+    --c-line:        15 23 42;
+    --c-line-soft:   15 23 42;
+    --c-steel:       148 163 184;
+    --c-silver:      71 85 105;
 
     --c-ink:         15 23 42;
     --c-ink-2:       51 65 85;
@@ -136,8 +140,8 @@
       --color-surface:        #ffffff;
       --color-raised:         #e2e8f0;
       --color-sunk:           #cbd5e1;
-      --color-line:           rgba(0, 0, 0, 0.1);
-      --color-line-soft:      rgba(0, 0, 0, 0.05);
+      --color-line:           rgba(15, 23, 42, 0.1);
+      --color-line-soft:      rgba(15, 23, 42, 0.05);
 
       --color-ink:            #0f172a;
       --color-ink-2:          #334155;
@@ -151,8 +155,10 @@
       --c-surface:     255 255 255;
       --c-raised:      226 232 240;
       --c-sunk:        203 213 225;
-      --c-line:        0 0 0;
-      --c-line-soft:   0 0 0;
+      --c-line:        15 23 42;
+      --c-line-soft:   15 23 42;
+      --c-steel:       148 163 184;
+      --c-silver:      71 85 105;
 
       --c-ink:         15 23 42;
       --c-ink-2:       51 65 85;
@@ -244,14 +250,14 @@
     position: fixed;
     inset: 0;
     z-index: -1;
-    background-color: var(--color-obsidian);
+    background-color: #0f1011;
     background-image: 
       linear-gradient(180deg, 
-        rgba(15, 16, 17, 0.98) 0%, 
-        rgba(19, 29, 39, 0.82) 18%, 
+        rgba(15, 16, 17, 0.94) 0%, 
+        rgba(19, 29, 39, 0.85) 18%, 
         rgba(26, 71, 136, 0.45) 37%, 
         rgba(64, 138, 193, 0.25) 69%, 
-        rgba(15, 16, 17, 0.95) 100%
+        rgba(15, 16, 17, 0.96) 100%
       ),
       url('https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=2400&q=80');
     background-size: cover;
@@ -259,10 +265,10 @@
     background-attachment: fixed;
   }
   :root[data-theme="light"] .weather-backdrop {
-    background-color: #f5f5f7;
+    background-color: #f1f5f9;
     background-image: 
-      radial-gradient(ellipse 100% 70% at 50% -10%, rgba(224, 242, 254, 0.4), transparent 70%),
-      linear-gradient(180deg, rgba(255, 255, 255, 0.85) 0%, rgba(248, 250, 252, 0.96) 50%, rgba(241, 245, 249, 0.99) 100%),
+      radial-gradient(ellipse 100% 70% at 50% -10%, rgba(186, 230, 253, 0.45), transparent 70%),
+      linear-gradient(180deg, rgba(241, 245, 249, 0.88) 0%, rgba(248, 250, 252, 0.94) 50%, rgba(241, 245, 249, 0.98) 100%),
       url('https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=2400&q=80');
   }
 
@@ -270,31 +276,38 @@
     background: rgba(15, 16, 17, 0.88);
     backdrop-filter: blur(24px);
     -webkit-backdrop-filter: blur(24px);
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.12);
   }
   :root[data-theme="light"] .glass-panel {
-    background: rgba(255, 255, 255, 0.88);
-    border: 1px solid rgba(0, 0, 0, 0.08);
+    background: rgba(255, 255, 255, 0.92);
+    backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
+    border: 1px solid rgba(15, 23, 42, 0.09);
+    box-shadow: 0 4px 20px -2px rgba(15, 23, 42, 0.05);
   }
 
   .glass-card {
-    background: rgba(46, 46, 46, 0.45);
+    background: rgba(24, 25, 27, 0.85);
     backdrop-filter: blur(16px);
     -webkit-backdrop-filter: blur(16px);
-    border: 1px solid rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.1);
     transition: all 0.2s ease;
   }
   .glass-card:hover {
-    background: rgba(63, 64, 65, 0.6);
-    border-color: rgba(255, 255, 255, 0.16);
+    background: rgba(46, 46, 46, 0.95);
+    border-color: rgba(255, 255, 255, 0.2);
   }
   :root[data-theme="light"] .glass-card {
-    background: rgba(255, 255, 255, 0.75);
-    border: 1px solid rgba(0, 0, 0, 0.07);
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid rgba(15, 23, 42, 0.09);
+    box-shadow: 0 2px 8px rgba(15, 23, 42, 0.04);
   }
   :root[data-theme="light"] .glass-card:hover {
-    background: rgba(255, 255, 255, 0.95);
-    border-color: rgba(0, 0, 0, 0.15);
+    background: #ffffff;
+    border-color: rgba(15, 23, 42, 0.18);
+    box-shadow: 0 4px 14px rgba(15, 23, 42, 0.08);
   }
 
   .glass-pill {
@@ -304,8 +317,11 @@
     border: 1px solid rgba(255, 255, 255, 0.12);
   }
   :root[data-theme="light"] .glass-pill {
-    background: rgba(0, 0, 0, 0.04);
-    border: 1px solid rgba(0, 0, 0, 0.08);
+    background: rgba(255, 255, 255, 0.85);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(15, 23, 42, 0.09);
+    box-shadow: 0 1px 4px rgba(15, 23, 42, 0.04);
   }
 
   .glass-popover {
@@ -315,8 +331,11 @@
     border: 1px solid rgba(255, 255, 255, 0.14);
   }
   :root[data-theme="light"] .glass-popover {
-    background: rgba(255, 255, 255, 0.96);
-    border: 1px solid rgba(0, 0, 0, 0.12);
+    background: rgba(255, 255, 255, 0.98);
+    backdrop-filter: blur(28px);
+    -webkit-backdrop-filter: blur(28px);
+    border: 1px solid rgba(15, 23, 42, 0.12);
+    box-shadow: 0 10px 25px -5px rgba(15, 23, 42, 0.1);
   }
 
   .shell { @apply mx-auto w-full max-w-shell px-5 sm:px-8 lg:px-10; }
