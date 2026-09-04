@@ -7,7 +7,12 @@ export default defineConfig({
   plugins: [
     react(),
     VitePWA({
-      registerType: 'prompt',
+      // autoUpdate, not 'prompt'. 'prompt' needs a component calling
+      // registerSW() to offer the reload, and for an early-warning app
+      // "a new version is available, click here" is the wrong interaction
+      // anyway — a stale build showing yesterday's warnings is the failure
+      // mode that matters, so it updates itself on the next load.
+      registerType: 'autoUpdate',
       includeAssets: ['favicon.svg'],
       manifest: {
         name: 'WeatherGPT — weather warnings for India',
