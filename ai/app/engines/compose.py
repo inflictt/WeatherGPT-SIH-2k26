@@ -291,18 +291,23 @@ def compose(context: dict[str, Any]) -> dict[str, Any]:
     actions, actions_gloss = _actions(
         language, persona, _conditions(forecast, warning, risk))
 
-    # --- English gloss, and the Devanagari form for speech ----------------
+    # --- Bilingual gloss, and the Devanagari form for speech ----------------
     gloss = None
     if language != "en":
         gloss, _ = _summary("en", intent, place,
                             _when("en", context.get("window")), forecast, warning)
+    else:
+        gloss, _ = _summary("hi", intent, place,
+                            _when("hi", context.get("window")), forecast, warning)
 
     # Hinglish displays in Latin but must be *spoken* in Devanagari, or hi-IN
-    # pronounces it as English. Hindi and English speak their own summary.
+    # will pronounce romanised words with English phonetics.
+    speech = summary
     if language == "hinglish":
-        speech, _ = _summary("hi", intent, place,
-                             _when("hi", context.get("window")), forecast, warning)
-    else:
+        hi_summary, _ = _summary("hi", intent, place,
+                                 _when("hi", context.get("window")), forecast, warning)
+        speech = hi_summary
+    elif language == "en" and gloss:
         speech = summary
 
     sources = [

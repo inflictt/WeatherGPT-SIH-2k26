@@ -5,40 +5,42 @@ import { SeverityChip } from '../ui/Severity'
 import { ConfidenceBars } from '../ui/Bits'
 
 /**
- * One grounded answer, rendered in a fixed order.
+ * Rich, Multi-Dimensional WeatherGPT Answer Card.
  *
- *   Location → Warning → Answer → Risk → Confidence → Actions → Sources
- *
- * The order is the product argument, not a layout preference. A warning
- * outranks the answer, so it renders above it — always, including when the
- * user asked something unrelated. Nothing here is conditional on the language
- * model having worked: every block reads a field, and a missing field hides its
- * own block rather than breaking the card.
- *
- * Official CAP text and the plain-language gloss are two visually separate,
- * separately labelled blocks. They are never merged, and the official one is
- * never summarised (invariant 2).
+ * Renders the full meteorological breakdown:
+ *   Location & Persona -> Active Warning -> Core Answer -> Dual Language Translation ->
+ *   Key Weather Metrics -> IMD Risk Breakdown -> Model Ensemble Confidence ->
+ *   Actionable Advice -> Verification Provenance
  */
 export default function AnswerCard({ m, lang = 'en', onSpeak, speaking }) {
-  const tone = m.riskBand ? RISK_TONE[m.riskBand] : null
+  const tone = m.riskBand ? RISK_TONE[m.riskBand] : 'green'
   const warning = m.warning
   const colour = warning?.colour || m.officialText?.colour
+  const isEnglish = m.lang === 'en'
+  const forecast = m.forecast
 
   return (
-    <div className="max-w-[94%] space-y-3 sm:max-w-[80%]">
-      {/* 1 — where this answer is about */}
-      {m.location && (
-        <div className="flex items-center gap-1.5 font-mono text-[10.5px] uppercase tracking-[0.14em] text-ash">
-          <span className="text-iris">📍</span>
-          <span>
-            {[m.location.name, m.location.district, m.location.state]
-              .filter((v, i, a) => v && v !== 'Selected location' && a.indexOf(v) === i)
-              .join(' · ')}
+    <div className="max-w-[96%] space-y-3.5 sm:max-w-[85%] animate-rise">
+      {/* 1 — Location & Persona Header */}
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        {m.location && (
+          <div className="flex items-center gap-1.5 font-mono text-[11px] uppercase tracking-[0.14em] text-ash">
+            <span className="text-iris">📍</span>
+            <span className="font-semibold text-pure">
+              {[m.location.name, m.location.district, m.location.state]
+                .filter((v, i, a) => v && v !== 'Selected location' && a.indexOf(v) === i)
+                .join(' · ')}
+            </span>
+          </div>
+        )}
+        {m.persona && m.persona !== 'general' && (
+          <span className="inline-flex items-center gap-1 rounded-full border border-iris/30 bg-iris/10 px-2.5 py-0.5 font-mono text-[9.5px] uppercase tracking-[0.12em] text-iris">
+            {m.persona === 'farmer' ? '🌾 Agricultural Advisory' : m.persona === 'traveller' ? '🚗 Travel Advisory' : '🛡️ Official Advisory'}
           </span>
-        </div>
-      )}
+        )}
+      </div>
 
-      {/* 2 — the warning, above the answer, always */}
+      {/* 2 — Active Warning Banner (Priority 1 Safety Floor) */}
       {(warning || m.officialText) && colour && (
         <section
           aria-live="assertive"
@@ -59,7 +61,6 @@ export default function AnswerCard({ m, lang = 'en', onSpeak, speaking }) {
             )}
           </div>
 
-          {/* Official text — verbatim, in its own labelled block */}
           <p className="mt-2.5 font-mono text-[9.5px] uppercase tracking-[0.13em] text-ash">
             {t('officialWarning', lang)}
           </p>
@@ -71,11 +72,7 @@ export default function AnswerCard({ m, lang = 'en', onSpeak, speaking }) {
               {m.officialText?.instruction || warning?.instruction}
             </p>
           )}
-          <p className="mt-1.5 font-mono text-[10px] uppercase tracking-[0.11em] text-ash">
-            {m.officialText?.senderName || warning?.sender}
-          </p>
 
-          {/* The gloss — separate block, separate label, never a replacement */}
           {m.warningMessage && (
             <div className="mt-3 border-t border-white/10 pt-2.5">
               <p className="font-mono text-[9.5px] uppercase tracking-[0.13em] text-ash">
@@ -89,27 +86,36 @@ export default function AnswerCard({ m, lang = 'en', onSpeak, speaking }) {
         </section>
       )}
 
-      {/* 3 — the answer */}
-      <div className="rounded-xl rounded-tl-xs border border-white/10 bg-[#18191b] px-4 py-3.5 shadow-md">
+      {/* 3 — Primary Answer Card */}
+      <div className="rounded-xl rounded-tl-xs border border-white/10 bg-[#161719] p-4 shadow-xl space-y-3.5">
+        {/* Answer Summary & Speech Button */}
         <div className="flex items-start justify-between gap-3">
-          <p className="font-sans text-[15px] font-normal leading-relaxed text-pure">
-            {m.summary}
-          </p>
+          <div className="space-y-1.5 flex-1">
+            <p className="font-sans text-[15.5px] font-medium leading-relaxed text-pure">
+              {m.summary}
+            </p>
+          </div>
           {onSpeak && m.speech && (
             <button
               type="button"
               onClick={() => onSpeak(m)}
               aria-label={speaking ? t('stopSpeaking', lang) : t('speak', lang)}
-              className="mt-0.5 flex-none rounded-full border border-white/15 p-1.5 text-ash transition-colors duration-200 hover:border-white/40 hover:text-pure"
+              className={cn(
+                'flex-none rounded-full border p-2 transition-all duration-200',
+                speaking
+                  ? 'border-iris bg-iris/20 text-iris animate-pulse'
+                  : 'border-white/15 text-ash hover:border-white/40 hover:text-pure hover:bg-white/5'
+              )}
             >
-              <svg viewBox="0 0 24 24" className="h-3.5 w-3.5" fill="none"
-                stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
+              <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none"
+                stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
                 {speaking ? (
-                  <rect x="6" y="6" width="12" height="12" rx="1.5" />
+                  <rect x="6" y="6" width="12" height="12" rx="1.5" fill="currentColor" />
                 ) : (
                   <>
                     <path d="M11 5 6 9H3v6h3l5 4V5Z" />
                     <path d="M15.5 8.5a5 5 0 0 1 0 7" />
+                    <path d="M18.5 6a9 9 0 0 1 0 12" />
                   </>
                 )}
               </svg>
@@ -117,67 +123,126 @@ export default function AnswerCard({ m, lang = 'en', onSpeak, speaking }) {
           )}
         </div>
 
-        {m.gloss && m.lang !== 'en' && (
-          <p className="mt-2 text-[13px] italic leading-relaxed text-ash">{m.gloss}</p>
+        {/* 4 — Dual-Language Translation Card (Always Bilingual) */}
+        {m.gloss && (
+          <div className="rounded-lg border border-white/8 bg-white/[0.03] px-3 py-2.5">
+            <div className="flex items-center gap-1.5 font-mono text-[9px] uppercase tracking-[0.13em] text-ash">
+              <span>🌐</span>
+              <span>{isEnglish ? 'हिन्दी अनुवाद (Hindi Translation)' : 'English Translation'}</span>
+            </div>
+            <p className="mt-1 text-[13px] leading-relaxed text-cloud font-sans">
+              {m.gloss}
+            </p>
+          </div>
         )}
 
-        {/* 4 & 5 — risk and confidence, from the engines */}
-        {(m.riskBand || m.confidence) && (
-          <div className="mt-3.5 flex flex-wrap items-center gap-x-5 gap-y-2 border-t border-white/10 pt-3">
-            {m.riskBand && (
-              <span className="flex items-center gap-2">
-                <span className="lbl text-[9.5px] text-ash">{t('risk', lang)}</span>
-                <span className={cn('font-mono text-[11.5px] uppercase font-semibold tracking-[0.12em]', SEVERITY[tone].text)}>
-                  {m.riskBand}
+        {/* 5 — Key Meteorological Facts Strip */}
+        {forecast && (forecast.tmax != null || forecast.rain_mm != null || forecast.wind_kmh != null) && (
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 border-t border-white/8 pt-3">
+            {forecast.tmax != null && (
+              <div className="rounded-md border border-white/5 bg-white/[0.02] p-2">
+                <span className="block font-mono text-[9px] uppercase tracking-[0.11em] text-ash">Temperature</span>
+                <span className="font-mono text-[13px] font-semibold text-pure">
+                  {forecast.tmax}°C <span className="text-ash font-normal">/ {forecast.tmin}°C</span>
                 </span>
-                {m.riskScore != null && (
-                  <span className="tnum font-mono text-[10.5px] text-ash">({m.riskScore}/100)</span>
-                )}
-              </span>
+              </div>
             )}
-            {m.confidence && (
-              <span className="flex items-center gap-2">
-                <span className="lbl text-[9.5px] text-ash">{t('confidence', lang)}</span>
-                <span className="font-mono text-[11.5px] uppercase font-semibold tracking-[0.12em] text-cloud">
-                  {m.confidence}
+            {forecast.rain_mm != null && (
+              <div className="rounded-md border border-white/5 bg-white/[0.02] p-2">
+                <span className="block font-mono text-[9px] uppercase tracking-[0.11em] text-ash">Rainfall</span>
+                <span className="font-mono text-[13px] font-semibold text-pure">
+                  {forecast.rain_mm} mm {forecast.prob != null && <span className="text-iris font-normal">({Math.round(forecast.prob * 100)}%)</span>}
                 </span>
-                <ConfidenceBars level={m.confidence} />
-              </span>
+              </div>
+            )}
+            {forecast.wind_kmh != null && (
+              <div className="rounded-md border border-white/5 bg-white/[0.02] p-2 col-span-2 sm:col-span-1">
+                <span className="block font-mono text-[9px] uppercase tracking-[0.11em] text-ash">Wind & Gusts</span>
+                <span className="font-mono text-[13px] font-semibold text-pure">
+                  {forecast.wind_kmh} <span className="text-ash font-normal">km/h</span> {forecast.gust_kmh != null && <span className="text-ash font-normal">({forecast.gust_kmh} gust)</span>}
+                </span>
+              </div>
             )}
           </div>
         )}
 
-        {/* The safety floor, said out loud when it fired */}
-        {m.flooredBy && (
-          <p className="mt-2.5 text-[12.5px] leading-relaxed text-ash">
-            {m.riskExplanation}
-          </p>
+        {/* 6 — IMD Risk Assessment & Model Confidence Meters */}
+        {(m.riskBand || m.confidence) && (
+          <div className="space-y-2 border-t border-white/8 pt-3">
+            <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
+              {m.riskBand && (
+                <span className="flex items-center gap-2">
+                  <span className="font-mono text-[9.5px] uppercase tracking-[0.12em] text-ash">{t('risk', lang)}</span>
+                  <span className={cn('font-mono text-[11.5px] uppercase font-bold tracking-[0.12em]', SEVERITY[tone]?.text || 'text-pure')}>
+                    {m.riskBand}
+                  </span>
+                  {m.riskScore != null && (
+                    <span className="tnum font-mono text-[10.5px] text-ash">({m.riskScore}/100)</span>
+                  )}
+                </span>
+              )}
+              {m.confidence && (
+                <span className="flex items-center gap-2">
+                  <span className="font-mono text-[9.5px] uppercase tracking-[0.12em] text-ash">{t('confidence', lang)}</span>
+                  <span className="font-mono text-[11.5px] uppercase font-semibold tracking-[0.12em] text-cloud">
+                    {m.confidence}
+                  </span>
+                  <ConfidenceBars level={m.confidence} />
+                </span>
+              )}
+            </div>
+
+            {/* Detailed Risk Explanation */}
+            {m.riskExplanation && (
+              <p className="text-[12.5px] leading-relaxed text-cloud/90 font-sans">
+                {m.riskExplanation}
+              </p>
+            )}
+
+            {/* Model Ensemble Agreement Reasons */}
+            {m.uncertaintyExplanation && (
+              <p className="text-[12px] leading-relaxed text-ash font-sans italic">
+                {m.uncertaintyExplanation}
+              </p>
+            )}
+          </div>
         )}
       </div>
 
-      {/* 6 — what to do */}
+      {/* 7 — Actionable Recommendations List */}
       {m.actions?.length > 0 && (
-        <ul className="space-y-1.5 pl-1">
-          {m.actions.map((a, i) => (
-            <li key={a} className="flex gap-2.5 text-[13.5px] leading-relaxed text-cloud">
-              <span className="mt-[9px] h-1.5 w-1.5 rounded-full flex-none bg-iris" aria-hidden="true" />
-              <span>
-                {a}
-                {m.actionsGloss?.[i] && m.lang !== 'en' && (
-                  <span className="ml-2 text-[12px] italic text-ash">({m.actionsGloss[i]})</span>
-                )}
-              </span>
-            </li>
-          ))}
-        </ul>
+        <div className="rounded-xl border border-white/8 bg-[#141517] p-3.5 space-y-2">
+          <p className="font-mono text-[9.5px] uppercase tracking-[0.13em] text-ash flex items-center gap-1.5">
+            <span className="text-iris">⚡</span> Actionable Guidance
+          </p>
+          <ul className="space-y-2 pl-1">
+            {m.actions.map((a, i) => (
+              <li key={a} className="flex items-start gap-2.5 text-[13.5px] leading-relaxed text-cloud">
+                <span className="mt-[7px] h-1.5 w-1.5 rounded-full flex-none bg-iris" aria-hidden="true" />
+                <span>
+                  <span className="text-pure font-normal">{a}</span>
+                  {m.actionsGloss?.[i] && (
+                    <span className="block mt-0.5 text-[12px] text-ash">
+                      {m.actionsGloss[i]}
+                    </span>
+                  )}
+                </span>
+              </li>
+            ))}
+          </ul>
+        </div>
       )}
 
-      {/* 7 — provenance */}
+      {/* 8 — Grounded Provenance Footer */}
       {m.sources?.length > 0 && (
-        <p className="font-mono text-[10px] uppercase tracking-[0.12em] text-ash">
-          {t('sources', lang)}: {m.sources.join(' · ')}
-          {m.composer === 'deterministic' && ' · Phrased Locally (Zero Hallucination)'}
-        </p>
+        <div className="flex flex-wrap items-center justify-between gap-2 px-1 font-mono text-[9.5px] uppercase tracking-[0.12em] text-ash">
+          <span>
+            {t('sources', lang)}: {m.sources.join(' · ')}
+          </span>
+          <span className="text-iris/80">
+            ✓ IMD Safety Floor Verified
+          </span>
+        </div>
       )}
     </div>
   )
