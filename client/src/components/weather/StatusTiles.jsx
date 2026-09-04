@@ -27,53 +27,92 @@ const SOME_RAIN_MM = 2
 const STRONG_WIND_KMH = 40
 
 function verdicts(forecast, risk, fmt) {
-  const mm = forecast?.rain_mm ?? forecast?.mm ?? null
-  const wind = forecast?.wind_kmh ?? null
-  const gust = forecast?.gust_kmh ?? null
-  const tmax = forecast?.tmax ?? null
+  const mm = forecast?.rain_24h_mm ?? forecast?.rain_mm ?? forecast?.mm ?? 0
+  const prob = forecast?.rain_probability ?? forecast?.prob ?? (forecast?.precipProbMax != null ? forecast.precipProbMax / 100 : 0)
+  const wind = forecast?.wind_kmh ?? forecast?.maxWindKmh ?? null
+  const gust = forecast?.gust_kmh ?? forecast?.maxGustKmh ?? null
+  const tmax = forecast?.temp_max_c ?? forecast?.tmax ?? forecast?.tempMaxC ?? null
+  const tmin = forecast?.temp_min_c ?? forecast?.tmin ?? forecast?.tempMinC ?? null
+  const visKm = forecast?.visibility_km ?? null
   const band = risk?.overall || null
 
-  const rain = mm == null ? null : mm >= HEAVY_MM ? 'heavy' : mm >= SOME_RAIN_MM ? 'some' : 'none'
+  const rain = mm >= HEAVY_MM || (mm >= 25 && prob >= 0.4) 
+    ? 'heavy' 
+    : (mm >= SOME_RAIN_MM || prob >= 0.35) 
+      ? 'some' 
+      : (mm > 0 || prob > 0.15) 
+        ? 'light' 
+        : 'none'
+
   const windy = Math.max(wind || 0, (gust || 0) * 0.75) >= STRONG_WIND_KMH
 
   return [
     {
       key: 'umbrella',
       label: 'Umbrella',
-      value: rain === 'heavy' ? 'Essential' : rain === 'some' ? 'Take one' : 'Not needed',
-      tone: rain === 'heavy' ? 'orange' : rain === 'some' ? 'yellow' : 'green',
-      detail: mm == null ? 'No rainfall data' : `${fmt.rain(mm)} ${fmt.rainUnit} expected`,
+      value: rain === 'heavy' ? 'Essential' : rain === 'some' ? 'Take one' : rain === 'light' ? 'Recommended' : 'Not needed',
+      tone: rain === 'heavy' ? 'orange' : (rain === 'some' || rain === 'light') ? 'yellow' : 'green',
+      detail: mm > 0 
+        ? `${fmt.rain(mm)} ${fmt.rainUnit} expected${prob ? ` (${Math.round(prob * 100)}% prob)` : ''}`
+        : prob > 0 
+          ? `${Math.round(prob * 100)}% rain chance`
+          : 'No rain expected',
     },
     {
       key: 'outdoors',
       label: 'Outdoors',
       value:
-        band === 'EXTREME' || band === 'HIGH'
-          ? 'Avoid'
-          : rain === 'some' || windy
-            ? 'Take care'
+        band === 'EXTREME' || band === 'HIGH' || rain === 'heavy'
+          ? 'Avoid / Take shelter'
+          : rain === 'some' || windy || (visKm != null && visKm < 2)
+            ? 'Take care / Rain gear'
             : 'Good',
-      tone: band === 'EXTREME' ? 'red' : band === 'HIGH' ? 'orange' : rain === 'some' || windy ? 'yellow' : 'green',
-      detail: band ? `Risk assessed ${band}` : 'No risk score',
+      tone: band === 'EXTREME' ? 'red' : (band === 'HIGH' || rain === 'heavy') ? 'orange' : (rain === 'some' || windy || (visKm != null && visKm < 2)) ? 'yellow' : 'green',
+      detail: visKm != null && visKm < 2 
+        ? `Visibility ${visKm} km · ${band ? `Risk ${band}` : 'Low visibility'}`
+        : band 
+          ? `Risk assessed ${band}` 
+          : 'No risk score',
     },
     {
       key: 'clothing',
       label: 'Clothing',
       value:
-        tmax == null ? 'Unknown' : tmax >= 35 ? 'Light, stay shaded' : tmax >= 24 ? 'Light layers' : 'Something warm',
-      tone: tmax != null && tmax >= 40 ? 'orange' : 'green',
-      detail: tmax == null ? 'No temperature data' : `High of ${fmt.temp(tmax)}${fmt.tempUnit}`,
+        rain === 'heavy' || rain === 'some'
+          ? 'Waterproof layers'
+          : tmax == null 
+            ? 'Comfortable layers' 
+            : tmax >= 35 
+              ? 'Light, stay shaded' 
+              : tmax >= 24 
+                ? 'Light breathable' 
+                : 'Something warm',
+      tone: (rain === 'heavy' || (tmax != null && tmax >= 40)) ? 'orange' : (rain === 'some' || (tmax != null && tmax >= 35)) ? 'yellow' : 'green',
+      detail: tmax != null 
+        ? `High ${fmt.temp(tmax)}${fmt.tempUnit}${tmin != null ? `, Low ${fmt.temp(tmin)}${fmt.tempUnit}` : ''}`
+        : 'Seasonal wear',
     },
     {
       key: 'travel',
       label: 'Travel',
-      value: rain === 'heavy' ? 'Delay if you can' : windy ? 'Expect crosswinds' : 'Normal',
-      tone: rain === 'heavy' ? 'orange' : windy ? 'yellow' : 'green',
+      value: (rain === 'heavy' || (visKm != null && visKm < 1.5)) 
+        ? 'Delays & wet roads' 
+        : windy 
+          ? 'Expect crosswinds' 
+          : rain === 'some' 
+            ? 'Slick roads possible' 
+            : 'Normal',
+      tone: (rain === 'heavy' || (visKm != null && visKm < 1.5)) ? 'orange' : (windy || rain === 'some' || (visKm != null && visKm < 2)) ? 'yellow' : 'green',
       detail:
-        wind == null ? 'No wind data' : `Wind ${fmt.speed(wind)} ${fmt.speedUnit}${gust ? `, gusts ${fmt.speed(gust)}` : ''}`,
+        visKm != null && visKm < 3
+          ? `Visibility ${visKm} km${wind ? ` · Wind ${fmt.speed(wind)} ${fmt.speedUnit}` : ''}`
+          : wind == null 
+            ? 'Normal conditions' 
+            : `Wind ${fmt.speed(wind)} ${fmt.speedUnit}${gust ? `, gusts ${fmt.speed(gust)}` : ''}`,
     },
   ]
 }
+
 
 export default function StatusTiles({ forecast, risk, fmt }) {
   const tiles = verdicts(forecast, risk, fmt)

@@ -29,10 +29,26 @@ export default function TopHeader({ lang, setLang, picker, resolved, toggleTheme
 
           {current && (
             <div className="hidden sm:flex items-center gap-2 font-mono text-xs text-ink-2">
-              <span className="text-base">⛅</span>
+              <span className="text-base">
+                {(() => {
+                  const c = (current.condition || '').toLowerCase()
+                  if (c.includes('thunder') || c.includes('storm')) return '⛈️'
+                  if (c.includes('rain') || c.includes('shower')) return '🌧️'
+                  if (c.includes('drizzle')) return '🌦️'
+                  if (c.includes('snow') || c.includes('sleet')) return '❄️'
+                  if (c.includes('fog') || c.includes('mist') || c.includes('smog')) return '🌫️'
+                  if (c.includes('clear') || c.includes('sun')) return '☀️'
+                  return '⛅'
+                })()}
+              </span>
               <span className="font-semibold text-ink text-sm">
                 {fmt.temp(current.tempC)} {fmt.tempUnit}
               </span>
+              {current.condition && (
+                <span className="text-xs text-ink-3 hidden md:inline truncate max-w-[150px]">
+                  ({current.condition})
+                </span>
+              )}
               {warnings?.length > 0 && (
                 <span className="flex items-center gap-1 rounded-full bg-sev-orange/20 text-sev-orange px-2 py-0.5 text-[10px] font-semibold border border-sev-orange/30 animate-pulse">
                   ⚠️ {warnings.length} {warnings.length === 1 ? 'Alert' : 'Alerts'}
@@ -40,6 +56,7 @@ export default function TopHeader({ lang, setLang, picker, resolved, toggleTheme
               )}
             </div>
           )}
+
         </div>
 
         {/* Center: Search location input */}

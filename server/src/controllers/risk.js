@@ -1,5 +1,5 @@
 import {
-  fetchForecast, fetchEnsemble, totalsFor24h, antecedentRainfall, describeCode,
+  fetchForecast, fetchEnsemble, totalsFor24h, antecedentRainfall, describeCode, deriveCurrentCondition,
 } from '../services/openMeteo.js'
 import { warningsForPoint, highest } from '../services/capIngest.js'
 import { scoreRisk, scoreUncertainty, composeAnswer } from '../services/aiClient.js'
@@ -104,7 +104,10 @@ export async function assess(req, res) {
 
   res.json({
     location: loc,
-    current: { ...forecast.current, condition: describeCode(forecast.current.weatherCode) },
+    current: {
+      ...forecast.current,
+      condition: deriveCurrentCondition(forecast.current, forecast.hourly, riskPayload.forecast),
+    },
     summary24h: riskPayload.forecast,
     antecedent72hMm: riskPayload.antecedent.rain_72h_mm,
     warnings: live,

@@ -1,6 +1,6 @@
 import { z } from 'zod'
 import {
-  fetchForecast, fetchEnsemble, totalsFor24h, antecedentRainfall, describeCode,
+  fetchForecast, fetchEnsemble, totalsFor24h, antecedentRainfall, describeCode, deriveCurrentCondition,
 } from '../services/openMeteo.js'
 import { resolveLocation } from '../services/gazetteer.js'
 import { notFound } from '../utils/AppError.js'
@@ -32,7 +32,7 @@ export async function current(req, res) {
   const fc = await fetchForecast(loc.lat, loc.lon, { days: 1 })
   res.json({
     location: loc,
-    current: { ...fc.current, condition: describeCode(fc.current.weatherCode) },
+    current: { ...fc.current, condition: deriveCurrentCondition(fc.current, fc.hourly) },
     meta: { ...fc.meta, cached: fc.cached, fetchedAt: fc.fetchedAt },
   })
 }
@@ -45,7 +45,7 @@ export async function forecast(req, res) {
   const now = Date.now()
   res.json({
     location: loc,
-    current: { ...fc.current, condition: describeCode(fc.current.weatherCode) },
+    current: { ...fc.current, condition: deriveCurrentCondition(fc.current, fc.hourly) },
     // only forward-looking hours reach the client; past_days feeds the flood rule
     hourly: fc.hourly.filter((h) => new Date(h.time).getTime() >= now - 3600e3).slice(0, days * 24),
     daily: fc.daily.map((d) => ({ ...d, condition: describeCode(d.weatherCode) })),
@@ -53,6 +53,7 @@ export async function forecast(req, res) {
     meta: { ...fc.meta, cached: fc.cached, fetchedAt: fc.fetchedAt },
   })
 }
+
 
 /** The model spread, exposed on its own so the UI can show the evidence. */
 export async function ensemble(req, res) {

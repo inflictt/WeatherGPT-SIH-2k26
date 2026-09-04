@@ -249,17 +249,56 @@ export function antecedentRainfall(forecast, hours = 72) {
   )
 }
 
-/** WMO weather interpretation codes → short English. */
-export const WEATHER_CODES = {
-  0: 'Clear sky', 1: 'Mainly clear', 2: 'Partly cloudy', 3: 'Overcast',
-  45: 'Fog', 48: 'Depositing rime fog',
-  51: 'Light drizzle', 53: 'Moderate drizzle', 55: 'Dense drizzle',
-  56: 'Light freezing drizzle', 57: 'Dense freezing drizzle',
-  61: 'Slight rain', 63: 'Moderate rain', 65: 'Heavy rain',
-  66: 'Light freezing rain', 67: 'Heavy freezing rain',
-  71: 'Slight snow', 73: 'Moderate snow', 75: 'Heavy snow', 77: 'Snow grains',
-  80: 'Slight rain showers', 81: 'Moderate rain showers', 82: 'Violent rain showers',
-  85: 'Slight snow showers', 86: 'Heavy snow showers',
-  95: 'Thunderstorm', 96: 'Thunderstorm with slight hail', 99: 'Thunderstorm with heavy hail',
-}
 export const describeCode = (code) => WEATHER_CODES[code] ?? 'Unknown'
+
+/**
+ * Smart nowcasting condition resolver.
+ * Combines WMO code, active precipitation, and immediate hourly window.
+ */
+export function deriveCurrentCondition(current, hourly = [], summary24h = null) {
+  if (!current) return 'Unknown'
+  const code = current.weatherCode
+
+  // 1. Direct severe codes take top priority
+  if (code >= 95) {
+    if (code === 96 || code === 99) return 'Thunderstorm with Hail'
+    return 'Thunderstorm & Heavy Rain'
+  }
+  if (code === 82 || code === 65) return 'Heavy Rain Showers'
+  if (code === 81 || code === 63) return 'Moderate Rain Showers'
+  if (code === 80 || code === 61) return 'Rain Showers'
+  if (code >= 51 && code <= 55) return 'Drizzle & Light Rain'
+
+  // 2. Active precipitation rate right now
+  const precip = current.precipMm ?? 0
+  if (precip >= 5) return 'Heavy Rain Showers'
+  if (precip >= 1.5) return 'Rain Showers'
+  if (precip > 0) return 'Light Rain'
+
+  // 3. Current hourly nowcasting window
+  const now = Date.now()
+  const currentHourData = (hourly || []).find((h) => {
+    const t = new Date(h.time).getTime()
+    return Math.abs(t - now) <= 3600e3
+  })
+
+  if (currentHourData) {
+    const hCode = currentHourData.weatherCode
+    if (hCode >= 95) return 'Thunderstorm & Rain'
+    if (hCode >= 80 && hCode <= 82) return 'Rain Showers'
+    if (hCode >= 61 && hCode <= 65) return 'Heavy Rain'
+    if ((currentHourData.precipMm || 0) >= 2) return 'Heavy Rain Showers'
+    if ((currentHourData.precipMm || 0) > 0) return 'Rain Showers'
+    if ((currentHourData.precipProb || 0) >= 70 && (current.cloudCover || 0) >= 80) return 'Rain Showers Likely'
+  }
+
+  // 4. High-humidity convective rain pattern
+  if (summary24h && (summary24h.rain_24h_mm >= 25 || (summary24h.rain_duration_hours >= 6 && (summary24h.rain_probability || 0) >= 0.5))) {
+    if ((current.humidity || 0) >= 80 && (current.cloudCover || 0) >= 80) {
+      return 'Thunderstorm & Heavy Rain'
+    }
+  }
+
+  return describeCode(code)
+}
+
