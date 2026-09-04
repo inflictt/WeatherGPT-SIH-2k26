@@ -1,6 +1,7 @@
 import { useState } from 'react'
-import { useData } from '../lib/DataContext'
+import { useActiveWarnings, useData } from '../lib/DataContext'
 import { useFarm, stageFor } from '../lib/useFarm'
+import { evaluateFarmIntelligence } from '../lib/farmIntelligence'
 import { CROP_STAGES } from '../lib/constants'
 import { t } from '../lib/i18n'
 import { cn, placeLine } from '../lib/utils'
@@ -8,19 +9,32 @@ import Icon from '../ui/Icon'
 import { Card, CardHead, CardBody, Shell, PageHead, SubTabs, Meter } from '../ui/Bits'
 import Reveal from '../ui/Reveal'
 import ImageAnalyser from '../weather/ImageAnalyser'
+import FarmConditions from '../weather/FarmConditions'
 
 const SOILS = ['Alluvial', 'Black (regur)', 'Red', 'Laterite', 'Loamy', 'Sandy', 'Clay', 'Silty']
 const IRRIGATION = ['Rain-fed', 'Tube well', 'Canal', 'Drip', 'Sprinkler', 'Tank / pond']
 const WATER = ['Adequate', 'Limited', 'Scarce']
 
 export default function Farm({ audience = 'farm', setAudience, lang = 'en' }) {
-  const [tab, setTab] = useState('farm')
+  const [tab, setTab] = useState('intelligence') // intelligence | farm | doctor | soil | planner
   const { farm, set, addCrop, updateCrop, removeCrop, logObservation, completeness } = useFarm()
-  const { location } = useData()
+  const { current, daily, summary24h, hourly, location } = useData()
+  const warnings = useActiveWarnings()
 
   const isGeneral = audience === 'everyone'
 
+  const intelligence = evaluateFarmIntelligence({
+    farm,
+    current,
+    daily,
+    summary24h,
+    hourly,
+    warnings,
+    lang,
+  })
+
   const tabs = [
+    { key: 'intelligence', label: lang === 'hi' ? 'खेत स्थिति (Intelligence)' : 'Farm Intelligence' },
     { key: 'farm', label: t('subTabMyFarm', lang) },
     { key: 'doctor', label: t('subTabCropDoctor', lang) },
     { key: 'soil', label: t('subTabSoilCheck', lang) },
@@ -69,12 +83,23 @@ export default function Farm({ audience = 'farm', setAudience, lang = 'en' }) {
           </div>
         }
       >
-        Your plots, crops and scans. Everything here stays on this device.
+        Continuous farm monitoring, automated weather intelligence, smart photo triggers, and field diagnosis.
       </PageHead>
 
       <SubTabs tabs={tabs} value={tab} onChange={setTab} />
 
-      {/* ------------------------------------------------------------ my farm */}
+      {/* ------------------------------------------------------------ FARM INTELLIGENCE DASHBOARD */}
+      {tab === 'intelligence' && (
+        <div className="pt-1">
+          <FarmConditions
+            intelligence={intelligence}
+            onOpenScan={() => setTab('doctor')}
+            lang={lang}
+          />
+        </div>
+      )}
+
+      {/* ------------------------------------------------------------ my farm profile */}
       {tab === 'farm' && (
         <div className="space-y-3 pt-1">
           <Card>
@@ -155,7 +180,7 @@ export default function Farm({ audience = 'farm', setAudience, lang = 'en' }) {
             <CardBody className="space-y-3">
               {farm.crops.length === 0 && (
                 <p className="text-data leading-relaxed text-ink-3">
-                  No crops yet. Add one to customize your daily brief.
+                  No crops yet. Add one to customize your daily brief and lifecycle stages.
                 </p>
               )}
               {farm.crops.map((c) => {
@@ -242,7 +267,10 @@ export default function Farm({ audience = 'farm', setAudience, lang = 'en' }) {
             crop={farm.crops[0]?.name}
             location={location}
             lang={lang}
-            onResult={(r) => logObservation({ mode: 'leaf', prediction: r.prediction, confidence: r.confidence })}
+            onResult={(r) => {
+              logObservation({ mode: 'leaf', prediction: r.prediction, confidence: r.confidence })
+              setTab('intelligence') // Return to intelligence dashboard with updated state
+            }}
           />
         </div>
       )}
@@ -256,6 +284,7 @@ export default function Farm({ audience = 'farm', setAudience, lang = 'en' }) {
             onResult={(r) => {
               logObservation({ mode: 'soil', prediction: r.prediction, confidence: r.confidence })
               set({ soilType: r.prediction, soilConfidence: r.confidence, soilSource: 'model' })
+              setTab('intelligence') // Return to intelligence dashboard
             }}
           />
         </div>

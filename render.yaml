@@ -49,7 +49,13 @@ services:
         sync: false          # a real address — Nominatim's policy requires it
       - key: CAP_FALLBACK_TO_SAMPLES
         value: "false"       # never true here: it silently serves fake warnings
+      - key: GEMINI_API_KEY
+        sync: false          # Gemini API Key
+      - key: GEMINI_MODEL
+        value: gemini-2.5-flash
+      - key: HF_TOKEN
+        sync: false          # HuggingFace token for Soil & Crop models
       - key: VAPID_PUBLIC_KEY
-        sync: false          # optional; push disables itself without it
+        sync: false          # Push notifications
       - key: VAPID_PRIVATE_KEY
         sync: false

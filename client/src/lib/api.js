@@ -6,7 +6,8 @@
  * That is what lets the UI be demoed on a laptop with no backend at all.
  */
 export const API_URL = (import.meta.env?.VITE_API_URL || '').replace(/\/$/, '')
-export const LIVE = Boolean(API_URL)
+// export const LIVE = Boolean(API_URL)
+export const LIVE = Boolean(import.meta.env.VITE_API_URL)
 
 class ApiError extends Error {
   constructor(status, message) {

@@ -1,18 +1,3 @@
-/**
- * A browser port of the language and intent rules from
- * `ai/app/engines/nlu.py`, used only when there is no backend.
- *
- * Deliberately the *same* rules, not a simplification: script test first,
- * romanised-Hindi keyword list second, nukta folding so "तूफ़ान" and "तूफान"
- * match, and self-location patterns matched on word boundaries so "is t(here)"
- * does not resolve to the user's own village. Those were real bugs in the
- * Python engine; a demo that reproduces the answer but not the bug fixes would
- * be showing something that does not exist.
- *
- * The Python engine remains the source of truth. This is here so the frontend
- * can be handed to someone as a single file and still behave correctly.
- */
-
 const DEVANAGARI = /[ऀ-ॿ]/
 const WORD = /[\wऀ-ॿ]+/g
 const NUKTA = '़'
@@ -26,7 +11,7 @@ const HINGLISH = new Set([
   'andhi', 'aandhi', 'badal', 'paani', 'gaon', 'gaanv', 'zila', 'zile', 'jila',
   'mera', 'mere', 'meri', 'hoga', 'hogi', 'hai', 'hain', 'kya', 'kitna', 'kitni',
   'karun', 'karoon', 'chahiye', 'rahega', 'fasal', 'sinchai', 'khet', 'safar',
-  'yatra', 'surakshit',
+  'yatra', 'surakshit', 'haal', 'report', 'status', 'patte', 'peele',
 ].map(fold))
 
 export function detectLanguage(text) {
@@ -40,9 +25,10 @@ export function detectLanguage(text) {
 /** First match wins; order is significance, not specificity. */
 const INTENTS = [
   ['warning_check', ['warning', 'warnings', 'alert', 'alerts', 'चेतावनी', 'अलर्ट']],
+  ['farm_status', ['farm status', 'farm condition', 'farm update', 'khet ka haal', 'khet kaisa', 'mere farm', 'mere khet', 'fasal ka haal', 'खेत का हाल', 'फार्म स्थिति', 'फसल कैसी']],
   ['advice', ['should i', 'safe to', 'is it safe', 'karun', 'karoon', 'chahiye',
     'करूँ', 'चाहिए', 'सुरक्षित', 'surakshit', 'sinchai', 'irrigate', 'harvest',
-    'fasal', 'khet', 'crop', 'yatra', 'safar']],
+    'fasal', 'khet', 'crop', 'yatra', 'safar', 'spray', 'chhidkaw', 'peele', 'yellow']],
   ['rain_forecast', ['rain', 'rainfall', 'shower', 'drizzle', 'monsoon', 'barish',
     'baarish', 'बारिश', 'बरसात', 'वर्षा']],
   ['temperature', ['temperature', 'hot', 'cold', 'warm', 'heat', 'garmi', 'sardi',
@@ -70,8 +56,6 @@ const SELF = [
   'मेरे गाँव', 'मेरे गांव', 'मेरे ज़िले', 'यहाँ',
 ].map(fold)
 
-// Word-boundary matched. "here" as a substring matches "is t(here)", which
-// silently answered about the wrong place — the bug this guards against.
 const SELF_RE = new RegExp(
   `(?<![\\w])(?:${SELF.map((p) => p.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|')})(?![\\w])`,
   'i',

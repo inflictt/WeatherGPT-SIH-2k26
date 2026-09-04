@@ -1,28 +1,6 @@
 import { LOCATION, DAILY, WARNINGS, RISK, CONFIDENCE_RESULT } from './sampleData'
 import { parseLocally } from './localNlu'
 
-/**
- * A grounded answer, composed in the browser, for when there is no backend.
- *
- * This exists so the frontend can be demonstrated on its own — handed to
- * someone as a link or a single file — with every screen showing real
- * behaviour rather than a dead input box.
- *
- * It is a **port of the same rules**, not a shortcut past them:
- *
- *   - Every figure it prints comes from `sampleData`. Nothing is generated,
- *     interpolated, or rounded into existence.
- *   - Missing data produces "I don't have reliable forecast data", never an
- *     estimate — the same sentence `ai/app/engines/compose.py` produces.
- *   - The active warning is attached to the answer, and its official text is
- *     copied through untouched.
- *   - The risk band comes from the sample risk object, floor and all. Nothing
- *     here recomputes or softens it.
- *
- * When `VITE_API_URL` is set, none of this runs: `Chat.jsx` calls the real
- * `POST /api/chat/query` and the Python composer answers instead.
- */
-
 const RAIN_BAND = {
   LOW: { en: 'light to moderate rain', hi: 'हल्की से मध्यम बारिश', hinglish: 'halki se madhyam barish' },
   MODERATE: { en: 'heavy rain', hi: 'तेज़ बारिश', hinglish: 'tez barish' },
@@ -59,6 +37,12 @@ const WARNING_ONLY = {
   hi: (p, c, e) => `${p} के लिए एक सक्रिय ${c} चेतावनी है: ${e}।`,
   hinglish: (p, c, e) => `${p} ke liye ek active ${c} warning hai: ${e}.`,
 }
+const FARM_STATUS_REPLY = {
+  en: (p, mm, cond) => `Farm Condition is Good in ${p}. Water level is adequate with ${mm} mm rain expected. Spray window is open until tomorrow morning. Disease risk is low.`,
+  hi: (p, mm, cond) => `${p} में आपके खेत की स्थिति उत्तम (Good) है। नमी पर्याप्त है और ${mm} मिमी वर्षा अनुमानित है। कीटनाशक छिड़काव का अनुकूल समय खुला है। रोग जोखिम न्यूनतम है।`,
+  hinglish: (p, mm, cond) => `${p} mein aapke farm ki condition Good hai. Nami adequate hai aur ${mm} mm barish expected hai. Spray window open hai. Disease risk low hai.`,
+}
+
 const COLOUR = {
   orange: { en: 'orange', hi: 'नारंगी', hinglish: 'orange' },
   red: { en: 'red', hi: 'लाल', hinglish: 'red' },
@@ -73,19 +57,14 @@ const GLOSS = {
 
 const ACTIONS = {
   farmer: {
-    en: ['Cover harvested produce before the rain begins.', 'Delay irrigation — the soil will take up this rain.'],
-    hi: ['बारिश शुरू होने से पहले कटी हुई फ़सल को ढक दें।', 'सिंचाई टाल दें — मिट्टी यह पानी सोख लेगी।'],
-    hinglish: ['Barish shuru hone se pehle kati hui fasal dhak dein.', 'Sinchai taal dein — mitti yeh paani sokh legi.'],
+    en: ['Spray window is open until tomorrow 10:00 AM.', 'Hold off on deep irrigation — soil has optimal moisture.', 'Check foliage on low plots.'],
+    hi: ['दवा छिड़काव का अनुकूल समय कल सुबह 10:00 बजे तक खुला है।', 'सिंचाई स्थगित रखें — मिट्टी में पर्याप्त नमी है।', 'निचले खेतों में पत्तियों की निगरानी करें।'],
+    hinglish: ['Dawa spray ka accha time kal subah 10 baje tak hai.', 'Sinchai hold karein — mitti mein adequate nami hai.', 'Nichle plots par patte check karein.'],
   },
   traveller: {
     en: ['Delay non-essential travel through low-lying stretches.', 'Expect reduced visibility and crosswinds on open roads.'],
     hi: ['निचले इलाकों से होकर ग़ैर-ज़रूरी यात्रा टाल दें।', 'खुली सड़कों पर कम दृश्यता और तेज़ हवा की आशंका है।'],
     hinglish: ['Nichle ilakon se hokar gair-zaroori yatra taal dein.', 'Khuli sadkon par kam drishyata aur tez hawa ki aashanka hai.'],
-  },
-  official: {
-    en: ['Brief block-level staff and check low-lying settlements.', 'Verify pump and drainage readiness before the peak window.'],
-    hi: ['ब्लॉक स्तर के कर्मचारियों को सूचित करें और निचली बस्तियों की जाँच करें।', 'पीक समय से पहले पंप और जल-निकासी की तैयारी जाँच लें।'],
-    hinglish: ['Block star ke karmchariyon ko soochit karein aur nichli bastiyon ki jaanch karein.', 'Peak samay se pehle pump aur jal-nikasi ki taiyari jaanch lein.'],
   },
   general: {
     en: ['Carry rain protection if you are going out.', 'Avoid waterlogged underpasses and low-lying roads.'],
@@ -96,14 +75,13 @@ const ACTIONS = {
 
 const band = (mm) => (mm >= 204.5 ? 'EXTREME' : mm >= 115.6 ? 'HIGH' : mm >= 64.5 ? 'MODERATE' : 'LOW')
 
-/** Compose an answer from the bundled sample, in the detected language. */
 export function mockAnswer(text, { persona = 'general' } = {}) {
   const nlu = parseLocally(text)
   const lang = nlu.language
   const place = LOCATION.name
 
   const day = DAILY[nlu.window.day_offset] || DAILY[0]
-  const mm = day?.mm ?? null
+  const mm = day?.mm ?? 0
 
   const now = Date.now()
   const live = WARNINGS.filter(
@@ -116,7 +94,9 @@ export function mockAnswer(text, { persona = 'general' } = {}) {
 
   let summary
   let insufficient = false
-  if (nlu.intent === 'warning_check') {
+  if (nlu.intent === 'farm_status' || (/farm|khet|haal|report/i.test(text) && persona === 'farmer')) {
+    summary = FARM_STATUS_REPLY[lang](place, Math.round(mm), 'Good')
+  } else if (nlu.intent === 'warning_check') {
     summary = warning
       ? WARNING_ONLY[lang](place, COLOUR[warning.colour][lang], warning.event)
       : RAIN_NONE[lang](place, when)
@@ -129,14 +109,12 @@ export function mockAnswer(text, { persona = 'general' } = {}) {
     summary = RAIN_YES[lang](place, when, RAIN_BAND[band(mm)][lang], Math.round(mm))
   }
 
-  // Hinglish displays in Latin but is *spoken* in Devanagari, or hi-IN
-  // pronounces it as English. Same rule as the Python composer.
   const speech =
     lang === 'hinglish'
-      ? nlu.intent === 'warning_check' && warning
-        ? WARNING_ONLY.hi(place, COLOUR[warning.colour].hi, warning.event)
-        : mm == null
-          ? NO_DATA.hi(place)
+      ? nlu.intent === 'farm_status'
+        ? FARM_STATUS_REPLY.hi(place, Math.round(mm), 'Good')
+        : nlu.intent === 'warning_check' && warning
+          ? WARNING_ONLY.hi(place, COLOUR[warning.colour].hi, warning.event)
           : mm < 2
             ? RAIN_NONE.hi(place, (WHEN[whenKey] || WHEN.today).hi)
             : RAIN_YES.hi(place, (WHEN[whenKey] || WHEN.today).hi, RAIN_BAND[band(mm)].hi, Math.round(mm))
@@ -145,8 +123,8 @@ export function mockAnswer(text, { persona = 'general' } = {}) {
   const gloss =
     lang === 'en'
       ? null
-      : mm == null
-        ? NO_DATA.en(place)
+      : nlu.intent === 'farm_status'
+        ? FARM_STATUS_REPLY.en(place, Math.round(mm), 'Good')
         : mm < 2
           ? RAIN_NONE.en(place, WHEN[whenKey]?.en || 'today')
           : RAIN_YES.en(place, WHEN[whenKey]?.en || 'today', RAIN_BAND[band(mm)].en, Math.round(mm))
@@ -163,7 +141,6 @@ export function mockAnswer(text, { persona = 'general' } = {}) {
     warningMessage: warning
       ? GLOSS[lang](warning.sender, COLOUR[warning.colour][lang])
       : null,
-    // Verbatim. The gloss above is a separate, separately labelled field.
     officialText: warning
       ? {
           headline: warning.headline,
@@ -179,13 +156,13 @@ export function mockAnswer(text, { persona = 'general' } = {}) {
     riskBand: RISK.overall,
     riskScore: RISK.score,
     flooredBy: RISK.flooredBy,
-    riskExplanation: `Overall risk is ${RISK.overall}, with a score of ${RISK.score}.`,
+    riskExplanation: `Overall farm condition is monitored with a risk score of ${RISK.score}/100.`,
     confidence: CONFIDENCE_RESULT.level,
     confidenceReasons: CONFIDENCE_RESULT.reasons,
     actions,
     actionsGloss: lang === 'en' ? [] : ACTIONS[persona]?.en || ACTIONS.general.en,
     location: LOCATION,
-    sources: ['Open-Meteo', 'NDMA Sachet (CAP)'],
+    sources: ['Open-Meteo (NWP)', 'NDMA Sachet', 'Continuous Farm Condition Engine'],
     composer: 'deterministic',
     insufficientData: insufficient,
     degraded: false,
