@@ -16,21 +16,21 @@ export default function TopHeader({ lang, setLang, picker, resolved, toggleTheme
   }
 
   return (
-    <header className="sticky top-0 z-40 w-full glass-panel border-b border-white/10 px-4 py-2.5 sm:px-6">
+    <header className="sticky top-0 z-40 w-full glass-panel border-b border-line px-4 py-2.5 sm:px-6">
       <div className="flex flex-wrap items-center justify-between gap-3 max-w-7xl mx-auto">
         {/* Left: Location & Condition Quick View */}
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-2 glass-pill px-3 py-1.5 rounded-lg">
             <span className="text-iris text-sm">📍</span>
-            <span className="font-display font-light text-sm text-cloud">
+            <span className="font-display font-light text-sm text-ink">
               {location?.name || 'Udaipur'}{location?.district ? `, ${location.district}` : ''}
             </span>
           </div>
 
           {current && (
-            <div className="hidden sm:flex items-center gap-2 font-mono text-xs text-ash">
+            <div className="hidden sm:flex items-center gap-2 font-mono text-xs text-ink-2">
               <span className="text-base">⛅</span>
-              <span className="font-semibold text-pure text-sm">
+              <span className="font-semibold text-ink text-sm">
                 {fmt.temp(current.tempC)} {fmt.tempUnit}
               </span>
               {warnings?.length > 0 && (
@@ -53,11 +53,11 @@ export default function TopHeader({ lang, setLang, picker, resolved, toggleTheme
           <button
             onClick={toggleUnits}
             title="Toggle between Celsius and Fahrenheit"
-            className="glass-pill px-2.5 py-1 rounded-lg font-mono text-xs font-semibold text-cloud hover:bg-white/15 transition-colors duration-150 flex items-center gap-1"
+            className="glass-pill px-2.5 py-1 rounded-lg font-mono text-xs font-semibold text-ink hover:bg-raised transition-colors duration-150 flex items-center gap-1"
           >
-            <span className={!isImperial ? 'text-pure font-bold' : 'text-fog'}>°C</span>
-            <span className="text-fog">/</span>
-            <span className={isImperial ? 'text-pure font-bold' : 'text-fog'}>°F</span>
+            <span className={!isImperial ? 'text-ink font-bold' : 'text-ink-3'}>°C</span>
+            <span className="text-ink-3">/</span>
+            <span className={isImperial ? 'text-ink font-bold' : 'text-ink-3'}>°F</span>
           </button>
 
           <LangToggle lang={lang} setLang={setLang} />

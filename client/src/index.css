@@ -14,7 +14,7 @@
    ============================================================ */
 @layer base {
   :root {
-    /* Origin Financial Core Tokens */
+    /* Origin Financial Core Tokens - Dark Mode Default */
     --color-iris-gleam:     #847dff;
     --color-cyan-signal:    #00b3dd;
     --color-pale-iris:      #d1c9ff;
@@ -26,13 +26,29 @@
     --color-graphite:       #2e2e2e;
     --color-steel:          #3f4041;
     --color-silver:         #cacaca;
-    --color-fog:            #6a6b6b;
-    --color-ash:            #9f9fa0;
+    --color-fog:            #8e8f90;
+    --color-ash:            #b0b1b3;
     --color-cloud:          #f5f5f7;
     --color-pure:           #ffffff;
     --color-void:           #000000;
 
     /* Semantic Surface Mappings */
+    --color-ground:         #0f1011;
+    --color-surface:        #18191b;
+    --color-raised:         #2e2e2e;
+    --color-sunk:           #090a0b;
+    --color-line:           rgba(255, 255, 255, 0.12);
+    --color-line-soft:      rgba(255, 255, 255, 0.06);
+
+    --color-ink:            #f5f5f7;
+    --color-ink-2:          #c4c5c7;
+    --color-ink-3:          #939496;
+
+    --color-accent:         #ffffff;
+    --color-on-accent:      #000000;
+    --color-accent-dim:     #2e2e2e;
+
+    /* Triplet fallbacks */
     --c-ground:      15 16 17;     /* #0f1011 Obsidian */
     --c-surface:     24 25 27;     /* Elevated Card */
     --c-raised:      46 46 46;     /* #2e2e2e Graphite */
@@ -41,8 +57,8 @@
     --c-line-soft:   255 255 255;
 
     --c-ink:         245 245 247;  /* #f5f5f7 Cloud */
-    --c-ink-2:       159 159 160;  /* #9f9fa0 Ash */
-    --c-ink-3:       106 107 107;  /* #6a6b6b Fog */
+    --c-ink-2:       196 197 199;
+    --c-ink-3:       147 148 150;
 
     --c-accent:      255 255 255;  /* #ffffff Pure */
     --c-on-accent:   0 0 0;        /* #000000 Void */
@@ -58,9 +74,101 @@
     color-scheme: dark;
   }
 
+  :root[data-theme="light"] {
+    --color-obsidian:       #ffffff;
+    --color-abyss:          #f8fafc;
+    --color-graphite:       #e2e8f0;
+    --color-steel:          #cbd5e1;
+    --color-silver:         #475569;
+    --color-fog:            #64748b;
+    --color-ash:            #475569;
+    --color-cloud:          #0f172a;
+    --color-pure:           #020617;
+    --color-void:           #ffffff;
+
+    --color-ground:         #f1f5f9;
+    --color-surface:        #ffffff;
+    --color-raised:         #e2e8f0;
+    --color-sunk:           #cbd5e1;
+    --color-line:           rgba(0, 0, 0, 0.1);
+    --color-line-soft:      rgba(0, 0, 0, 0.05);
+
+    --color-ink:            #0f172a;
+    --color-ink-2:          #334155;
+    --color-ink-3:          #64748b;
+
+    --color-accent:         #0f172a;
+    --color-on-accent:      #ffffff;
+    --color-accent-dim:     #e2e8f0;
+
+    --c-ground:      241 245 249;
+    --c-surface:     255 255 255;
+    --c-raised:      226 232 240;
+    --c-sunk:        203 213 225;
+    --c-line:        0 0 0;
+    --c-line-soft:   0 0 0;
+
+    --c-ink:         15 23 42;
+    --c-ink-2:       51 65 85;
+    --c-ink-3:       100 116 139;
+
+    --c-accent:      15 23 42;
+    --c-on-accent:   255 255 255;
+    --c-accent-dim:  226 232 240;
+
+    color-scheme: light;
+  }
+
+  @media (prefers-color-scheme: light) {
+    :root:not([data-theme="dark"]) {
+      --color-obsidian:       #ffffff;
+      --color-abyss:          #f8fafc;
+      --color-graphite:       #e2e8f0;
+      --color-steel:          #cbd5e1;
+      --color-silver:         #475569;
+      --color-fog:            #64748b;
+      --color-ash:            #475569;
+      --color-cloud:          #0f172a;
+      --color-pure:           #020617;
+      --color-void:           #ffffff;
+
+      --color-ground:         #f1f5f9;
+      --color-surface:        #ffffff;
+      --color-raised:         #e2e8f0;
+      --color-sunk:           #cbd5e1;
+      --color-line:           rgba(0, 0, 0, 0.1);
+      --color-line-soft:      rgba(0, 0, 0, 0.05);
+
+      --color-ink:            #0f172a;
+      --color-ink-2:          #334155;
+      --color-ink-3:          #64748b;
+
+      --color-accent:         #0f172a;
+      --color-on-accent:      #ffffff;
+      --color-accent-dim:     #e2e8f0;
+
+      --c-ground:      241 245 249;
+      --c-surface:     255 255 255;
+      --c-raised:      226 232 240;
+      --c-sunk:        203 213 225;
+      --c-line:        0 0 0;
+      --c-line-soft:   0 0 0;
+
+      --c-ink:         15 23 42;
+      --c-ink-2:       51 65 85;
+      --c-ink-3:       100 116 139;
+
+      --c-accent:      15 23 42;
+      --c-on-accent:   255 255 255;
+      --c-accent-dim:  226 232 240;
+
+      color-scheme: light;
+    }
+  }
+
   body {
-    background-color: var(--color-obsidian);
-    color: var(--color-cloud);
+    background-color: var(--color-ground);
+    color: var(--color-ink);
     font-family: 'Inter', system-ui, -apple-system, sans-serif;
     line-height: 1.5;
     font-weight: 400;

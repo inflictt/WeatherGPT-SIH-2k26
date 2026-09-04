@@ -167,8 +167,8 @@ export default function MonthlyForecast({ prefs }) {
               onClick={() => setSelectedMonthIndex(idx)}
               className={`px-4 py-1.5 rounded-full text-xs sm:text-sm font-medium transition-all duration-200 flex-none ${
                 isSelected
-                  ? 'bg-pure text-void font-semibold shadow-sm scale-105'
-                  : 'glass-pill text-ash hover:text-pure hover:bg-white/15'
+                  ? 'bg-accent text-on-accent font-semibold shadow-sm scale-105'
+                  : 'glass-pill text-ink-3 hover:text-ink hover:bg-raised'
               }`}
             >
               {m.label}
@@ -193,7 +193,6 @@ export default function MonthlyForecast({ prefs }) {
         <div className="grid grid-cols-7 gap-1 sm:gap-2">
           {calendarDays.map((item, idx) => {
             const isSelected = item.isCurrentMonth && item.dayNumber === activeDay
-            const isHovered = hoveredDay && hoveredDay.dayNumber === item.dayNumber && hoveredDay.isCurrentMonth === item.isCurrentMonth
 
             return (
               <div
@@ -203,19 +202,19 @@ export default function MonthlyForecast({ prefs }) {
                 onClick={() => item.isCurrentMonth && setActiveDay(item.dayNumber)}
                 className={`relative group rounded-xl p-2 sm:p-2.5 flex flex-col items-center justify-between min-h-[78px] sm:min-h-[92px] cursor-pointer transition-all duration-200 ${
                   !item.isCurrentMonth
-                    ? 'opacity-30 hover:opacity-60 bg-black/20'
+                    ? 'opacity-30 hover:opacity-60 bg-sunk/30'
                     : isSelected
-                    ? 'bg-white/15 border-2 border-white shadow-sm scale-[1.02] z-10'
-                    : 'bg-white/5 hover:bg-white/10 border border-white/5 hover:border-white/20'
+                    ? 'bg-accent/10 border-2 border-accent shadow-md scale-[1.02] z-10'
+                    : 'glass-card border border-line hover:border-accent/40'
                 }`}
               >
                 {/* Day number */}
                 <div className="w-full flex items-center justify-between text-xs font-mono">
-                  <span className={`${isSelected ? 'text-pure font-bold' : item.isCurrentMonth ? 'text-cloud' : 'text-fog'}`}>
+                  <span className={`${isSelected ? 'text-ink font-bold' : item.isCurrentMonth ? 'text-ink' : 'text-ink-3'}`}>
                     {item.dayNumber}
                   </span>
                   {item.rainProb > 30 && (
-                    <span className="text-[9px] text-cyanSignal font-medium">
+                    <span className="text-[9px] text-cyanSignal font-semibold">
                       {item.rainProb}%
                     </span>
                   )}
@@ -228,13 +227,13 @@ export default function MonthlyForecast({ prefs }) {
 
                 {/* Temps */}
                 <div className="flex items-center gap-1 font-mono text-[11px] sm:text-xs">
-                  <span className="font-semibold text-pure">{fmt.temp(item.tempMax)}°</span>
-                  <span className="text-ash opacity-80">{fmt.temp(item.tempMin)}°</span>
+                  <span className="font-semibold text-ink">{fmt.temp(item.tempMax)}°</span>
+                  <span className="text-ink-3 font-normal">{fmt.temp(item.tempMin)}°</span>
                 </div>
 
                 {/* Active Indicator dot */}
                 {isSelected && (
-                  <span className="absolute -bottom-1 h-1 w-4 rounded-full bg-pure" />
+                  <span className="absolute -bottom-1 h-1 w-4 rounded-full bg-accent" />
                 )}
               </div>
             )

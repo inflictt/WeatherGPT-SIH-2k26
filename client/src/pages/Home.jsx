@@ -49,13 +49,13 @@ export default function Home({ persona, setPersona, prefs }) {
 
       {/* 3. Navigation View Switcher (Origin Financial Style) */}
       <div className="shell">
-        <div className="glass-panel p-2 rounded-xl flex flex-wrap items-center justify-center sm:justify-start gap-2 border border-white/10">
+        <div className="glass-panel p-2 rounded-xl flex flex-wrap items-center justify-center sm:justify-start gap-2">
           <button
             onClick={() => setActiveTab('monthly')}
             className={`px-4 py-2 rounded-lg text-xs sm:text-sm font-medium transition-all duration-200 flex items-center gap-2 ${
               activeTab === 'monthly'
-                ? 'bg-pure text-void font-semibold shadow-sm'
-                : 'text-ash hover:text-pure hover:bg-white/10 border border-transparent'
+                ? 'bg-accent text-on-accent font-semibold shadow-sm'
+                : 'text-ink-3 hover:text-ink hover:bg-raised'
             }`}
           >
             <span>📅</span>
@@ -66,8 +66,8 @@ export default function Home({ persona, setPersona, prefs }) {
             onClick={() => setActiveTab('overview')}
             className={`px-4 py-2 rounded-lg text-xs sm:text-sm font-medium transition-all duration-200 flex items-center gap-2 ${
               activeTab === 'overview'
-                ? 'bg-pure text-void font-semibold shadow-sm'
-                : 'text-ash hover:text-pure hover:bg-white/10 border border-transparent'
+                ? 'bg-accent text-on-accent font-semibold shadow-sm'
+                : 'text-ink-3 hover:text-ink hover:bg-raised'
             }`}
           >
             <span>⚡</span>
@@ -78,8 +78,8 @@ export default function Home({ persona, setPersona, prefs }) {
             onClick={() => setActiveTab('hourly')}
             className={`px-4 py-2 rounded-lg text-xs sm:text-sm font-medium transition-all duration-200 flex items-center gap-2 ${
               activeTab === 'hourly'
-                ? 'bg-pure text-void font-semibold shadow-sm'
-                : 'text-ash hover:text-pure hover:bg-white/10 border border-transparent'
+                ? 'bg-accent text-on-accent font-semibold shadow-sm'
+                : 'text-ink-3 hover:text-ink hover:bg-raised'
             }`}
           >
             <span>⏱️</span>
@@ -90,8 +90,8 @@ export default function Home({ persona, setPersona, prefs }) {
             onClick={() => setActiveTab('7day')}
             className={`px-4 py-2 rounded-lg text-xs sm:text-sm font-medium transition-all duration-200 flex items-center gap-2 ${
               activeTab === '7day'
-                ? 'bg-pure text-void font-semibold shadow-sm'
-                : 'text-ash hover:text-pure hover:bg-white/10 border border-transparent'
+                ? 'bg-accent text-on-accent font-semibold shadow-sm'
+                : 'text-ink-3 hover:text-ink hover:bg-raised'
             }`}
           >
             <span>📊</span>
