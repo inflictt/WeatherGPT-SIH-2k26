@@ -2,7 +2,8 @@ import { Router } from 'express'
 import { wrap } from '../middleware/error.js'
 import { validate } from '../middleware/validate.js'
 import { requireAuth, optionalAuth } from '../middleware/auth.js'
-import { authLimiter, chatLimiter } from '../middleware/rateLimit.js'
+import { authLimiter, chatLimiter, imageLimiter } from '../middleware/rateLimit.js'
+import { singleImage } from '../middleware/upload.js'
 
 import * as auth from '../controllers/auth.js'
 import * as locations from '../controllers/locations.js'
@@ -11,17 +12,14 @@ import * as warnings from '../controllers/warnings.js'
 import * as risk from '../controllers/risk.js'
 import * as chat from '../controllers/chat.js'
 import * as alerts from '../controllers/alerts.js'
-import * as shelter from '../controllers/shelter.js'
-import { health, telemetry } from '../controllers/health.js'
+import { health } from '../controllers/health.js'
+import * as agriculture from '../controllers/agriculture.js'
+import * as farmerFriend from '../controllers/farmerFriend.js'
 
 const r = Router()
 
-/* --- disaster relief shelters ------------------------------------------ */
-r.get('/shelters', wrap(shelter.getShelters))
-
 /* --- diagnostics ------------------------------------------------------- */
 r.get('/health', wrap(health))
-r.get('/telemetry', wrap(telemetry))
 
 /* --- auth -------------------------------------------------------------- */
 r.post('/auth/register', authLimiter, validate(auth.registerSchema), wrap(auth.register))
@@ -47,6 +45,35 @@ r.post('/warnings/refresh', wrap(warnings.refresh))
 
 /* --- the assembled assessment (Today screen) ----------------------------- */
 r.get('/assess', optionalAuth, validate(weather.pointSchema, 'query'), wrap(risk.assess))
+
+/* --- agriculture: farm profile (PRD §12, §42) ----------------------------- */
+// Every farm route requires auth. A farm profile is a household's location,
+// its crops and its finances; there is no anonymous read of one.
+r.get('/agriculture/farm', requireAuth, wrap(agriculture.listFarms))
+r.post('/agriculture/farm', requireAuth, validate(agriculture.farmSchema), wrap(agriculture.createFarm))
+r.get('/agriculture/farm/:id', requireAuth, wrap(agriculture.getFarm))
+r.patch('/agriculture/farm/:id', requireAuth, validate(agriculture.farmSchema.partial()), wrap(agriculture.updateFarm))
+r.delete('/agriculture/farm/:id', requireAuth, wrap(agriculture.deleteFarm))
+
+/* --- agriculture: the brief and the engines ------------------------------ */
+// `optionalAuth`: the brief works for anyone with a location, and gets better
+// when a farm profile exists. Requiring an account to see the weather would
+// be the wrong trade for this audience.
+r.get('/agriculture/brief', optionalAuth, validate(agriculture.briefSchema, 'query'), wrap(agriculture.brief))
+r.post('/agriculture/irrigation', wrap(agriculture.irrigation))
+r.post('/agriculture/risk', wrap(agriculture.risk))
+r.get('/agriculture/crops', wrap(agriculture.listCrops))
+r.get('/agriculture/crop/:crop', wrap(agriculture.cropCalendar))
+
+/* --- agriculture: image models (PRD §7, §8) ------------------------------ */
+// `modelStatus` first, so the interface can hide a button rather than offer
+// one that 503s.
+r.get('/agriculture/models', agriculture.modelStatus)
+r.post('/agriculture/soil/analyze', imageLimiter, optionalAuth, singleImage(), wrap(agriculture.analyseSoil))
+r.post('/agriculture/disease/analyze', imageLimiter, optionalAuth, singleImage(), wrap(agriculture.analyseDisease))
+
+/* --- Farmer's Friend (PRD §13, §43) -------------------------------------- */
+r.post('/ai/farmer-friend/chat', chatLimiter, optionalAuth, validate(farmerFriend.chatSchema), wrap(farmerFriend.chat))
 
 /* --- saved locations and push -------------------------------------------- */
 // The VAPID key is public by definition and is needed before anyone signs in,

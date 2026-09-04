@@ -38,6 +38,29 @@ export async function health(_req, res) {
       status: pushEnabled() ? 'ok' : 'unknown',
       detail: pushEnabled() ? null : 'VAPID keys not configured',
     },
+    {
+      name: 'Agriculture engines (Python)',
+      role: 'irrigation, farm risk, crop calendar',
+      status: ai.status,
+      url: `${env.aiServiceUrl}/agriculture`,
+    },
+    {
+      name: 'Crop & soil image models',
+      role: 'HuggingFace inference',
+      // 'unknown', like push: an absent token is a configuration choice, and
+      // the interface hides the buttons rather than offering ones that 503.
+      status: env.hfToken ? 'ok' : 'unknown',
+      detail: env.hfToken ? null : 'HF_TOKEN not configured — image analysis is disabled',
+      models: ['Ben041/soil-type-classifier', 'VisionaryQuant/5_Crop_Disease_Detection'],
+    },
+    {
+      name: 'Gemini',
+      role: 'prose only — never a source of fact',
+      status: env.geminiApiKey ? 'ok' : 'unknown',
+      detail: env.geminiApiKey
+        ? `Model ${env.geminiModel}. Rewrites six prose fields; a rewrite that invents a figure is discarded.`
+        : 'GEMINI_API_KEY not configured — answers use the deterministic composer, which is the same answer in plainer words',
+    },
   ]
 
   const worst = sources.some((s) => s.status === 'down')
@@ -52,56 +75,5 @@ export async function health(_req, res) {
     env: env.nodeEnv,
     sources,
     checkedAt: now.toISOString(),
-  })
-}
-
-/** Developer Telemetry & Live Benchmarking Endpoint (/api/telemetry) */
-export async function telemetry(_req, res) {
-  const start = Date.now()
-  const mem = process.memoryUsage()
-
-  // Benchmark upstreams in parallel
-  const ping = async (name, url, timeoutMs = 3000) => {
-    const t0 = performance.now()
-    try {
-      const controller = new AbortController()
-      const timer = setTimeout(() => controller.abort(), timeoutMs)
-      const resp = await fetch(url, { signal: controller.signal, headers: { 'User-Agent': 'WeatherGPT-Telemetry/1.0' } })
-      clearTimeout(timer)
-      const latencyMs = Math.round(performance.now() - t0)
-      return { name, latencyMs, status: resp.ok ? 'healthy' : `http_${resp.status}`, ok: resp.ok }
-    } catch (err) {
-      const latencyMs = Math.round(performance.now() - t0)
-      return { name, latencyMs, status: err.name === 'AbortError' ? 'timeout' : 'error', ok: false, error: err.message }
-    }
-  }
-
-  const [openMeteo, sachet, aiService, openWeather] = await Promise.all([
-    ping('Open-Meteo (ECMWF/GFS)', 'https://api.open-meteo.com/v1/forecast?latitude=28.61&longitude=77.20&current=temperature_2m'),
-    ping('NDMA SACHET (CAP Portal)', 'https://sachet.ndma.gov.in/'),
-    ping('Python AI Microservice', `${env.aiServiceUrl || 'http://127.0.0.1:8000'}/health`),
-    ping('OpenWeatherMap Gateway', 'https://api.openweathermap.org/data/2.5/weather?lat=28.61&lon=77.20&appid=demo'),
-  ])
-
-  const benchmarks = [openMeteo, sachet, aiService, openWeather]
-
-  res.json({
-    status: 'ok',
-    uptimeSeconds: Math.round(process.uptime()),
-    processMemory: {
-      rssMb: Number((mem.rss / (1024 * 1024)).toFixed(1)),
-      heapUsedMb: Number((mem.heapUsed / (1024 * 1024)).toFixed(1)),
-      heapTotalMb: Number((mem.heapTotal / (1024 * 1024)).toFixed(1)),
-    },
-    benchmarks,
-    ensembleConfig: {
-      primary: 'ECMWF IFS (9 km)',
-      secondary: 'NOAA GFS (0.25°)',
-      tertiary: 'DWD ICON (7 km)',
-      radarNowcast: 'AWS Doppler S-Band',
-      weights: { ecmwf: 0.45, gfs: 0.30, icon: 0.25 },
-    },
-    totalTelemetryElapsedMs: Date.now() - start,
-    timestamp: new Date().toISOString(),
   })
 }

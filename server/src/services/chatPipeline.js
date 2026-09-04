@@ -68,14 +68,14 @@ export async function resolveForQuestion(nlu, ctx, deps = DEPS) {
   const previous = [...history].reverse().find((h) => h && h.location)
   if (previous) return { ...previous.location, resolvedFrom: 'previous-turn' }
 
-  if (q && q !== 'Selected location') {
-    const found = await deps.resolveLocation({ q, lat, lon })
-    if (found) return { ...found, resolvedFrom: 'saved' }
+  if (Number.isFinite(lat) && Number.isFinite(lon)) {
+    const found = await deps.resolveLocation({ lat, lon })
+    if (found) return { ...found, resolvedFrom: 'coordinates' }
   }
 
-  if (Number.isFinite(lat) && Number.isFinite(lon)) {
-    const found = await deps.resolveLocation({ lat, lon, q })
-    if (found) return { ...found, resolvedFrom: 'coordinates' }
+  if (q) {
+    const found = await deps.resolveLocation({ q })
+    if (found) return { ...found, resolvedFrom: 'saved' }
   }
 
   return null
@@ -264,14 +264,11 @@ export async function answerQuestion(input, deps = DEPS) {
 
   // 7 — compose. The context is entirely fetched or computed; nothing in it
   // originates with a language model.
-  const effectivePersona = nlu.persona && nlu.persona !== 'general' ? nlu.persona : (persona || 'general')
-  const effectiveLanguage = nlu.language || lang || 'en'
-
   const answer = await deps.composeAnswer({
     question: text,
     intent: nlu.intent,
-    language: effectiveLanguage,
-    persona: effectivePersona,
+    language: nlu.language,
+    persona,
     location: {
       name: location.name,
       district: location.district,

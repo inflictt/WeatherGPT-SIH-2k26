@@ -1,16 +1,14 @@
 import {
-  fetchForecast, fetchEnsemble, totalsFor24h, antecedentRainfall, describeCode, deriveCurrentCondition,
+  fetchForecast, fetchEnsemble, totalsFor24h, antecedentRainfall, describeCode, window24h,
 } from '../services/openMeteo.js'
-import { fetchCurrentOpenWeather } from '../services/openWeather.js'
 import { warningsForPoint, highest } from '../services/capIngest.js'
 import { scoreRisk, scoreUncertainty, composeAnswer } from '../services/aiClient.js'
-import { evaluateSectorDecisions } from '../services/advisory.js'
 import { locationFromQuery } from './weather.js'
 
 /**
  * The Phase 2 ↔ Phase 3 bridge, and the endpoint the Today screen calls.
  *
- * Fetches forecast, ensemble, live OpenWeather and warnings in parallel, hands them to the
+ * Fetches forecast, ensemble and warnings in parallel, hands them to the
  * Python engines, and returns one object. If the engine is unreachable the
  * response still carries forecast and warnings, flagged `degraded: true` —
  * the client renders exactly the same cards minus the score.
@@ -18,13 +16,11 @@ import { locationFromQuery } from './weather.js'
 export async function assess(req, res) {
   const loc = await locationFromQuery(req.validQuery)
 
-  const [forecast, ensemble, warnings, liveObs] = await Promise.all([
+  const [forecast, ensemble, warnings] = await Promise.all([
     fetchForecast(loc.lat, loc.lon, { days: 7 }),
     fetchEnsemble(loc.lat, loc.lon, { days: 3 }).catch(() => null),
     warningsForPoint({ lat: loc.lat, lon: loc.lon, district: loc.district, state: loc.state }),
-    fetchCurrentOpenWeather(loc.lat, loc.lon).catch(() => null),
   ])
-
 
   const now = new Date()
   const live = warnings.filter((w) => w.status === 'active' && (!w.expires || new Date(w.expires) > now))
@@ -71,8 +67,7 @@ export async function assess(req, res) {
   ])
 
   const sources = [
-    ...(liveObs ? [{ name: 'OpenWeatherMap', role: 'live observation', fetchedAt: liveObs.fetchedAt, cached: liveObs.cached }] : []),
-    { name: 'Open-Meteo', role: 'multi-model forecast', fetchedAt: forecast.fetchedAt, cached: forecast.cached },
+    { name: 'Open-Meteo', role: 'forecast', fetchedAt: forecast.fetchedAt, cached: forecast.cached },
     { name: 'NDMA Sachet (CAP)', role: 'warnings', count: live.length },
     ...(risk ? [{ name: 'WeatherGPT risk engine', role: 'risk', version: risk.engine_version }] : []),
   ]
@@ -107,38 +102,9 @@ export async function assess(req, res) {
     sources,
   })
 
-  // Blend live observation with forecast
-  const currentObs = liveObs ? {
-    time: liveObs.time,
-    tempC: liveObs.tempC ?? forecast.current.tempC,
-    feelsLikeC: liveObs.feelsLikeC ?? forecast.current.feelsLikeC,
-    humidity: liveObs.humidity ?? forecast.current.humidity,
-    pressureHpa: liveObs.pressureHpa ?? forecast.current.pressureHpa,
-    precipMm: liveObs.precipMm ?? forecast.current.precipMm,
-    cloudCover: liveObs.cloudCover ?? forecast.current.cloudCover,
-    visibilityM: liveObs.visibilityM ?? forecast.current.visibilityM,
-    windKmh: liveObs.windKmh ?? forecast.current.windKmh,
-    windDirDeg: liveObs.windDirDeg ?? forecast.current.windDirDeg,
-    gustKmh: liveObs.gustKmh ?? forecast.current.gustKmh,
-    weatherCode: liveObs.weatherCode ?? forecast.current.weatherCode,
-    condition: liveObs.condition || deriveCurrentCondition(forecast.current, forecast.hourly, riskPayload.forecast),
-    sunrise: liveObs.sunrise ?? forecast.daily?.[0]?.sunrise,
-    sunset: liveObs.sunset ?? forecast.daily?.[0]?.sunset,
-  } : {
-    ...forecast.current,
-    condition: deriveCurrentCondition(forecast.current, forecast.hourly, riskPayload.forecast),
-  }
-
-  const sectorDecisions = evaluateSectorDecisions({
-    current: currentObs,
-    summary24h: riskPayload.forecast,
-    warnings: live,
-    location: loc,
-  })
-
   res.json({
     location: loc,
-    current: currentObs,
+    current: { ...forecast.current, condition: describeCode(forecast.current.weatherCode) },
     summary24h: riskPayload.forecast,
     antecedent72hMm: riskPayload.antecedent.rain_72h_mm,
     warnings: live,
@@ -147,13 +113,11 @@ export async function assess(req, res) {
     confidence,
     models,
     answer,
-    sectorDecisions,
     degraded: !risk,
     sources,
     checkedAt: now.toISOString(),
   })
 }
-
 
 /** 'HH:MM' in the forecast's own timezone — the label, not a computation. */
 const hhmm = (iso) => (iso ? new Date(iso).toTimeString().slice(0, 5) : null)
@@ -161,39 +125,3 @@ const hhmm = (iso) => (iso ? new Date(iso).toTimeString().slice(0, 5) : null)
 const round1 = (n) => (n == null ? null : Number(Number(n).toFixed(1)))
 
 /** Aggregate the next 24 hours into the handful of figures the engine needs. */
-function window24h(hourly, now) {
-  const start = now.getTime()
-  const end = start + 24 * 3600e3
-  const rows = (hourly || []).filter((h) => {
-    const t = new Date(h.time).getTime()
-    return t >= start && t < end
-  })
-
-  const rainMm = rows.reduce((s, h) => s + (h.precipMm || 0), 0)
-  const wetHours = rows.filter((h) => (h.precipMm || 0) >= 0.5).length
-  const maxWindKmh = Math.max(0, ...rows.map((h) => h.windKmh || 0))
-  const maxGustKmh = Math.max(0, ...rows.map((h) => h.gustKmh || 0))
-  const vis = rows.map((h) => h.visibilityM).filter((v) => v != null)
-  const minVisibilityKm = vis.length ? Number((Math.min(...vis) / 1000).toFixed(1)) : null
-
-  // The heaviest contiguous stretch — this is what "expected 17:00–20:00" means.
-  let peakWindow = null
-  if (rows.length) {
-    let bestSum = -1
-    let bestIdx = 0
-    for (let i = 0; i + 3 <= rows.length; i += 1) {
-      const sum = rows.slice(i, i + 3).reduce((s, h) => s + (h.precipMm || 0), 0)
-      if (sum > bestSum) { bestSum = sum; bestIdx = i }
-    }
-    if (bestSum > 1) {
-      peakWindow = { from: rows[bestIdx].time, to: rows[Math.min(bestIdx + 3, rows.length - 1)].time, mm: round1(bestSum) }
-    }
-  }
-
-  // Hours until the event we are actually forecasting.
-  const leadHours = peakWindow
-    ? Math.max(0, Math.round((new Date(peakWindow.from).getTime() - start) / 3600e3))
-    : 12
-
-  return { rainMm, wetHours, maxWindKmh, maxGustKmh, minVisibilityKm, peakWindow, leadHours }
-}
