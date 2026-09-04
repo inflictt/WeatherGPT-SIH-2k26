@@ -67,7 +67,12 @@ export default function App() {
               <Route
                 path="/"
                 element={
-                  <Home persona={persona} setPersona={changePersona} prefs={prefs.value} />
+                  <Home
+                    persona={persona}
+                    setPersona={changePersona}
+                    prefs={prefs.value}
+                    picker={picker}
+                  />
                 }
               />
               <Route path="/chat" element={<Chat lang={lang} prefs={prefs.value} />} />
