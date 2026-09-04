@@ -31,7 +31,7 @@ export default function TopHeader({ lang, setLang, picker, resolved, toggleTheme
             <div className="hidden sm:flex items-center gap-2 font-mono text-xs text-ash">
               <span className="text-base">⛅</span>
               <span className="font-semibold text-pure text-sm">
-                {fmt.temp(current.tempC)}°{fmt.tempUnit}
+                {fmt.temp(current.tempC)} {fmt.tempUnit}
               </span>
               {warnings?.length > 0 && (
                 <span className="flex items-center gap-1 rounded-full bg-sev-orange/20 text-sev-orange px-2 py-0.5 text-[10px] font-semibold border border-sev-orange/30 animate-pulse">
