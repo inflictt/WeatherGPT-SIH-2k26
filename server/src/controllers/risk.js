@@ -4,6 +4,7 @@ import {
 import { fetchCurrentOpenWeather } from '../services/openWeather.js'
 import { warningsForPoint, highest } from '../services/capIngest.js'
 import { scoreRisk, scoreUncertainty, composeAnswer } from '../services/aiClient.js'
+import { evaluateSectorDecisions } from '../services/advisory.js'
 import { locationFromQuery } from './weather.js'
 
 /**
@@ -128,6 +129,13 @@ export async function assess(req, res) {
     condition: deriveCurrentCondition(forecast.current, forecast.hourly, riskPayload.forecast),
   }
 
+  const sectorDecisions = evaluateSectorDecisions({
+    current: currentObs,
+    summary24h: riskPayload.forecast,
+    warnings: live,
+    location: loc,
+  })
+
   res.json({
     location: loc,
     current: currentObs,
@@ -139,6 +147,7 @@ export async function assess(req, res) {
     confidence,
     models,
     answer,
+    sectorDecisions,
     degraded: !risk,
     sources,
     checkedAt: now.toISOString(),

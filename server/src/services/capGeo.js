@@ -63,3 +63,18 @@ export function districtsFromAreaDesc(desc) {
     .map((p) => p.replace(/\b(district|districts|dist\.?)\b/gi, '').trim())
     .filter((p) => p.length > 2 && p.length < 60)
 }
+
+/** Standard ray-casting algorithm to test if [lon, lat] is inside a polygon ring. */
+export function pointInPolygon(lon, lat, ring) {
+  if (!ring || ring.length < 3) return false
+  let inside = false
+  for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
+    const xi = ring[i][0]
+    const yi = ring[i][1]
+    const xj = ring[j][0]
+    const yj = ring[j][1]
+    const intersect = ((yi > lat) !== (yj > lat)) && (lon < ((xj - xi) * (lat - yi)) / (yj - yi) + xi)
+    if (intersect) inside = !inside
+  }
+  return inside
+}
