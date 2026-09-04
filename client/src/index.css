@@ -1,0 +1,348 @@
+@import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=Inter:wght@300;400;500;600&family=Roboto+Mono:wght@400;500&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ============================================================
+   ORIGIN FINANCIAL DESIGN SYSTEM
+   - Nocturnal Obsidian Canvas (#0f1011)
+   - Whisper-weight Serif Display (300 weight, 0.9 leading)
+   - Chromatic Feature Tiles (Iris Gleam, Cyan Signal, Orchid Bloom)
+   - Triple-Voice Typography (Serif / Sans / Roboto Mono)
+   - 21:1 AAA Primary Action Button (White on Black)
+   ============================================================ */
+@layer base {
+  :root {
+    /* Origin Financial Core Tokens */
+    --color-iris-gleam:     #847dff;
+    --color-cyan-signal:    #00b3dd;
+    --color-pale-iris:      #d1c9ff;
+    --color-deep-iris:      #4b49aa;
+    --color-orchid-bloom:   #dd90d8;
+    --color-periwinkle:     #90b8f0;
+    --color-obsidian:       #0f1011;
+    --color-abyss:          #090a0b;
+    --color-graphite:       #2e2e2e;
+    --color-steel:          #3f4041;
+    --color-silver:         #cacaca;
+    --color-fog:            #6a6b6b;
+    --color-ash:            #9f9fa0;
+    --color-cloud:          #f5f5f7;
+    --color-pure:           #ffffff;
+    --color-void:           #000000;
+
+    /* Semantic Surface Mappings */
+    --c-ground:      15 16 17;     /* #0f1011 Obsidian */
+    --c-surface:     24 25 27;     /* Elevated Card */
+    --c-raised:      46 46 46;     /* #2e2e2e Graphite */
+    --c-sunk:        9 10 11;      /* #090a0b Abyss */
+    --c-line:        255 255 255;  /* Line stroke */
+    --c-line-soft:   255 255 255;
+
+    --c-ink:         245 245 247;  /* #f5f5f7 Cloud */
+    --c-ink-2:       159 159 160;  /* #9f9fa0 Ash */
+    --c-ink-3:       106 107 107;  /* #6a6b6b Fog */
+
+    --c-accent:      255 255 255;  /* #ffffff Pure */
+    --c-on-accent:   0 0 0;        /* #000000 Void */
+    --c-accent-dim:  46 46 46;     /* #2e2e2e Graphite */
+
+    /* IMD Severity Colors */
+    --c-sev-green:   74 222 128;
+    --c-sev-yellow:  250 204  21;
+    --c-sev-orange:  251 146  60;
+    --c-sev-red:     248 113 113;
+
+    --glow: 132 125 255 / 0.15;
+    color-scheme: dark;
+  }
+
+  body {
+    background-color: var(--color-obsidian);
+    color: var(--color-cloud);
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    line-height: 1.5;
+    font-weight: 400;
+  }
+
+  * { -webkit-tap-highlight-color: transparent; }
+  html { scroll-behavior: smooth; }
+
+  /* Grid and flex items default to `min-width: auto`, so a child that scrolls
+     horizontally — an `.rail-x` strip of hourly cells, say — sizes its track to
+     its *entire* content rather than to the container. The symptom is nasty:
+     every element measures correctly on its own, but the page scrolls sideways,
+     and only at narrow widths. One reset kills the whole class of bug.
+
+     Scoped to grid and flex *containers* rather than applied universally, so
+     nothing that legitimately relies on intrinsic minimum width is touched. */
+  .grid > *,
+  [class*="grid-cols"] > * {
+    min-width: 0;
+  }
+
+  /* The page itself never scrolls sideways. Wide content scrolls inside its own
+     container, which is what `.rail-x` and `overflow-x-auto` are for. */
+  html,
+  body {
+    overflow-x: clip;
+  }
+
+  body {
+    @apply bg-ground text-ink font-sans antialiased;
+    /* 16px body with 1.56 leading — both references set generous leading so
+       long-form copy feels unhurried. */
+    font-size: 16px;
+    line-height: 1.56;
+    font-weight: 400;
+    margin: 0;
+    transition: background-color 0.3s ease, color 0.3s ease;
+  }
+
+  /* Headings take the serif voice. Weight stays light — Origin is explicit
+     that bolding the display is the one thing that breaks the system. */
+  h1, h2, h3 {
+    @apply font-display;
+    font-weight: 300;
+    text-wrap: balance;
+  }
+
+  ::selection { background: rgb(var(--c-ink) / 0.14); }
+
+  :focus-visible {
+    outline: 2px solid rgb(var(--c-ink) / 0.55);
+    outline-offset: 2px;
+    border-radius: 4px;
+  }
+
+  * { scrollbar-width: thin; scrollbar-color: rgb(var(--c-line)) transparent; }
+  *::-webkit-scrollbar { width: 8px; height: 8px; }
+  *::-webkit-scrollbar-thumb { background: rgb(var(--c-line)); border-radius: 99px; }
+  *::-webkit-scrollbar-track { background: transparent; }
+
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+}
+
+@layer components {
+  .weather-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: -1;
+    background-color: var(--color-obsidian);
+    background-image: 
+      linear-gradient(180deg, 
+        rgba(15, 16, 17, 0.98) 0%, 
+        rgba(19, 29, 39, 0.82) 18%, 
+        rgba(26, 71, 136, 0.45) 37%, 
+        rgba(64, 138, 193, 0.25) 69%, 
+        rgba(15, 16, 17, 0.95) 100%
+      ),
+      url('https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=2400&q=80');
+    background-size: cover;
+    background-position: center top;
+    background-attachment: fixed;
+  }
+  :root[data-theme="light"] .weather-backdrop {
+    background-color: #f5f5f7;
+    background-image: 
+      radial-gradient(ellipse 100% 70% at 50% -10%, rgba(224, 242, 254, 0.4), transparent 70%),
+      linear-gradient(180deg, rgba(255, 255, 255, 0.85) 0%, rgba(248, 250, 252, 0.96) 50%, rgba(241, 245, 249, 0.99) 100%),
+      url('https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=2400&q=80');
+  }
+
+  .glass-panel {
+    background: rgba(15, 16, 17, 0.88);
+    backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+  }
+  :root[data-theme="light"] .glass-panel {
+    background: rgba(255, 255, 255, 0.88);
+    border: 1px solid rgba(0, 0, 0, 0.08);
+  }
+
+  .glass-card {
+    background: rgba(46, 46, 46, 0.45);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    transition: all 0.2s ease;
+  }
+  .glass-card:hover {
+    background: rgba(63, 64, 65, 0.6);
+    border-color: rgba(255, 255, 255, 0.16);
+  }
+  :root[data-theme="light"] .glass-card {
+    background: rgba(255, 255, 255, 0.75);
+    border: 1px solid rgba(0, 0, 0, 0.07);
+  }
+  :root[data-theme="light"] .glass-card:hover {
+    background: rgba(255, 255, 255, 0.95);
+    border-color: rgba(0, 0, 0, 0.15);
+  }
+
+  .glass-pill {
+    background: rgba(255, 255, 255, 0.08);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+  }
+  :root[data-theme="light"] .glass-pill {
+    background: rgba(0, 0, 0, 0.04);
+    border: 1px solid rgba(0, 0, 0, 0.08);
+  }
+
+  .glass-popover {
+    background: rgba(15, 16, 17, 0.96);
+    backdrop-filter: blur(28px);
+    -webkit-backdrop-filter: blur(28px);
+    border: 1px solid rgba(255, 255, 255, 0.14);
+  }
+  :root[data-theme="light"] .glass-popover {
+    background: rgba(255, 255, 255, 0.96);
+    border: 1px solid rgba(0, 0, 0, 0.12);
+  }
+
+  .shell { @apply mx-auto w-full max-w-shell px-5 sm:px-8 lg:px-10; }
+
+  /* Editorial band. Both references alternate surfaces to separate sections
+     rather than drawing dividers — the change of ground *is* the divider. */
+  .band { @apply bg-raised; }
+
+  /* Centred editorial column. Airbnb keeps body copy at ~640px however wide
+     the page gets; longer lines are where readability actually breaks. */
+  .column { @apply mx-auto w-full max-w-measure text-center; }
+
+  /* Small uppercase mono label — the workhorse of this design, and the
+     third of the three voices. Always uppercase, always tracked wide. */
+  .lbl { @apply font-mono text-label uppercase text-ink-3; }
+
+  .tnum { font-variant-numeric: tabular-nums; }
+
+  /* Display headline. Light-weight serif with negative tracking: the
+     letters huddle closer as they grow, which is what makes editorial
+     display type feel compressed and authoritative rather than merely big. */
+  .headline {
+    @apply font-display;
+    font-weight: 300;
+    letter-spacing: -0.03em;
+    line-height: 1.05;
+    text-wrap: balance;
+  }
+  .headline .fade { color: rgb(var(--c-ink-3)); }
+
+  /* An italic word inside a roman headline — Origin's one typographic
+     flourish, and the only emphasis the display voice gets. */
+  .headline em { font-style: italic; font-weight: 300; }
+
+  /* The single filled action. Carbon on paper in light, pure white on
+     obsidian in dark. No shadow, no lift, no gradient — both references
+     forbid all three. */
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 rounded-md bg-accent px-6 py-3.5
+           text-[16px] font-medium text-on-accent transition-opacity duration-200;
+  }
+  .btn:hover { opacity: 0.88; }
+
+  .btn-ghost {
+    @apply inline-flex items-center justify-center gap-2 rounded-md border border-line/60
+           px-6 py-3.5 text-[16px] font-medium text-ink transition-colors duration-200;
+  }
+  .btn-ghost:hover { @apply bg-raised; }
+
+  /* The pill badge above a hero. */
+  .badge {
+    @apply inline-flex items-center gap-2 rounded-full border border-line
+           bg-surface px-3.5 py-1.5 font-mono text-[11px] tracking-[0.02em] text-ink-2;
+  }
+
+  /* A control that must stay visually small can still be comfortable to hit.
+     This stretches an invisible 44 px target around the element's centre —
+     WCAG 2.5.5's minimum, and roughly a thumb — without changing its size or
+     disturbing layout. Use on icon buttons; for controls in text flow, add
+     real padding instead, so neighbouring targets do not overlap. */
+  .tap {
+    position: relative;
+  }
+  .tap::after {
+    content: '';
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: 44px;
+    height: 44px;
+    transform: translate(-50%, -50%);
+  }
+
+  .rail-x {
+    @apply flex min-w-0 gap-2 overflow-x-auto pb-1;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+    /* Momentum scrolling, and don't let a horizontal drag pull the page back. */
+    overscroll-behavior-x: contain;
+  }
+  .rail-x::-webkit-scrollbar { display: none; }
+
+  .fade-r {
+    -webkit-mask-image: linear-gradient(to right, #000 88%, transparent 100%);
+    mask-image: linear-gradient(to right, #000 88%, transparent 100%);
+  }
+}
+
+/* =========================================================================
+   Leaflet overrides — deliberately OUTSIDE @layer.
+
+   Leaflet ships an unlayered stylesheet, and unlayered CSS wins against every
+   cascade layer no matter how specific the layered selector is. Anything here
+   placed in @layer components silently does nothing.
+   ========================================================================= */
+/* ---------------------------------------------------------------- map ---
+   The basemap must never out-colour the warnings.
+
+   Straight out of the box, OpenStreetMap's greens and blues are more
+   saturated than an orange alert circle sitting on top of them — which
+   inverts the one rule this interface has. Desaturating the tiles puts the
+   hazard back on top; in dark mode they are also inverted and dimmed so the
+   plate reads as part of the page rather than a lit window in it.
+
+   Applied to tiles only, so markers, polygons and controls keep their colour.
+*/
+.leaflet-tile-pane {
+  filter: saturate(0.32) contrast(0.95);
+}
+
+:root[data-theme='dark'] .leaflet-tile-pane {
+  filter: invert(1) hue-rotate(180deg) saturate(0.2) brightness(0.85) contrast(0.9);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) .leaflet-tile-pane {
+    filter: invert(1) hue-rotate(180deg) saturate(0.2) brightness(0.85) contrast(0.9);
+  }
+}
+
+.leaflet-container {
+  background: rgb(var(--c-raised));
+  font: inherit;
+}
+
+/* Leaflet ships its own light chrome; make it follow the theme. */
+.leaflet-control-zoom a,
+.leaflet-control-attribution,
+.leaflet-control-scale-line {
+  border-color: rgb(var(--c-line)); background: rgb(var(--c-surface)); color: rgb(var(--c-ink-2));
+}
+.leaflet-control-attribution a { color: rgb(var(--c-ink-3)); }
+.leaflet-tooltip {
+  border-radius: 6px; border: 1px solid rgb(var(--c-line)); background: rgb(var(--c-surface)); color: rgb(var(--c-ink));
+  box-shadow: none;
+}
+.leaflet-tooltip::before { display: none; }
