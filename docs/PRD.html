@@ -1,0 +1,965 @@
+<title>WeatherGPT Build Spec</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Serif:wght@500;600&display=swap">
+
+<style>
+:root{
+  --ground:#EFF2F1;
+  --surface:#FFFFFF;
+  --surface-2:#F7F9F8;
+  --ink:#13222A;
+  --ink-2:#546A71;
+  --ink-3:#7D9097;
+  --rule:#D6DDDC;
+  --rule-soft:#E5EAE9;
+  --accent:#0E6D77;
+  --accent-ink:#0A545C;
+  --accent-soft:#E2EFF0;
+  --green:#2C7B4E;
+  --yellow:#B48605;
+  --orange:#C9631B;
+  --red:#AE3125;
+  --chip-green:#3FA96A;
+  --chip-yellow:#E2B417;
+  --chip-orange:#E4832F;
+  --chip-red:#CB4032;
+  --cut:#9A5B54;
+  --shadow:0 1px 2px rgba(19,34,42,.05), 0 8px 24px -16px rgba(19,34,42,.28);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --ground:#0D1518;
+    --surface:#141E22;
+    --surface-2:#18242A;
+    --ink:#E2EAE9;
+    --ink-2:#95A8AD;
+    --ink-3:#71868C;
+    --rule:#25343A;
+    --rule-soft:#1D2B31;
+    --accent:#4EC2CD;
+    --accent-ink:#7FD6DE;
+    --accent-soft:#10333A;
+    --green:#5BBE85;
+    --yellow:#E3BE49;
+    --orange:#EE9153;
+    --red:#E4695E;
+    --chip-green:#4FB47A;
+    --chip-yellow:#DDB33C;
+    --chip-orange:#E0853F;
+    --chip-red:#D4574A;
+    --cut:#C68C84;
+    --shadow:0 1px 2px rgba(0,0,0,.35), 0 8px 24px -16px rgba(0,0,0,.7);
+  }
+}
+:root[data-theme="dark"]{
+  --ground:#0D1518;
+  --surface:#141E22;
+  --surface-2:#18242A;
+  --ink:#E2EAE9;
+  --ink-2:#95A8AD;
+  --ink-3:#71868C;
+  --rule:#25343A;
+  --rule-soft:#1D2B31;
+  --accent:#4EC2CD;
+  --accent-ink:#7FD6DE;
+  --accent-soft:#10333A;
+  --green:#5BBE85;
+  --yellow:#E3BE49;
+  --orange:#EE9153;
+  --red:#E4695E;
+  --chip-green:#4FB47A;
+  --chip-yellow:#DDB33C;
+  --chip-orange:#E0853F;
+  --chip-red:#D4574A;
+  --cut:#C68C84;
+  --shadow:0 1px 2px rgba(0,0,0,.35), 0 8px 24px -16px rgba(0,0,0,.7);
+}
+
+*{box-sizing:border-box}
+body{
+  margin:0;
+  background:var(--ground);
+  color:var(--ink);
+  font-family:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  font-size:15.5px;
+  line-height:1.62;
+  -webkit-font-smoothing:antialiased;
+}
+a{color:var(--accent-ink);text-decoration-color:color-mix(in srgb, var(--accent) 40%, transparent);text-underline-offset:2px}
+a:focus-visible,button:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:2px}
+
+.shell{display:grid;grid-template-columns:1fr;max-width:1240px;margin:0 auto;padding:0 22px}
+@media (min-width:1040px){
+  .shell{grid-template-columns:214px minmax(0,1fr);gap:52px;padding:0 34px}
+}
+
+/* ---------- rail ---------- */
+.rail{display:none}
+@media (min-width:1040px){
+  .rail{
+    display:block;position:sticky;top:0;align-self:start;
+    height:100vh;overflow-y:auto;padding:38px 0 40px;
+  }
+}
+.rail-mark{
+  font-family:"IBM Plex Mono",monospace;font-size:10.5px;letter-spacing:.14em;
+  text-transform:uppercase;color:var(--ink-3);margin-bottom:16px;
+}
+.rail ol{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:1px}
+.rail a{
+  display:grid;grid-template-columns:22px 1fr;gap:6px;
+  padding:4px 8px 4px 0;font-size:13px;line-height:1.35;
+  color:var(--ink-2);text-decoration:none;border-left:2px solid transparent;padding-left:10px;
+}
+.rail a:hover{color:var(--accent-ink);border-left-color:var(--accent);background:var(--surface-2)}
+.rail a span{font-family:"IBM Plex Mono",monospace;font-size:11px;color:var(--ink-3);padding-top:1px}
+
+/* ---------- doc ---------- */
+.doc{padding:38px 0 90px;min-width:0}
+.wrap{max-width:68ch}
+
+/* header */
+.masthead{border-bottom:2px solid var(--ink);padding-bottom:22px;margin-bottom:26px}
+.eyebrow{
+  font-family:"IBM Plex Mono",monospace;font-size:11px;letter-spacing:.15em;
+  text-transform:uppercase;color:var(--accent-ink);display:flex;flex-wrap:wrap;gap:6px 14px;margin-bottom:16px;
+}
+.eyebrow b{font-weight:500;color:var(--ink-3)}
+h1{
+  font-family:"IBM Plex Serif",Georgia,serif;font-weight:600;
+  font-size:clamp(38px,6.2vw,58px);line-height:1.02;letter-spacing:-.02em;
+  margin:0 0 12px;text-wrap:balance;
+}
+.deck{
+  font-family:"IBM Plex Serif",Georgia,serif;font-size:clamp(17px,2.4vw,20px);
+  line-height:1.45;color:var(--ink-2);margin:0;max-width:56ch;text-wrap:balance;
+}
+
+/* tldr */
+.tldr{
+  background:var(--surface);border:1px solid var(--rule);border-radius:3px;
+  padding:22px 24px;margin:0 0 46px;box-shadow:var(--shadow);
+}
+.tldr-h{
+  font-family:"IBM Plex Mono",monospace;font-size:10.5px;letter-spacing:.15em;
+  text-transform:uppercase;color:var(--ink-3);margin-bottom:14px;
+}
+.tldr dl{margin:0;display:grid;gap:11px}
+@media(min-width:720px){.tldr dl{grid-template-columns:112px minmax(0,1fr);gap:11px 20px;align-items:baseline}}
+.tldr dt{
+  font-family:"IBM Plex Mono",monospace;font-size:11px;letter-spacing:.08em;
+  text-transform:uppercase;color:var(--accent-ink);
+}
+.tldr dd{margin:0;color:var(--ink)}
+.tldr dd em{font-style:normal;color:var(--ink-2)}
+
+/* sections */
+section{margin-bottom:52px;scroll-margin-top:22px}
+h2{
+  font-family:"IBM Plex Serif",Georgia,serif;font-weight:600;
+  font-size:clamp(23px,3.2vw,29px);line-height:1.16;letter-spacing:-.012em;
+  margin:0 0 6px;text-wrap:balance;display:flex;gap:12px;align-items:baseline;
+}
+h2 .num{
+  font-family:"IBM Plex Mono",monospace;font-size:12px;font-weight:500;
+  color:var(--accent);letter-spacing:.04em;flex:none;
+}
+.sub{color:var(--ink-2);margin:0 0 20px;max-width:64ch;padding-left:0}
+@media(min-width:600px){h2 .num{margin-left:-44px;width:32px;text-align:right}
+  h2{margin-left:0}
+}
+h3{
+  font-family:"IBM Plex Sans",sans-serif;font-weight:600;font-size:14px;
+  letter-spacing:.01em;margin:28px 0 10px;color:var(--ink);
+}
+p{margin:0 0 14px;max-width:68ch}
+ul,ol{margin:0 0 14px;padding-left:20px;max-width:68ch}
+li{margin-bottom:6px}
+li::marker{color:var(--ink-3)}
+strong{font-weight:600}
+code{
+  font-family:"IBM Plex Mono",monospace;font-size:.87em;
+  background:var(--surface-2);border:1px solid var(--rule-soft);
+  padding:.1em .34em;border-radius:2px;color:var(--accent-ink);
+}
+
+/* the rule callout */
+.rulebox{
+  border-left:3px solid var(--accent);background:var(--accent-soft);
+  padding:16px 20px;margin:0 0 22px;border-radius:0 3px 3px 0;max-width:68ch;
+}
+.rulebox p{margin:0;font-family:"IBM Plex Serif",Georgia,serif;font-size:17px;line-height:1.45}
+.rulebox p+p{margin-top:8px;font-size:14.5px;font-family:"IBM Plex Sans",sans-serif;color:var(--ink-2)}
+
+/* tables */
+.scroller{overflow-x:auto;margin:0 0 20px;border:1px solid var(--rule);border-radius:3px;background:var(--surface)}
+table{border-collapse:collapse;width:100%;font-size:13.5px;min-width:520px}
+th{
+  text-align:left;font-family:"IBM Plex Mono",monospace;font-weight:500;
+  font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-3);
+  padding:11px 14px;border-bottom:1px solid var(--rule);white-space:nowrap;background:var(--surface-2);
+}
+td{padding:10px 14px;border-bottom:1px solid var(--rule-soft);vertical-align:top;line-height:1.45}
+tbody tr:last-child td{border-bottom:none}
+td.mono,th.mono,.tnum{font-family:"IBM Plex Mono",monospace;font-size:12.5px;font-variant-numeric:tabular-nums;white-space:nowrap}
+td.dim{color:var(--ink-2)}
+
+/* severity chips */
+.chip{
+  display:inline-flex;align-items:center;gap:6px;font-family:"IBM Plex Mono",monospace;
+  font-size:11px;font-weight:500;letter-spacing:.06em;text-transform:uppercase;white-space:nowrap;
+}
+.chip::before{content:"";width:9px;height:9px;border-radius:2px;flex:none}
+.chip.g::before{background:var(--chip-green)} .chip.g{color:var(--green)}
+.chip.y::before{background:var(--chip-yellow)} .chip.y{color:var(--yellow)}
+.chip.o::before{background:var(--chip-orange)} .chip.o{color:var(--orange)}
+.chip.r::before{background:var(--chip-red)} .chip.r{color:var(--red)}
+
+/* keep / cut lists */
+.split{display:grid;gap:18px;margin-bottom:22px}
+@media(min-width:780px){.split{grid-template-columns:1fr 1fr}}
+.panel{background:var(--surface);border:1px solid var(--rule);border-radius:3px;padding:18px 20px}
+.panel-h{
+  font-family:"IBM Plex Mono",monospace;font-size:10.5px;letter-spacing:.13em;
+  text-transform:uppercase;margin-bottom:12px;display:flex;align-items:center;gap:8px;
+}
+.panel-h.in{color:var(--accent-ink)}
+.panel-h.out{color:var(--cut)}
+.panel ul{margin:0;padding-left:17px;font-size:14px}
+.panel li{margin-bottom:7px}
+
+/* cut table */
+.cutlist{list-style:none;margin:0;padding:0;display:grid;gap:0;border:1px solid var(--rule);border-radius:3px;background:var(--surface);overflow:hidden}
+.cutlist li{margin:0;padding:13px 18px;border-bottom:1px solid var(--rule-soft);display:grid;gap:3px}
+@media(min-width:720px){.cutlist li{grid-template-columns:238px minmax(0,1fr);gap:4px 22px;align-items:baseline}}
+.cutlist li:last-child{border-bottom:none}
+.cutlist b{font-weight:500;font-family:"IBM Plex Mono",monospace;font-size:12.5px;color:var(--cut);line-height:1.5}
+.cutlist span{color:var(--ink-2);font-size:14px}
+
+/* architecture diagram */
+.arch{
+  background:var(--surface);border:1px solid var(--rule);border-radius:3px;
+  padding:24px 20px;margin-bottom:20px;overflow-x:auto;
+}
+.arch-inner{min-width:560px;display:flex;flex-direction:column;align-items:stretch;gap:0}
+.tier{display:grid;gap:10px}
+.tier.t3{grid-template-columns:repeat(3,1fr)}
+.tier.t2{grid-template-columns:repeat(2,1fr)}
+.tier.t4{grid-template-columns:repeat(4,1fr)}
+.node{
+  border:1px solid var(--rule);border-radius:3px;background:var(--surface-2);
+  padding:11px 13px;text-align:left;
+}
+.node b{display:block;font-size:13px;font-weight:600;margin-bottom:2px}
+.node i{
+  display:block;font-style:normal;font-family:"IBM Plex Mono",monospace;
+  font-size:10.5px;color:var(--ink-3);line-height:1.45;letter-spacing:.01em;
+}
+.node.hot{border-color:var(--accent);background:var(--accent-soft)}
+.node.hot b{color:var(--accent-ink)}
+.node.warn{border-color:color-mix(in srgb,var(--chip-orange) 55%, var(--rule))}
+.node.warn b{color:var(--orange)}
+.flow{
+  display:flex;align-items:center;justify-content:center;gap:10px;
+  padding:9px 0;font-family:"IBM Plex Mono",monospace;font-size:10px;
+  letter-spacing:.14em;text-transform:uppercase;color:var(--ink-3);
+}
+.flow::before,.flow::after{content:"";height:1px;background:var(--rule);flex:1}
+
+/* pipeline steps */
+.pipe{list-style:none;margin:0 0 20px;padding:0;counter-reset:p;border-left:1px solid var(--rule);max-width:68ch}
+.pipe li{position:relative;padding:0 0 15px 26px;counter-increment:p;margin:0}
+.pipe li::before{
+  content:counter(p,decimal-leading-zero);position:absolute;left:-16px;top:1px;
+  font-family:"IBM Plex Mono",monospace;font-size:10px;color:var(--accent);
+  background:var(--ground);padding:1px 4px;letter-spacing:.02em;
+}
+.pipe b{font-weight:600}
+.pipe span{color:var(--ink-2)}
+
+/* code blocks */
+pre{
+  font-family:"IBM Plex Mono",monospace;font-size:12.3px;line-height:1.62;
+  background:var(--surface);border:1px solid var(--rule);border-radius:3px;
+  padding:16px 18px;overflow-x:auto;margin:0 0 20px;color:var(--ink);
+  -moz-tab-size:2;tab-size:2;
+}
+pre .c{color:var(--ink-3)}
+pre .k{color:var(--accent-ink)}
+pre .s{color:var(--green)}
+figcaption{
+  font-family:"IBM Plex Mono",monospace;font-size:10.5px;letter-spacing:.1em;
+  text-transform:uppercase;color:var(--ink-3);margin:0 0 8px;
+}
+figure{margin:0 0 20px}
+
+/* stack grid */
+.stack{display:grid;gap:14px;margin-bottom:20px}
+@media(min-width:700px){.stack{grid-template-columns:1fr 1fr}}
+.stack-col{background:var(--surface);border:1px solid var(--rule);border-radius:3px;padding:16px 18px}
+.stack-col h4{
+  margin:0 0 10px;font-family:"IBM Plex Mono",monospace;font-size:10.5px;
+  letter-spacing:.13em;text-transform:uppercase;color:var(--accent-ink);font-weight:500;
+}
+.stack-col dl{margin:0;display:grid;grid-template-columns:auto 1fr;gap:5px 14px;font-size:13.5px;align-items:baseline}
+.stack-col dt{font-family:"IBM Plex Mono",monospace;font-size:12px;color:var(--ink);white-space:nowrap}
+.stack-col dd{margin:0;color:var(--ink-2);font-size:13px}
+
+/* week plan */
+.weeks{list-style:none;margin:0 0 20px;padding:0;display:grid;gap:10px}
+.week{
+  background:var(--surface);border:1px solid var(--rule);border-radius:3px;
+  padding:14px 18px;display:grid;gap:6px;
+}
+@media(min-width:680px){.week{grid-template-columns:88px minmax(0,1fr);gap:4px 20px;align-items:baseline}}
+.week-n{
+  font-family:"IBM Plex Mono",monospace;font-size:11px;letter-spacing:.1em;
+  text-transform:uppercase;color:var(--accent-ink);
+}
+.week-b b{display:block;font-size:14.5px;font-weight:600;margin-bottom:2px}
+.week-b span{color:var(--ink-2);font-size:13.5px}
+
+/* qa */
+.qa{border-top:1px solid var(--rule);max-width:68ch}
+.qa div{border-bottom:1px solid var(--rule);padding:15px 0}
+.qa q{
+  display:block;font-family:"IBM Plex Serif",Georgia,serif;font-size:16.5px;
+  font-weight:500;margin-bottom:7px;quotes:none;line-height:1.4;
+}
+.qa q::before{content:"“"} .qa q::after{content:"”"}
+.qa p{margin:0;color:var(--ink-2);font-size:14.5px}
+
+/* checklist */
+.dod{list-style:none;margin:0 0 20px;padding:0;display:grid;gap:7px;max-width:68ch}
+.dod li{display:grid;grid-template-columns:16px 1fr;gap:10px;font-size:14px;align-items:baseline}
+.dod li::before{
+  content:"";width:9px;height:9px;border:1.5px solid var(--accent);border-radius:1px;
+  display:block;margin-top:6px;
+}
+
+footer{border-top:2px solid var(--ink);margin-top:60px;padding-top:18px;color:var(--ink-3);font-size:12.5px;max-width:68ch}
+footer p{margin:0 0 6px;font-size:12.5px}
+footer a{color:var(--ink-2)}
+
+@media (prefers-reduced-motion: reduce){*{animation:none!important;transition:none!important}}
+</style>
+
+<div class="shell">
+
+<nav class="rail" aria-label="Sections">
+  <div class="rail-mark">Contents</div>
+  <ol>
+    <li><a href="#s1"><span>01</span>The product</a></li>
+    <li><a href="#s2"><span>02</span>Scope &amp; cuts</a></li>
+    <li><a href="#s3"><span>03</span>Users</a></li>
+    <li><a href="#s4"><span>04</span>Architecture</a></li>
+    <li><a href="#s5"><span>05</span>Request pipeline</a></li>
+    <li><a href="#s6"><span>06</span>Data sources</a></li>
+    <li><a href="#s7"><span>07</span>Warning engine</a></li>
+    <li><a href="#s8"><span>08</span>Risk engine</a></li>
+    <li><a href="#s9"><span>09</span>Uncertainty</a></li>
+    <li><a href="#s10"><span>10</span>Answer contract</a></li>
+    <li><a href="#s11"><span>11</span>Tech stack</a></li>
+    <li><a href="#s12"><span>12</span>Repo &amp; APIs</a></li>
+    <li><a href="#s13"><span>13</span>Build order</a></li>
+    <li><a href="#s14"><span>14</span>Done &amp; demo</a></li>
+    <li><a href="#s15"><span>15</span>Judge Q&amp;A</a></li>
+  </ol>
+</nav>
+
+<main class="doc">
+
+<header class="masthead">
+  <div class="eyebrow">
+    <span>SIH26068</span><b>/</b><span>Product Requirements</span><b>/</b><span>v2 — condensed</span>
+  </div>
+  <h1>WeatherGPT</h1>
+  <p class="deck">From weather forecasts to actionable warnings. A conversational weather assistant whose real engine is a warning-first risk layer — not the chatbot on top of it.</p>
+</header>
+
+<div class="tldr">
+  <div class="tldr-h">Summary</div>
+  <dl>
+    <dt>Product</dt>
+    <dd>A voice- and text-based weather assistant in English, Hindi and Hinglish that answers <em>“will it rain in my village tomorrow?”</em> with a forecast, any active official warning, a risk level, and a confidence level.</dd>
+    <dt>The rule</dt>
+    <dd>The LLM never produces a weather number. It only phrases numbers the backend already fetched and scored.</dd>
+    <dt>Differentiator</dt>
+    <dd>Official CAP warnings from NDMA Sachet are geo-matched to the user and always outrank the conversational answer.</dd>
+    <dt>Stack</dt>
+    <dd>React + Tailwind → Node/Express + MongoDB → one Python FastAPI service (NLU, risk, uncertainty) → one LLM provider.</dd>
+    <dt>Timeline</dt>
+    <dd>5 weeks, 6 people. Data and safety layers first; chat UI in week 3.</dd>
+    <dt>Cut from v1</dt>
+    <dd>Trained ML risk models, GRIB/xarray ingestion, vector search, a worker fleet, an admin console, 10 languages. <em>Reasons in §2.</em></dd>
+  </dl>
+</div>
+
+<section id="s1">
+  <h2><span class="num">01</span>What we are building</h2>
+  <p class="sub">One sentence a judge should be able to repeat back after your first slide.</p>
+
+  <div class="rulebox">
+    <p>WeatherGPT converts forecasts and official government warnings into a location-specific risk level, an honest confidence level, and one recommended action — delivered by voice in Hindi or English.</p>
+    <p>Everything below serves that sentence. Anything that does not is out of scope.</p>
+  </div>
+
+  <p>The problem statement asks for a conversational weather assistant. Roughly forty other teams will build exactly that: a chat box, a weather API, and a translate call. It works on stage and it is reproducible in a weekend, which is why it does not win.</p>
+
+  <p>The defensible version keeps the same surface and puts three layers underneath it:</p>
+  <ul>
+    <li><strong>Warning intelligence</strong> — parse official CAP alerts, match them to the user's district, surface them <em>above</em> the routine answer.</li>
+    <li><strong>Risk translation</strong> — turn <code>96 mm / 62 km/h</code> into <em>“flooding likely in low-lying areas; delay travel.”</em></li>
+    <li><strong>Uncertainty</strong> — say when the models disagree instead of pretending a 7-day forecast is a fact.</li>
+  </ul>
+  <p>Those three are the pitch. The chatbot is the delivery mechanism.</p>
+</section>
+
+<section id="s2">
+  <h2><span class="num">02</span>Scope, and what we deliberately cut</h2>
+  <p class="sub">The v1 document specified about eleven months of work. This is the version that ships in five weeks and still demos every claim.</p>
+
+  <div class="split">
+    <div class="panel">
+      <div class="panel-h in">In scope — MVP</div>
+      <ul>
+        <li>Natural-language weather Q&amp;A, text and voice</li>
+        <li>English, Hindi and Hinglish (romanised Hindi), end to end</li>
+        <li>Location resolution: GPS, city, district, village name</li>
+        <li>Hourly + 7-day forecast from a live source</li>
+        <li>CAP warning ingestion, geo-match, and priority display</li>
+        <li>Rule-based risk engine on published IMD thresholds</li>
+        <li>Model-disagreement confidence score</li>
+        <li>Source + issue-time provenance on every answer</li>
+        <li>Saved locations and push alerts for severe events</li>
+        <li>Mobile-first PWA</li>
+      </ul>
+    </div>
+    <div class="panel">
+      <div class="panel-h in">Phase 2 — after the prototype round</div>
+      <ul>
+        <li>Marathi, Bengali, Tamil, Telugu and the rest (config entries, not rewrites)</li>
+        <li>Historical / climate-trend module via the archive API</li>
+        <li>Warning polygons and rainfall layers on the map</li>
+        <li>Persona-tuned advice (farmer, traveller, outdoor worker)</li>
+        <li>District dashboard for administration users</li>
+        <li>SMS delivery for feature phones</li>
+      </ul>
+    </div>
+  </div>
+
+  <h3>Why Hinglish is one of the three, and not an afterthought</h3>
+  <p>Most people in small-town and rural India do not type in Devanagari. They type
+  <em>“kal barish hogi kya”</em> on a QWERTY keyboard — Hindi words in Latin script. A product that
+  accepts only <code>क्या कल बारिश होगी</code> and <code>will it rain tomorrow</code> silently
+  excludes the largest group of the people it was built for.</p>
+  <p>Supporting it is cheap and the payoff is disproportionate: a romanised-Hindi keyword list
+  distinguishes Hinglish from English at parse time, answers are composed in Hindi and
+  transliterated back to Latin for display, and the <code>hi-IN</code> speech voice reads the
+  Devanagari form so pronunciation stays correct. Three modes, one pipeline. Say this on stage —
+  it is a real accessibility insight, not a feature list item.</p>
+
+  <h3>Cut, and why — say this out loud if a judge asks</h3>
+  <ul class="cutlist">
+    <li><b>Trained ML risk model</b><span>There is no labelled “this weather caused this harm” dataset for Indian districts. A model trained on nothing is indefensible in five minutes of questioning. IMD's published thresholds are auditable, correct, and explain themselves. ML goes in Phase 3, on data we will have collected by then.</span></li>
+    <li><b>GRIB / NetCDF + xarray ingestion</b><span>Raw numerical model grids are hundreds of gigabytes and weeks of pipeline work. Open-Meteo already serves the same model output as JSON for a lat/lon. We buy the processed layer instead of rebuilding it.</span></li>
+    <li><b>Vector search, RAG, FAISS, embeddings</b><span>Weather is structured data, not a document corpus. There is nothing to retrieve semantically. Adding a vector DB adds latency and a failure mode for zero accuracy gain.</span></li>
+    <li><b>Redis + BullMQ + four worker services</b><span>Our workload is two scheduled jobs: refresh warnings, send alerts. <code>node-cron</code> inside the API does that. Redis stays only as a response cache, and even that is optional for the demo.</span></li>
+    <li><b>Monorepo with packages/ and shared types</b><span>Three folders. Tooling setup that pays off at 30 engineers costs us a week and returns nothing at six.</span></li>
+    <li><b>Multi-provider LLM abstraction</b><span>One provider behind one file with one function. Swapping providers means editing that file. That <em>is</em> the abstraction.</span></li>
+    <li><b>Ten Indian languages</b><span>Three modes done well beats ten done by machine translation with broken weather terminology. English, Hindi and Hinglish cover the demo; every other language is a config entry we can add live on stage to prove the architecture scales.</span></li>
+    <li><b>Admin dashboard, RBAC, feature flags</b><span>One <code>/health</code> page showing source status and last ingestion time. Judges never log in as admin.</span></li>
+    <li><b>Native mobile app</b><span>An installable PWA gives us push notifications, offline caching, and a home-screen icon without a second codebase.</span></li>
+  </ul>
+
+  <h3>Non-goals</h3>
+  <p>WeatherGPT does not issue warnings, replace IMD or NDMA, or make disaster-management decisions. It is a decision-support and accessibility layer over official information, and the UI says so.</p>
+</section>
+
+<section id="s3">
+  <h2><span class="num">03</span>Users and the questions they ask</h2>
+  <p class="sub">Build for the first two. The rest come free.</p>
+  <div class="scroller">
+    <table>
+      <thead><tr><th>User</th><th>Asks</th><th>Needs beyond a forecast</th></tr></thead>
+      <tbody>
+        <tr><td><strong>Farmer</strong></td><td class="dim">“कल मेरे गाँव में बारिश होगी?”</td><td class="dim">Timing within the day, intensity, and whether to irrigate or cover harvest</td></tr>
+        <tr><td><strong>General public</strong></td><td class="dim">“Is it safe to go out this evening?”</td><td class="dim">A yes/no with a reason, not a table of numbers</td></tr>
+        <tr><td><strong>Traveller</strong></td><td class="dim">“Should I drive to Udaipur tomorrow?”</td><td class="dim">Route-relevant risk: visibility, gusts, waterlogging</td></tr>
+        <tr><td><strong>Local admin</strong></td><td class="dim">“Which of my blocks are under alert?”</td><td class="dim">Active warnings ranked by severity and expiry</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p>Persona is a single field on the user record. It changes the <em>recommendation</em> sentence and nothing else — same forecast, same risk, different closing line.</p>
+</section>
+
+<section id="s4">
+  <h2><span class="num">04</span>Architecture</h2>
+  <p class="sub">Three services. Data flows up; the LLM sits at the very top and only writes prose.</p>
+
+  <div class="arch">
+    <div class="arch-inner">
+      <div class="tier t2">
+        <div class="node"><b>React PWA</b><i>chat · voice · cards · map<br>Tailwind · Vite · Zustand</i></div>
+        <div class="node"><b>Web Speech API</b><i>hi-IN / en-IN mic + speaker<br>Bhashini fallback</i></div>
+      </div>
+      <div class="flow">REST + SSE</div>
+      <div class="tier t3">
+        <div class="node"><b>Express API</b><i>auth · orchestration<br>caching · cron</i></div>
+        <div class="node"><b>MongoDB</b><i>users · locations<br>warnings · chats</i></div>
+        <div class="node warn"><b>Warning store</b><i>CAP alerts<br>2dsphere geo index</i></div>
+      </div>
+      <div class="flow">internal HTTP</div>
+      <div class="tier t4">
+        <div class="node hot"><b>NLU</b><i>intent · entities<br>location · time</i></div>
+        <div class="node hot"><b>Risk engine</b><i>IMD thresholds<br>deterministic</i></div>
+        <div class="node hot"><b>Uncertainty</b><i>model spread<br>lead time</i></div>
+        <div class="node hot"><b>Composer</b><i>grounded prompt<br>→ LLM</i></div>
+      </div>
+      <div class="flow">outbound</div>
+      <div class="tier t3">
+        <div class="node"><b>Open-Meteo</b><i>forecast, 3 models</i></div>
+        <div class="node"><b>NDMA Sachet</b><i>CAP warning feed</i></div>
+        <div class="node"><b>LLM provider</b><i>phrasing only</i></div>
+      </div>
+    </div>
+  </div>
+
+  <p>The Python service is a single FastAPI app with six endpoints. It exists because NLU, threshold logic, and statistical spread are cleaner in Python — and because the problem statement expects a real AI/ML component, which this is. It is not a microservice fleet.</p>
+</section>
+
+<section id="s5">
+  <h2><span class="num">05</span>What happens when someone asks a question</h2>
+  <p class="sub">One request, in order. Note that warnings are fetched in parallel with the forecast, not after it.</p>
+
+  <ol class="pipe">
+    <li><b>Capture</b> <span>— text, or mic → Web Speech (<code>hi-IN</code>) → transcript.</span></li>
+    <li><b>Detect language</b> <span>— script heuristic first (Devanagari → Hindi); LLM only on ambiguity.</span></li>
+    <li><b>Parse</b> <span>— <code>POST /nlu/parse</code> returns intent, location string, time window, and requested variables as strict JSON.</span></li>
+    <li><b>Resolve location</b> <span>— match against our seeded India gazetteer (state / district / town), fall back to a geocoder, fall back to GPS. Returns lat, lon, district, state.</span></li>
+    <li><b>Fetch, in parallel</b> <span>— forecast for the point across three models; active warnings intersecting the district.</span></li>
+    <li><b>Score risk</b> <span>— <code>POST /risk/score</code>. Warning severity floors the result (§8).</span></li>
+    <li><b>Score confidence</b> <span>— <code>POST /uncertainty/score</code> from model spread and lead time (§9).</span></li>
+    <li><b>Compose</b> <span>— build the grounded context object; LLM returns structured JSON, never free text (§10).</span></li>
+    <li><b>Render</b> <span>— warning card first if one is active, then answer, forecast card, risk card, sources.</span></li>
+    <li><b>Speak</b> <span>— TTS reads the <code>summary</code> plus, if present, the <code>warningMessage</code>.</span></li>
+  </ol>
+  <p>Target: under 2 s for the data path, under 5 s including the LLM. Steps 5–7 are pure I/O and arithmetic; only step 8 is slow, so stream it.</p>
+</section>
+
+<section id="s6">
+  <h2><span class="num">06</span>Data sources — the honest version</h2>
+  <p class="sub">This is where most teams hand-wave. Naming the exact endpoints and their limits is itself a differentiator.</p>
+
+  <div class="scroller">
+    <table>
+      <thead><tr><th>Need</th><th>Source</th><th class="mono">Key?</th><th>Reality check</th></tr></thead>
+      <tbody>
+        <tr>
+          <td><strong>Forecast</strong></td>
+          <td>Open-Meteo forecast API</td><td class="mono">no</td>
+          <td class="dim">Free, no signup, hourly + daily, and it will return several models in one call — which is what makes §9 possible. Primary source.</td>
+        </tr>
+        <tr>
+          <td><strong>Official warnings</strong></td>
+          <td>NDMA Sachet CAP feed<br><code>sachet.ndma.gov.in/CapFeed</code></td><td class="mono">no</td>
+          <td class="dim">Real CAP 1.2 / RSS alerts from IMD, CWC and all 36 state authorities. This is the source that makes the safety story true. Poll every 5 min, parse, store.</td>
+        </tr>
+        <tr>
+          <td><strong>Current obs</strong></td>
+          <td>IMD Mausam public endpoints / OpenWeatherMap</td><td class="mono">varies</td>
+          <td class="dim">IMD has no clean documented public REST API — plan for scraping-grade reliability and a fallback. Do not put IMD on the critical path.</td>
+        </tr>
+        <tr>
+          <td><strong>Locations</strong></td>
+          <td>Seeded gazetteer + Nominatim</td><td class="mono">no</td>
+          <td class="dim">Pre-seed districts and ~20k towns into Mongo. Village-level lookup fails on live geocoders; ours will not, because we control the data.</td>
+        </tr>
+        <tr>
+          <td><strong>Speech</strong></td>
+          <td>Web Speech API → Bhashini</td><td class="mono">yes*</td>
+          <td class="dim">Browser speech is free, instant, and supports <code>hi-IN</code>, which also transcribes Hinglish speech. Ship on it. Wire Bhashini ASR/TTS behind the same interface for languages the browser lacks — and mention it, since it is the government stack.</td>
+        </tr>
+        <tr>
+          <td><strong>Language model</strong></td>
+          <td>Any hosted provider</td><td class="mono">yes</td>
+          <td class="dim">Used for parsing and phrasing only. If it is down, we still render the structured cards (§10).</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3>Source hierarchy</h3>
+  <p>Official warnings outrank observations, which outrank model forecasts, which outrank derived estimates. A lower tier may never contradict a higher one in the rendered answer.</p>
+</section>
+
+<section id="s7">
+  <h2><span class="num">07</span>Warning engine</h2>
+  <p class="sub">The single highest-value component. Build it in week 1.</p>
+
+  <p>A cron job polls the CAP feed, parses each alert, extracts geometry and validity, deduplicates on <code>identifier</code>, and writes it. A second job expires alerts past <code>validUntil</code>. Nothing about this is AI, and that is the point.</p>
+
+  <figure>
+    <figcaption>warnings collection</figcaption>
+<pre>{
+  <span class="k">identifier</span>:  <span class="s">"NDMA-IMD-2026-09-04-1102"</span>,   <span class="c">// CAP identifier, unique index</span>
+  <span class="k">sender</span>:      <span class="s">"IMD Jaipur"</span>,
+  <span class="k">event</span>:       <span class="s">"Heavy Rainfall"</span>,
+  <span class="k">severity</span>:    <span class="s">"Severe"</span>,                       <span class="c">// CAP: Minor|Moderate|Severe|Extreme</span>
+  <span class="k">colour</span>:      <span class="s">"orange"</span>,                      <span class="c">// mapped for the UI</span>
+  <span class="k">area</span>: {
+    <span class="k">description</span>: <span class="s">"Udaipur District"</span>,
+    <span class="k">state</span>:       <span class="s">"Rajasthan"</span>,
+    <span class="k">geometry</span>:    { <span class="k">type</span>: <span class="s">"Polygon"</span>, <span class="k">coordinates</span>: [...] }  <span class="c">// 2dsphere</span>
+  },
+  <span class="k">sent</span>:        <span class="s">"2026-09-04T10:00:00+05:30"</span>,
+  <span class="k">effective</span>:   <span class="s">"2026-09-04T16:00:00+05:30"</span>,
+  <span class="k">expires</span>:     <span class="s">"2026-09-05T08:00:00+05:30"</span>,
+  <span class="k">headline</span>:    <span class="s">"..."</span>,
+  <span class="k">description</span>: <span class="s">"..."</span>,   <span class="c">// stored verbatim — never rewritten</span>
+  <span class="k">instruction</span>: <span class="s">"..."</span>,   <span class="c">// stored verbatim</span>
+  <span class="k">sourceUrl</span>:   <span class="s">"..."</span>,
+  <span class="k">status</span>:      <span class="s">"active"</span>
+}</pre>
+  </figure>
+
+  <h3>Two hard rules</h3>
+  <ul>
+    <li><strong>Official text is immutable.</strong> The LLM may add a translation and a plain-language gloss <em>beside</em> the official text. It may never edit, summarise away, soften, or re-time it. The UI labels the two blocks separately: <em>Official Warning</em> and <em>What this means</em>.</li>
+    <li><strong>A warning interrupts.</strong> If a matching active warning exists, it renders above the answer even when the user asked something unrelated. An expired warning never renders as active — check <code>expires</code> at read time, not just at ingest.</li>
+  </ul>
+
+  <p>Geo-match is one query: <code>{ "area.geometry": { $geoIntersects: { $geometry: userPoint } }, status: "active", expires: { $gt: now } }</code>. Where a CAP alert carries only a district name and no polygon, match on our gazetteer district ID instead.</p>
+</section>
+
+<section id="s8">
+  <h2><span class="num">08</span>Risk engine</h2>
+  <p class="sub">Deterministic, published thresholds. Every number here is defensible because IMD publishes it.</p>
+
+  <h3>Rainfall — 24-hour accumulation</h3>
+  <div class="scroller">
+    <table>
+      <thead><tr><th>IMD category</th><th class="mono">mm / 24h</th><th>Alert colour</th><th>Our risk band</th></tr></thead>
+      <tbody>
+        <tr><td>Light to moderate</td><td class="mono">&lt; 64.5</td><td><span class="chip g">green</span></td><td class="mono">LOW</td></tr>
+        <tr><td>Heavy</td><td class="mono">64.5 – 115.5</td><td><span class="chip y">yellow</span></td><td class="mono">MODERATE</td></tr>
+        <tr><td>Very heavy</td><td class="mono">115.6 – 204.4</td><td><span class="chip o">orange</span></td><td class="mono">HIGH</td></tr>
+        <tr><td>Extremely heavy</td><td class="mono">&ge; 204.5</td><td><span class="chip r">red</span></td><td class="mono">EXTREME</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3>Wind and heat</h3>
+  <div class="scroller">
+    <table>
+      <thead><tr><th>Hazard</th><th>Threshold</th><th>Band</th></tr></thead>
+      <tbody>
+        <tr><td rowspan="3">Wind (sustained)</td><td class="mono">20 – 39 km/h</td><td class="mono">MODERATE</td></tr>
+        <tr><td class="mono">40 – 61 km/h</td><td class="mono">HIGH</td></tr>
+        <tr><td class="mono">&ge; 62 km/h — squall / gale</td><td class="mono">EXTREME</td></tr>
+        <tr><td rowspan="2">Heatwave (plains)</td><td class="mono">max &ge; 40 °C and departure &ge; 4.5 °C</td><td class="mono">HIGH</td></tr>
+        <tr><td class="mono">departure &ge; 6.5 °C, or max &ge; 45 °C</td><td class="mono">EXTREME</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p class="dim" style="font-size:13.5px;color:var(--ink-2)">Heatwave thresholds shift for coastal (&ge; 37 °C) and hill (&ge; 30 °C) stations — one field on the location record selects the band.</p>
+
+  <h3>Derived risks</h3>
+  <p>Three composites, each a small pure function:</p>
+  <ul>
+    <li><strong>Flood</strong> — forecast 24 h rainfall, plus observed 72 h antecedent rainfall, plus an <code>urbanFloodProne</code> flag on the location. Saturated ground turns moderate rain into a high risk; this is the rule that makes the engine look intelligent.</li>
+    <li><strong>Travel</strong> — rainfall intensity, wind gust, visibility.</li>
+    <li><strong>Outdoor / farm</strong> — rainfall timing within the day, heat index, wind.</li>
+  </ul>
+
+  <h3>The safety floor</h3>
+  <div class="rulebox">
+    <p>An active official warning sets a minimum risk level that computed values can raise but never lower.</p>
+    <p>Yellow → at least MODERATE. Orange → at least HIGH. Red → EXTREME. If our model says calm and IMD says orange, the user sees HIGH. Write this as one line of code and one unit test, and point at it during the demo.</p>
+  </div>
+
+  <p>The response carries a 0–100 score with its components exposed (<code>rainfall 35 + warning 25 + wind 15 + antecedent 8 + duration 7 = 90</code>) so the risk card can show its own arithmetic. Present the weights as our engineering configuration, not as meteorological law.</p>
+</section>
+
+<section id="s9">
+  <h2><span class="num">09</span>Uncertainty</h2>
+  <p class="sub">Cheap to compute, and almost nobody else will do it.</p>
+
+  <p>Request the same point from three models in one Open-Meteo call — <code>models=ecmwf_ifs04,gfs_seamless,icon_seamless</code>. Compare their 24-hour precipitation totals. Confidence falls out of two numbers: the spread between models, and how far ahead we are forecasting.</p>
+
+  <div class="scroller">
+    <table>
+      <thead><tr><th>Confidence</th><th>Model spread (CoV)</th><th>Lead time</th><th>Phrasing</th></tr></thead>
+      <tbody>
+        <tr><td class="mono">HIGH</td><td class="mono">&lt; 20%</td><td class="mono">&lt; 24 h</td><td class="dim">“Rain is likely tomorrow evening.”</td></tr>
+        <tr><td class="mono">MEDIUM</td><td class="mono">20 – 50%</td><td class="mono">24 – 72 h</td><td class="dim">“Rain is expected, but models disagree on how much.”</td></tr>
+        <tr><td class="mono">LOW</td><td class="mono">&gt; 50%</td><td class="mono">&gt; 72 h</td><td class="dim">“Too early to say confidently — check again tomorrow.”</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <p>The UI shows the reasons, not just the label: <em>three models agree on timing · they differ on intensity by 40 mm · forecast issued 09:00, 31 hours out.</em> That paragraph is the whole “explainable AI” claim, earned honestly.</p>
+</section>
+
+<section id="s10">
+  <h2><span class="num">10</span>Grounded answer contract</h2>
+  <p class="sub">The LLM receives facts and returns fields. It is a translator, not an oracle.</p>
+
+  <figure>
+    <figcaption>context in → LLM</figcaption>
+<pre>{
+  <span class="k">question</span>:    <span class="s">"कल जयपुर में बारिश होगी क्या?"</span>,
+  <span class="k">language</span>:    <span class="s">"hi"</span>,
+  <span class="k">persona</span>:     <span class="s">"farmer"</span>,
+  <span class="k">location</span>:    { <span class="k">name</span>: <span class="s">"Jaipur"</span>, <span class="k">district</span>: <span class="s">"Jaipur"</span>, <span class="k">state</span>: <span class="s">"Rajasthan"</span> },
+  <span class="k">window</span>:      { <span class="k">from</span>: <span class="s">"2026-09-05T00:00+05:30"</span>, <span class="k">to</span>: <span class="s">"2026-09-05T23:59+05:30"</span> },
+  <span class="k">forecast</span>:    { <span class="k">rain_mm</span>: 118, <span class="k">prob</span>: 0.78, <span class="k">peak</span>: <span class="s">"15:00-20:00"</span>,
+                 <span class="k">tmin</span>: 24, <span class="k">tmax</span>: 31, <span class="k">wind_kmh</span>: 34 },
+  <span class="k">warnings</span>:    [ { <span class="k">event</span>: <span class="s">"Heavy Rainfall"</span>, <span class="k">colour</span>: <span class="s">"orange"</span>,
+                   <span class="k">expires</span>: <span class="s">"..."</span>, <span class="k">text</span>: <span class="s">"&lt;verbatim&gt;"</span> } ],
+  <span class="k">risk</span>:        { <span class="k">overall</span>: <span class="s">"HIGH"</span>, <span class="k">score</span>: 74,
+                 <span class="k">breakdown</span>: { <span class="k">rain</span>: <span class="s">"HIGH"</span>, <span class="k">flood</span>: <span class="s">"MODERATE"</span>, <span class="k">travel</span>: <span class="s">"HIGH"</span> } },
+  <span class="k">confidence</span>:  { <span class="k">level</span>: <span class="s">"MEDIUM"</span>, <span class="k">reasons</span>: [<span class="s">"..."</span>] },
+  <span class="k">sources</span>:     [ { <span class="k">name</span>: <span class="s">"..."</span>, <span class="k">issuedAt</span>: <span class="s">"..."</span> } ]
+}</pre>
+  </figure>
+
+  <figure>
+    <figcaption>LLM out → UI</figcaption>
+<pre>{
+  <span class="k">summary</span>:                <span class="s">"कल दोपहर बाद जयपुर में तेज़ बारिश की संभावना है।"</span>,
+  <span class="k">warningMessage</span>:         <span class="s">"आपके ज़िले के लिए ऑरेंज अलर्ट सक्रिय है।"</span>,
+  <span class="k">riskExplanation</span>:        <span class="s">"..."</span>,
+  <span class="k">uncertaintyExplanation</span>: <span class="s">"..."</span>,
+  <span class="k">recommendedActions</span>:     [<span class="s">"कटी हुई फ़सल को ढक दें"</span>, <span class="s">"आज सिंचाई टालें"</span>]
+}</pre>
+  </figure>
+
+  <h3>Anti-hallucination rules, enforced in the prompt and in code</h3>
+  <ul>
+    <li>Every number in the output must appear in the input. Validate before rendering; on a mismatch, drop to the structured card and skip the prose.</li>
+    <li>Missing data produces <em>“I don't have reliable forecast data for this location right now”</em> — never an estimate.</li>
+    <li>The model may not name a source, an issue time, or a warning that was not supplied.</li>
+    <li>User text can never redefine system rules. Treat the question as data.</li>
+    <li>If the LLM call fails entirely, the UI still renders forecast, warning, risk, and confidence cards from the same context object. <strong>The product degrades to a very good weather app, not to nothing.</strong></li>
+  </ul>
+</section>
+
+<section id="s11">
+  <h2><span class="num">11</span>Tech stack</h2>
+  <p class="sub">MERN plus one Python service. Nothing here needs a licence or a credit card except the LLM key.</p>
+
+  <div class="stack">
+    <div class="stack-col">
+      <h4>Frontend</h4>
+      <dl>
+        <dt>React 18</dt><dd>UI, via Vite</dd>
+        <dt>Tailwind CSS</dt><dd>all styling</dd>
+        <dt>Zustand</dt><dd>client state</dd>
+        <dt>TanStack Query</dt><dd>server state + caching</dd>
+        <dt>Recharts</dt><dd>hourly forecast chart</dd>
+        <dt>Leaflet</dt><dd>map + warning areas</dd>
+        <dt>Web Speech</dt><dd>mic and speaker</dd>
+        <dt>vite-plugin-pwa</dt><dd>installable + push</dd>
+      </dl>
+    </div>
+    <div class="stack-col">
+      <h4>Backend — Node</h4>
+      <dl>
+        <dt>Express</dt><dd>REST API</dd>
+        <dt>Mongoose</dt><dd>models, 2dsphere</dd>
+        <dt>MongoDB Atlas</dt><dd>free tier is enough</dd>
+        <dt>node-cron</dt><dd>warning + alert jobs</dd>
+        <dt>jsonwebtoken</dt><dd>auth</dd>
+        <dt>bcrypt</dt><dd>password hashing</dd>
+        <dt>zod</dt><dd>request validation</dd>
+        <dt>web-push</dt><dd>browser notifications</dd>
+      </dl>
+    </div>
+    <div class="stack-col">
+      <h4>AI service — Python</h4>
+      <dl>
+        <dt>FastAPI</dt><dd>six endpoints</dd>
+        <dt>Pydantic</dt><dd>strict schemas</dd>
+        <dt>httpx</dt><dd>async source calls</dd>
+        <dt>NumPy</dt><dd>spread + scoring math</dd>
+        <dt>rapidfuzz</dt><dd>fuzzy village matching</dd>
+        <dt>feedparser</dt><dd>CAP / RSS parsing</dd>
+        <dt>+ LLM SDK</dt><dd>parsing and phrasing</dd>
+      </dl>
+    </div>
+    <div class="stack-col">
+      <h4>Ops</h4>
+      <dl>
+        <dt>Docker Compose</dt><dd>one-command local run</dd>
+        <dt>Vercel</dt><dd>frontend</dd>
+        <dt>Render / Railway</dt><dd>API + Python service</dd>
+        <dt>Atlas</dt><dd>database</dd>
+        <dt>GitHub Actions</dt><dd>lint + test on PR</dd>
+        <dt>pino</dt><dd>structured logs</dd>
+      </dl>
+    </div>
+  </div>
+  <p><strong>Not used:</strong> Redis (optional cache only), BullMQ, xarray, PyTorch, scikit-learn, FAISS, Kubernetes, a monorepo tool.</p>
+</section>
+
+<section id="s12">
+  <h2><span class="num">12</span>Repository and API surface</h2>
+
+  <figure>
+    <figcaption>repository</figcaption>
+<pre>weathergpt/
+├── client/                  <span class="c"># React + Tailwind (Vite)</span>
+│   └── src/
+│       ├── components/      <span class="c"># chat/ weather/ risk/ warning/ common/</span>
+│       ├── pages/           <span class="c"># Home Chat Alerts Map Settings</span>
+│       ├── hooks/           <span class="c"># useVoice useLocation useChat</span>
+│       ├── store/           <span class="c"># zustand slices</span>
+│       └── lib/             <span class="c"># api client, i18n strings</span>
+│
+├── server/                  <span class="c"># Node + Express</span>
+│   └── src/
+│       ├── routes/          <span class="c"># auth chat weather warnings alerts</span>
+│       ├── controllers/
+│       ├── services/        <span class="c"># openMeteo.js  capFeed.js  aiClient.js</span>
+│       ├── models/          <span class="c"># User Location Warning Conversation</span>
+│       ├── jobs/            <span class="c"># refreshWarnings.js  sendAlerts.js</span>
+│       ├── middleware/      <span class="c"># auth, validate, rateLimit, errors</span>
+│       └── app.js
+│
+├── ai/                      <span class="c"># Python + FastAPI</span>
+│   └── app/
+│       ├── routers/         <span class="c"># nlu risk uncertainty compose</span>
+│       ├── engines/         <span class="c"># thresholds.py  risk.py  spread.py</span>
+│       ├── prompts/         <span class="c"># parse.txt  answer.txt  warning.txt</span>
+│       ├── schemas/
+│       └── main.py
+│
+├── data/                    <span class="c"># gazetteer seed: districts, towns</span>
+├── docs/                    <span class="c"># this PRD, API notes, demo script</span>
+├── docker-compose.yml
+└── .env.example</pre>
+  </figure>
+
+  <h3>Public API</h3>
+<pre><span class="k">POST</span>   /api/auth/register · /login
+<span class="k">POST</span>   /api/chat/query              <span class="c">// { text, lang, locationId? } → grounded answer</span>
+<span class="k">GET</span>    /api/weather/current         <span class="c">// ?lat&amp;lon</span>
+<span class="k">GET</span>    /api/weather/forecast        <span class="c">// ?lat&amp;lon&amp;days</span>
+<span class="k">GET</span>    /api/warnings/active         <span class="c">// ?lat&amp;lon | ?district</span>
+<span class="k">GET</span>    /api/risk                    <span class="c">// ?lat&amp;lon&amp;window</span>
+<span class="k">GET</span>    /api/locations/search        <span class="c">// ?q — gazetteer, fuzzy</span>
+<span class="k">POST</span>   /api/alerts/subscribe
+<span class="k">DELETE</span> /api/alerts/subscribe/:id
+<span class="k">GET</span>    /api/health                  <span class="c">// source status + last ingest</span></pre>
+
+  <h3>Internal — Node → Python</h3>
+<pre><span class="k">POST</span> /nlu/parse           <span class="c">// text → { intent, location, window, variables }</span>
+<span class="k">POST</span> /nlu/detect-language
+<span class="k">POST</span> /risk/score          <span class="c">// forecast + warnings → bands + score + breakdown</span>
+<span class="k">POST</span> /uncertainty/score   <span class="c">// multi-model forecast → level + reasons</span>
+<span class="k">POST</span> /compose/answer      <span class="c">// context → structured answer JSON</span>
+<span class="k">GET</span>  /health</pre>
+
+  <h3>Collections</h3>
+  <p><code>users</code> · <code>locations</code> (gazetteer, 2dsphere) · <code>warnings</code> (2dsphere, unique <code>identifier</code>) · <code>forecast_cache</code> (TTL 30 min) · <code>conversations</code> · <code>subscriptions</code> · <code>notification_log</code> (dedupe on <code>userId + identifier</code>).</p>
+</section>
+
+<section id="s13">
+  <h2><span class="num">13</span>Build order</h2>
+  <p class="sub">Do not start with the chat UI. Start with the thing the chat UI will be wrong without.</p>
+
+  <ul class="weeks">
+    <li class="week"><div class="week-n">Week 1</div><div class="week-b"><b>Data floor</b><span>Open-Meteo client with three models. CAP feed poller, parser, and Mongo store with geo-index. Gazetteer seeded. A script prints “active warnings for Udaipur right now” from real data. No UI yet.</span></div></li>
+    <li class="week"><div class="week-n">Week 2</div><div class="week-b"><b>Intelligence</b><span>Python service: thresholds, risk scoring with the safety floor, uncertainty from model spread. Unit tests for every threshold boundary. Express endpoints wired end to end and callable from Postman.</span></div></li>
+    <li class="week"><div class="week-n">Week 3</div><div class="week-b"><b>Conversation</b><span>NLU parse, location resolution, the grounded compose step, and the fallback path. React shell, chat, weather / risk / warning cards. English working fully.</span></div></li>
+    <li class="week"><div class="week-n">Week 4</div><div class="week-b"><b>Languages and voice</b><span>Devanagari and Hinglish input, Hindi and Hinglish output, mic and speaker. Push alert subscription and delivery. Map with warning areas. Mobile layout locked at 320 px.</span></div></li>
+    <li class="week"><div class="week-n">Week 5</div><div class="week-b"><b>Harden and rehearse</b><span>Evaluation set of 100 questions scored for intent, location, time and grounding. Kill every crash path. Deploy. Rehearse the 90-second demo until it is boring.</span></div></li>
+  </ul>
+
+  <h3>Six people</h3>
+  <div class="scroller">
+    <table>
+      <thead><tr><th>Owner</th><th>Owns</th></tr></thead>
+      <tbody>
+        <tr><td class="mono">1</td><td class="dim">React, Tailwind, cards, mobile layout</td></tr>
+        <tr><td class="mono">2</td><td class="dim">Express, Mongo, auth, alerts, deployment</td></tr>
+        <tr><td class="mono">3</td><td class="dim">Python NLU, prompts, grounding, evaluation set</td></tr>
+        <tr><td class="mono">4</td><td class="dim">Warning engine + risk engine + thresholds <em>(highest-value seat)</em></td></tr>
+        <tr><td class="mono">5</td><td class="dim">Voice, Hindi, gazetteer, location resolution</td></tr>
+        <tr><td class="mono">6</td><td class="dim">Demo script, deck, domain research, judge Q&amp;A prep</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section id="s14">
+  <h2><span class="num">14</span>Definition of done, and the demo</h2>
+
+  <h3>Done means all of this is true</h3>
+  <ul class="dod">
+    <li>A Hindi voice question returns a spoken Hindi answer with correct location and time.</li>
+    <li>An active CAP warning renders above the answer, with its official text unedited and its source linked.</li>
+    <li>An expired warning never renders as active. There is a test for this.</li>
+    <li>Risk level, score breakdown, and confidence with reasons appear on screen.</li>
+    <li>The safety floor is visibly enforced when a warning outranks the computed risk.</li>
+    <li>Killing the LLM key still produces a working answer from the structured cards.</li>
+    <li>Every answer shows its source and issue time.</li>
+    <li>The whole flow works on a 320 px phone screen.</li>
+    <li>The evaluation set runs and reports intent, location, time, and grounding accuracy.</li>
+  </ul>
+
+  <h3>The 90-second demo</h3>
+  <ol class="pipe">
+    <li><b>Speak in Hindi</b> <span>— “क्या कल मेरे गाँव में बारिश होगी?” Nobody types.</span></li>
+    <li><b>Village resolves</b> <span>— not a city. Say the word “village” out loud; that is the accessibility claim.</span></li>
+    <li><b>Warning interrupts</b> <span>— the orange card appears above the answer with official text and source.</span></li>
+    <li><b>Risk card</b> <span>— HIGH, with the score arithmetic visible.</span></li>
+    <li><b>Confidence</b> <span>— MEDIUM, with “models disagree on intensity.” This is the line judges remember.</span></li>
+    <li><b>Action</b> <span>— one Hindi sentence: cover the harvested crop, delay irrigation.</span></li>
+    <li><b>Spoken answer</b> <span>— audio plays.</span></li>
+    <li><b>Change location live</b> <span>— judge names any district; it adapts. This proves it is not hard-coded, which is what they are actually testing.</span></li>
+  </ol>
+  <p>Rehearse a no-network fallback with cached data. Assume the venue wifi fails, because it will.</p>
+</section>
+
+<section id="s15">
+  <h2><span class="num">15</span>What judges will ask</h2>
+  <p class="sub">Six answers to have ready. Everyone on the team should give the same ones.</p>
+
+  <div class="qa">
+    <div>
+      <q>How is this different from the IMD app plus ChatGPT?</q>
+      <p>The IMD app shows warnings but cannot answer a spoken question in Hindi about a village. ChatGPT can converse but has no live forecast, no official warnings, and will happily invent a rainfall figure. We are the layer that joins them — and refuses to state a number it did not fetch.</p>
+    </div>
+    <div>
+      <q>What stops the AI from hallucinating weather?</q>
+      <p>Architecture, not prompting. The model never queries a weather source; it receives a JSON object and phrases it. We validate that every number in the output appeared in the input, and we render structured cards even when the model is unavailable.</p>
+    </div>
+    <div>
+      <q>Where do the risk thresholds come from?</q>
+      <p>IMD's published rainfall categories and heatwave criteria — 64.5 mm for heavy, 115.6 for very heavy, 204.5 for extremely heavy. We chose the weights that combine them; we did not invent the science, and the card shows its own arithmetic.</p>
+    </div>
+    <div>
+      <q>What if your risk model disagrees with the official warning?</q>
+      <p>It cannot lower it. An active orange alert sets a floor of HIGH regardless of what we compute. One line of code, one test, and it is the first thing we show in the safety section.</p>
+    </div>
+    <div>
+      <q>Are you using real IMD data?</q>
+      <p>Official warnings come from NDMA's Sachet CAP feed, which carries IMD, CWC and state authority alerts. Forecasts come from Open-Meteo's model output, because IMD publishes no reliable public forecast API — and we would rather say that plainly than claim an integration we do not have.</p>
+    </div>
+    <div>
+      <q>Can this scale to all of India?</q>
+      <p>It already does. Nothing is region-specific: the gazetteer covers every district, the CAP feed is national, and the forecast source takes any lat/lon. We ship English, Hindi and Hinglish; adding Marathi or Tamil is a config entry, a glossary and a TTS voice, not a rewrite.</p>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <p><strong>WeatherGPT</strong> — SIH26068 · Product requirements, condensed build version.</p>
+  <p>Threshold and colour-code definitions follow IMD's published rainfall categories. Official warnings sourced from <a href="https://sachet.ndma.gov.in/CapFeed">NDMA Sachet</a>. This document specifies a decision-support tool; it is not, and must not present itself as, an official warning authority.</p>
+</footer>
+
+</main>
+</div>
