@@ -37,3 +37,19 @@ export function ago(iso) {
 export function pct(n) {
   return `${Math.min(100, Math.max(0, n))}%`
 }
+
+/**
+ * "Bhinder · Udaipur district · Rajasthan", with the duplicate dropped.
+ *
+ * A district headquarters shares its name with its district, so the naive
+ * join prints "Udaipur · Udaipur · Rajasthan" for roughly a third of India.
+ */
+export function placeLine(loc, { district = true } = {}) {
+  if (!loc) return ''
+  const parts = [loc.name]
+  if (district && loc.district && loc.district !== loc.name) {
+    parts.push(`${loc.district} district`)
+  }
+  if (loc.state && loc.state !== loc.name) parts.push(loc.state)
+  return parts.filter(Boolean).join(' · ')
+}

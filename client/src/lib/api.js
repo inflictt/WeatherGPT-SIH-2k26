@@ -5,9 +5,8 @@
  * server; leave it unset and the app runs entirely on the Phase 1 mock data.
  * That is what lets the UI be demoed on a laptop with no backend at all.
  */
-export const API_URL = (import.meta.env?.VITE_API_URL || 'http://localhost:5001').replace(/\/$/, '')
-export const LIVE = true
-
+export const API_URL = (import.meta.env?.VITE_API_URL || '').replace(/\/$/, '')
+export const LIVE = Boolean(API_URL)
 
 class ApiError extends Error {
   constructor(status, message) {
@@ -16,7 +15,7 @@ class ApiError extends Error {
   }
 }
 
-async function req(path, { method = 'GET', body, token, timeoutMs = 25000 } = {}) {
+async function req(path, { method = 'GET', body, token, timeoutMs = 15000 } = {}) {
   if (!API_URL) throw new ApiError(0, 'No API configured')
   const ctl = new AbortController()
   const timer = setTimeout(() => ctl.abort(), timeoutMs)
@@ -67,6 +66,70 @@ export const api = {
   recentWarnings: () => req('/api/warnings/recent'),
 
   searchLocations: (q) => req('/api/locations/search' + qs({ q })),
+
+  /* --- agriculture (PRD §42) ------------------------------------------ */
+
+  /** The daily farm brief: forecast, warnings and every engine, one call. */
+  brief: (where, token) => req('/api/agriculture/brief' + qs(where), { token, timeoutMs: 20000 }),
+
+  farms: (token) => req('/api/agriculture/farm', { token }),
+  createFarm: (body, token) => req('/api/agriculture/farm', { method: 'POST', body, token }),
+  updateFarm: (id, body, token) =>
+    req(`/api/agriculture/farm/${encodeURIComponent(id)}`, { method: 'PATCH', body, token }),
+  deleteFarm: (id, token) =>
+    req(`/api/agriculture/farm/${encodeURIComponent(id)}`, { method: 'DELETE', token }),
+
+  crops: () => req('/api/agriculture/crops'),
+  cropCalendar: (crop, sownAt) =>
+    req(`/api/agriculture/crop/${encodeURIComponent(crop)}` + qs(sownAt ? { sownAt } : {})),
+
+  irrigation: (body) => req('/api/agriculture/irrigation', { method: 'POST', body }),
+  farmRisk: (body) => req('/api/agriculture/risk', { method: 'POST', body }),
+
+  /**
+   * Whether the image models are configured at all.
+   *
+   * Asked before the analysis buttons are offered, so someone is not invited
+   * to take a photo of a diseased leaf and then told the server cannot look
+   * at it.
+   */
+  modelStatus: () => req('/api/agriculture/models'),
+
+  /**
+   * Send one image for classification.
+   *
+   * `FormData`, so the browser sets the multipart boundary — and deliberately
+   * *not* routed through `req()`, which sets a JSON content type and would
+   * make the server reject the body. The long timeout is for a cold model:
+   * HuggingFace can take twenty seconds to wake one.
+   */
+  analyseImage: async (task, file, fields = {}, token) => {
+    if (!API_URL) throw new ApiError(0, 'No API configured')
+    const body = new FormData()
+    body.append('image', file)
+    for (const [k, v] of Object.entries(fields)) {
+      if (v != null) body.append(k, String(v))
+    }
+    const ctl = new AbortController()
+    const timer = setTimeout(() => ctl.abort(), 45000)
+    try {
+      const res = await fetch(`${API_URL}/api/agriculture/${task}/analyze`, {
+        method: 'POST',
+        body,
+        signal: ctl.signal,
+        headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+      })
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) throw new ApiError(res.status, data.error || `Request failed (${res.status})`)
+      return data
+    } finally {
+      clearTimeout(timer)
+    }
+  },
+
+  /** Farmer's Friend (§43). Longer timeout: engines, then a language model. */
+  farmerFriend: (body, token) =>
+    req('/api/ai/farmer-friend/chat', { method: 'POST', body, token, timeoutMs: 40000 }),
 
   /* --- saved locations and alert subscriptions (auth required) --------- */
   subscriptions: (token) => req('/api/alerts/subscriptions', { token }),

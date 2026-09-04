@@ -11,22 +11,21 @@ const now = new Date()
 const iso = (hoursFromNow) => new Date(now.getTime() + hoursFromNow * 3600e3).toISOString()
 
 export const LOCATION = {
-  id: 'loc_kapriwas',
-  name: 'Kapriwas',
-  district: 'Rewari',
-  state: 'Haryana',
-  lat: 28.2435,
-  lon: 76.8453,
-  kind: 'village',
+  id: 'loc_udaipur',
+  name: 'Udaipur',
+  district: 'Udaipur',
+  state: 'Rajasthan',
+  lat: 24.5854,
+  lon: 73.7125,
+  kind: 'city',
 }
 
 export const SAVED_LOCATIONS = [
-  { id: 'loc_kapriwas', name: 'Kapriwas', district: 'Rewari', state: 'Haryana', tone: 'orange', label: 'Orange' },
-  { id: 'loc_rewari', name: 'Rewari', district: 'Rewari', state: 'Haryana', tone: 'orange', label: 'Orange' },
-  { id: 'loc_gurugram', name: 'Gurugram', district: 'Gurugram', state: 'Haryana', tone: 'yellow', label: 'Yellow' },
-  { id: 'loc_delhi', name: 'Delhi', district: 'New Delhi', state: 'Delhi', tone: 'yellow', label: 'Yellow' },
+  { id: 'loc_udaipur', name: 'Udaipur', district: 'Udaipur', state: 'Rajasthan', tone: 'orange', label: 'Orange' },
+  { id: 'loc_bhinder', name: 'Bhinder', district: 'Udaipur', state: 'Rajasthan', tone: 'orange', label: 'Orange' },
+  { id: 'loc_jaipur', name: 'Jaipur', district: 'Jaipur', state: 'Rajasthan', tone: 'yellow', label: 'Yellow' },
+  { id: 'loc_kota', name: 'Kota', district: 'Kota', state: 'Rajasthan', tone: 'green', label: 'Clear' },
 ]
-
 
 export const CURRENT = {
   observedAt: iso(-0.35),
@@ -71,44 +70,60 @@ export const DAILY = [
   { day: 'Wed', date: '10 Sep', min: 24, max: 32, mm: 11, prob: 0.35, tone: 'green', summary: 'Isolated showers' },
 ]
 
+/** CAP-shaped, matching the warnings collection in §7. */
 export const WARNINGS = [
   {
-    identifier: 'NDMA-IMD-2026-09-04-1420',
-    sender: 'India Meteorological Department, New Delhi',
-    event: 'Thunderstorm with Heavy Rain & Lightning',
+    identifier: 'NDMA-IMD-2026-09-04-1102',
+    sender: 'India Meteorological Department, Jaipur',
+    event: 'Heavy to Very Heavy Rainfall',
     severity: 'Severe',
     colour: 'orange',
-    area: { description: 'Rewari, Gurugram, Jhajjar Districts', state: 'Haryana' },
-    sent: iso(-2),
+    area: { description: 'Udaipur District', state: 'Rajasthan' },
+    sent: iso(-4),
     effective: iso(-0.5),
-    expires: iso(14),
-    headline: 'Active thunderstorm with heavy rainfall and lightning over Rewari and adjoining districts.',
+    expires: iso(16),
+    headline: 'Very heavy rainfall very likely at isolated places over Udaipur district.',
     description:
-      'Thunderstorm accompanied with moderate to heavy rain and gusty winds (35–50 kmph) very likely to occur over Rewari, Kapriwas, Bawal, and Gurugram districts during the next 12 hours.',
+      'Heavy to very heavy rainfall (115.6–204.4 mm) very likely at isolated places over Udaipur, Rajsamand and Chittorgarh districts during the next 24 hours. Squally winds reaching 40–50 kmph gusting to 60 kmph likely to accompany thunderstorms.',
     instruction:
-      'Stay indoors and avoid sheltering under trees or metal structures. Drive cautiously due to waterlogged roads and reduced visibility.',
+      'Avoid travel through low-lying and waterlogged stretches. Secure loose structures and harvested produce. Follow district administration advisories.',
     sourceUrl: 'https://sachet.ndma.gov.in/',
     status: 'active',
   },
   {
-    identifier: 'NDMA-IMD-2026-09-04-1100',
-    sender: 'India Meteorological Department, Chandigarh',
-    event: 'Gusty Winds & Thunderstorm Alert',
+    identifier: 'NDMA-IMD-2026-09-04-0930',
+    sender: 'India Meteorological Department, Jaipur',
+    event: 'Thunderstorm with Lightning',
     severity: 'Moderate',
     colour: 'yellow',
-    area: { description: 'Southern Haryana Districts', state: 'Haryana' },
-    sent: iso(-4),
+    area: { description: 'Rajsamand, Chittorgarh, Pratapgarh', state: 'Rajasthan' },
+    sent: iso(-5.5),
     effective: iso(-2),
-    expires: iso(8),
-    headline: 'Thunderstorm and gusty winds alert for southern Haryana.',
+    expires: iso(7),
+    headline: 'Thunderstorm accompanied with lightning likely at isolated places.',
     description:
-      'Possibility of thunder squalls with localized heavy showers across southern Haryana including Rewari and Mahendragarh.',
-    instruction: 'Keep emergency supplies handy and avoid unnecessary travel.',
+      'Thunderstorm with lightning and gusty winds speed reaching 30–40 kmph very likely at isolated places over the districts listed during the next 12 hours.',
+    instruction: 'Move indoors during thunderstorm activity. Do not shelter under isolated trees.',
     sourceUrl: 'https://sachet.ndma.gov.in/',
     status: 'active',
   },
+  {
+    identifier: 'NDMA-IMD-2026-09-03-1740',
+    sender: 'India Meteorological Department, Jaipur',
+    event: 'Heavy Rainfall',
+    severity: 'Moderate',
+    colour: 'yellow',
+    area: { description: 'Udaipur District', state: 'Rajasthan' },
+    sent: iso(-26),
+    effective: iso(-24),
+    expires: iso(-2),
+    headline: 'Heavy rainfall likely at isolated places over Udaipur district.',
+    description: 'Heavy rainfall (64.5–115.5 mm) likely at isolated places during the past 24 hours.',
+    instruction: 'Expired — retained for audit.',
+    sourceUrl: 'https://sachet.ndma.gov.in/',
+    status: 'expired',
+  },
 ]
-
 
 /** §8 output shape. Note `flooredBy` — the safety floor made visible. */
 export const RISK = {

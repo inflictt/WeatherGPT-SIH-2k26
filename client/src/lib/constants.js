@@ -5,7 +5,17 @@
  * language once Phase 3 lands.
  */
 
-/** IMD colour code → how it should look and read. */
+/**
+ * IMD colour code → how it should look and read.
+ *
+ * Every class here is a **literal string**, and it has to stay that way.
+ * Tailwind's JIT builds the stylesheet by scanning source text for class
+ * names; a class assembled at runtime is never generated, so it silently
+ * resolves to nothing. `ring.replace('border-', 'border-l-')` did exactly
+ * that — three components asked for a coloured hazard stripe and got a
+ * transparent one, in a product whose one visual rule is that colour means
+ * hazard. Hence `edge`, spelled out, rather than derived.
+ */
 export const SEVERITY = {
   green: {
     key: 'green',
@@ -13,8 +23,9 @@ export const SEVERITY = {
     action: 'No action needed',
     text: 'text-sev-green',
     bg: 'bg-sev-green',
-    ring: 'border-sev-green/35',
-    wash: 'bg-sev-green/[0.07]',
+    ring: 'border-sev-green/45',
+    edge: 'border-l-sev-green',
+    wash: 'bg-sev-green-w',
   },
   yellow: {
     key: 'yellow',
@@ -22,8 +33,9 @@ export const SEVERITY = {
     action: 'Be aware',
     text: 'text-sev-yellow',
     bg: 'bg-sev-yellow',
-    ring: 'border-sev-yellow/35',
-    wash: 'bg-sev-yellow/[0.07]',
+    ring: 'border-sev-yellow/45',
+    edge: 'border-l-sev-yellow',
+    wash: 'bg-sev-yellow-w',
   },
   orange: {
     key: 'orange',
@@ -31,8 +43,9 @@ export const SEVERITY = {
     action: 'Be prepared',
     text: 'text-sev-orange',
     bg: 'bg-sev-orange',
-    ring: 'border-sev-orange/40',
-    wash: 'bg-sev-orange/[0.08]',
+    ring: 'border-sev-orange/45',
+    edge: 'border-l-sev-orange',
+    wash: 'bg-sev-orange-w',
   },
   red: {
     key: 'red',
@@ -41,7 +54,8 @@ export const SEVERITY = {
     text: 'text-sev-red',
     bg: 'bg-sev-red',
     ring: 'border-sev-red/45',
-    wash: 'bg-sev-red/[0.09]',
+    edge: 'border-l-sev-red',
+    wash: 'bg-sev-red-w',
   },
 }
 
@@ -71,13 +85,55 @@ export const RAINFALL_BANDS = [
   { name: 'Extremely heavy', range: '≥ 204.5', tone: 'red' },
 ]
 
+/**
+ * The primary tabs, in the design's order.
+ *
+ * `Today` is the brief — what to do — and `Forecast` is the detail behind it.
+ * Splitting them is what lets the Today screen open with a sentence instead of
+ * a wall of figures, which is the whole point of the redesign.
+ *
+ * Map and Settings are deliberately *not* tabs. Seven items do not fit one row
+ * on a 1024px screen without shrinking the type below the scale, and both are
+ * places you visit occasionally rather than move between — so they live as
+ * icon buttons in the top bar, and in the "More" sheet on a phone.
+ */
 export const NAV = [
-  { to: '/', label: 'Today', end: true },
-  { to: '/chat', label: 'Ask' },
-  { to: '/alerts', label: 'Alerts' },
-  { to: '/map', label: 'Map' },
-  { to: '/dev', label: 'Dev / Telemetry' },
+  { to: '/', label: 'Today', short: 'Today', end: true },
+  { to: '/forecast', label: 'Forecast', short: 'Forecast' },
+  { to: '/alerts', label: 'Alerts', short: 'Alerts' },
+  { to: '/farm', label: 'Farm Connect', short: 'Farm' },
+  { to: '/chat', label: "Farmer's Friend", short: 'Ask' },
+]
+
+/** Reachable from the top bar and the mobile "More" sheet, never a tab. */
+export const SECONDARY_NAV = [
+  { to: '/map', label: 'Warning map' },
   { to: '/settings', label: 'Settings' },
+]
+
+/**
+ * Who the interface is speaking to. The design puts this beside the unit
+ * toggle, which is right: it changes what the whole product emphasises, not
+ * just the wording of one card.
+ *
+ *   everyone  weather, warnings, what to wear and whether to travel
+ *   farm      the same data read as irrigation, spraying and harvest windows
+ */
+export const AUDIENCES = [
+  { key: 'everyone', label: 'Everyone' },
+  { key: 'farm', label: 'Farm' },
+]
+
+/** Crop lifecycle stages, in order. Used by the planner and the brief. */
+export const CROP_STAGES = [
+  { key: 'planning', label: 'Planning' },
+  { key: 'preparation', label: 'Soil preparation' },
+  { key: 'sowing', label: 'Sowing' },
+  { key: 'germination', label: 'Germination' },
+  { key: 'vegetative', label: 'Vegetative growth' },
+  { key: 'flowering', label: 'Flowering' },
+  { key: 'filling', label: 'Grain filling' },
+  { key: 'harvest', label: 'Harvest' },
 ]
 
 export const LANGUAGES = [
@@ -99,8 +155,7 @@ export const ACTIVE_LANGUAGES = LANGUAGES.filter((l) => l.ready)
 
 export const PERSONAS = [
   { key: 'general', label: 'General', blurb: 'Plain answers about your day.' },
-  { key: 'farmer', label: '🌾 Farmer (Agromet)', blurb: 'Irrigation, spraying and harvest timing.' },
-  { key: 'marine', label: '⛵ Fishermen / Coast', blurb: 'IMD small-craft warning, wave swell and gale thresholds.' },
-  { key: 'traveller', label: '🚗 Traveller / Road', blurb: 'Road conditions, visibility and gusts.' },
-  { key: 'official', label: '🏙️ City Admin', blurb: 'Block-level alerts and waterlogging triggers.' },
+  { key: 'farmer', label: 'Farmer', blurb: 'Irrigation, spraying and harvest timing.' },
+  { key: 'traveller', label: 'Traveller', blurb: 'Road conditions, visibility and gusts.' },
+  { key: 'official', label: 'Local admin', blurb: 'Block-level alerts ranked by severity.' },
 ]

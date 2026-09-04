@@ -109,6 +109,16 @@ const S = {
     hi: 'सर्वर तक नहीं पहुँच सका। जाँचें कि API चल रहा है, फिर दोबारा पूछें।',
     hinglish: 'Server tak nahin pahunch saka. Check karein ki API chal raha hai, phir dobara poochhein.',
   },
+  composerHint: {
+    en: 'Ask about the weather, your crop or a warning…',
+    hi: 'मौसम, फ़सल या चेतावनी के बारे में पूछें…',
+    hinglish: 'Mausam, fasal ya warning ke baare mein poochhein…',
+  },
+  apiUnreachableSample: {
+    en: "I couldn't reach the server, so this answer is composed from the bundled sample data — not a live forecast.",
+    hi: 'सर्वर तक नहीं पहुँच सका, इसलिए यह उत्तर नमूना डेटा से बना है — वास्तविक पूर्वानुमान नहीं।',
+    hinglish: 'Server tak nahin pahunch saka, isliye yeh jawab sample data se bana hai — live forecast nahin.',
+  },
   micNoSpeech: {
     en: "I didn't catch that. Tap the mic and try again.",
     hi: 'सुनाई नहीं दिया। माइक दबाकर फिर कोशिश करें।',

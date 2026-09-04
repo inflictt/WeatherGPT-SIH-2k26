@@ -108,7 +108,9 @@ export function useLocationPicker() {
     setError(null)
     clearTimeout(debounce.current)
 
-    // 120 ms: feels immediate and instant with fast local + Open-Meteo geocoding
+    // 280 ms: long enough that typing "Chittorgarh" is one request rather than
+    // eleven, short enough that it still feels immediate. Nominatim also rate
+    // limits at one request per second, and the server honours that.
     debounce.current = setTimeout(async () => {
       const mine = ++seq.current
       try {
@@ -122,7 +124,7 @@ export function useLocationPicker() {
       } finally {
         if (mine === seq.current) setSearching(false)
       }
-    }, 120)
+    }, 280)
 
     return () => clearTimeout(debounce.current)
   }, [query])
@@ -183,8 +185,8 @@ export function useLocationPicker() {
     /** What DataProvider fetches with. Coordinates win; they are unambiguous. */
     asQuery:
       location?.lat != null && location?.lon != null
-        ? { q: location?.name || 'Kapriwas', lat: location.lat, lon: location.lon }
-        : { q: location?.name || 'Kapriwas' },
+        ? { lat: location.lat, lon: location.lon }
+        : { q: location?.name || 'Udaipur' },
   }
 }
 
