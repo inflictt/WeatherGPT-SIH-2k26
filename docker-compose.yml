@@ -1,0 +1,76 @@
+# One command to run the whole stack locally, including a database.
+#
+#     docker compose up
+#
+# This exists mostly so the demo does not depend on venue wifi *or* on an Atlas
+# cluster being awake. Everything here is free and local; the only optional
+# secret is the LLM key, and the product works without it.
+#
+#     client  http://localhost:5173
+#     api     http://localhost:5000
+#     ai      http://localhost:8000/docs
+#     mongo   mongodb://localhost:27017
+
+services:
+  mongo:
+    image: mongo:7
+    restart: unless-stopped
+    ports: ['27017:27017']
+    volumes: ['mongo-data:/data/db']
+    healthcheck:
+      test: ['CMD', 'mongosh', '--quiet', '--eval', 'db.adminCommand("ping")']
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  ai:
+    build: ./ai
+    restart: unless-stopped
+    ports: ['8000:8000']
+    environment:
+      AI_HOST: 0.0.0.0
+      AI_CORS_ORIGINS: http://localhost:5000,http://api:5000
+      # Optional. Absent, the deterministic composer answers on its own.
+      LLM_API_KEY: ${LLM_API_KEY:-}
+      LLM_BASE_URL: ${LLM_BASE_URL:-https://integrate.api.nvidia.com/v1}
+      LLM_MODEL: ${LLM_MODEL:-nvidia/nemotron-3-ultra-550b-a55b}
+    healthcheck:
+      test: ['CMD', 'python', '-c', "import urllib.request;urllib.request.urlopen('http://127.0.0.1:8000/health')"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+
+  api:
+    build: ./server
+    restart: unless-stopped
+    ports: ['5000:5000']
+    depends_on:
+      mongo: { condition: service_healthy }
+      ai: { condition: service_started }
+    environment:
+      NODE_ENV: production
+      PORT: 5000
+      MONGO_URI: mongodb://mongo:27017/weathergpt
+      # Dev-only default so `docker compose up` works with no setup. Override
+      # it anywhere real — assertEnv() rejects anything under 32 characters.
+      JWT_SECRET: ${JWT_SECRET:-dev-only-secret-not-for-production-use-32}
+      PYTHON_AI_URL: http://ai:8000
+      CORS_ORIGINS: http://localhost:5173
+      # Real address required by Nominatim's usage policy.
+      CONTACT_EMAIL: ${CONTACT_EMAIL:-weathergpt-sih@example.org}
+      # Never true in production: it silently serves fake warnings.
+      CAP_FALLBACK_TO_SAMPLES: ${CAP_FALLBACK_TO_SAMPLES:-true}
+      VAPID_PUBLIC_KEY: ${VAPID_PUBLIC_KEY:-}
+      VAPID_PRIVATE_KEY: ${VAPID_PRIVATE_KEY:-}
+
+  client:
+    build:
+      context: ./client
+      args:
+        VITE_API_URL: http://localhost:5000
+    restart: unless-stopped
+    ports: ['5173:80']
+    depends_on: [api]
+
+volumes:
+  mongo-data:

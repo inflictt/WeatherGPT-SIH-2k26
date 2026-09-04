@@ -1,0 +1,55 @@
+# Render blueprint — the API and the risk engine, both on the free tier.
+#
+# The client goes to Vercel (see vercel.json); the database is a free MongoDB
+# Atlas cluster. Nothing here needs a card.
+#
+# Free instances spin down after 15 minutes idle and take ~1 minute to wake.
+# That is survivable because of how the client degrades — but wake both
+# services before a demo rather than discovering it on stage.
+
+services:
+  - type: web
+    name: weathergpt-ai
+    runtime: python
+    plan: free
+    rootDir: ai
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /health
+    envVars:
+      - key: AI_CORS_ORIGINS
+        sync: false          # set to the API's Render URL
+      - key: LLM_API_KEY
+        sync: false          # optional; the composer works without it
+      - key: LLM_BASE_URL
+        value: https://integrate.api.nvidia.com/v1
+      - key: LLM_MODEL
+        value: nvidia/nemotron-3-ultra-550b-a55b
+
+  - type: web
+    name: weathergpt-api
+    runtime: node
+    plan: free
+    rootDir: server
+    buildCommand: npm ci
+    startCommand: node src/server.js
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: MONGO_URI
+        sync: false          # Atlas connection string
+      - key: JWT_SECRET
+        generateValue: true  # Render generates and stores it
+      - key: PYTHON_AI_URL
+        sync: false          # the weathergpt-ai URL above
+      - key: CORS_ORIGINS
+        sync: false          # the Vercel URL
+      - key: CONTACT_EMAIL
+        sync: false          # a real address — Nominatim's policy requires it
+      - key: CAP_FALLBACK_TO_SAMPLES
+        value: "false"       # never true here: it silently serves fake warnings
+      - key: VAPID_PUBLIC_KEY
+        sync: false          # optional; push disables itself without it
+      - key: VAPID_PRIVATE_KEY
+        sync: false
