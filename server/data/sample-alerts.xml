@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Offline sample so the whole warning pipeline can be demonstrated without the
+  live feed. Format is CAP 1.2, the same shape NDMA Sachet publishes.
+  Loaded only when CAP_FALLBACK_TO_SAMPLES=true and the live feed is unreachable.
+-->
+<rss version="2.0">
+  <channel>
+    <title>WeatherGPT sample CAP alerts</title>
+    <item>
+      <link>https://sachet.ndma.gov.in/sample/1</link>
+      <alert xmlns="urn:oasis:names:tc:emergency:cap:1.2">
+        <identifier>SAMPLE-IMD-2026-09-04-1102</identifier>
+        <sender>imd.gov.in</sender>
+        <sent>2026-09-04T10:00:00+05:30</sent>
+        <status>Actual</status>
+        <msgType>Alert</msgType>
+        <scope>Public</scope>
+        <info>
+          <language>en-IN</language>
+          <category>Met</category>
+          <event>Heavy to Very Heavy Rainfall</event>
+          <urgency>Expected</urgency>
+          <severity>Severe</severity>
+          <certainty>Likely</certainty>
+          <effective>2026-09-04T16:00:00+05:30</effective>
+          <expires>2026-09-05T08:00:00+05:30</expires>
+          <senderName>India Meteorological Department, Jaipur</senderName>
+          <headline>Very heavy rainfall very likely at isolated places over Udaipur district.</headline>
+          <description>Heavy to very heavy rainfall (115.6-204.4 mm) very likely at isolated places over Udaipur, Rajsamand and Chittorgarh districts during the next 24 hours. Squally winds reaching 40-50 kmph gusting to 60 kmph likely to accompany thunderstorms.</description>
+          <instruction>Avoid travel through low-lying and waterlogged stretches. Secure loose structures and harvested produce. Follow district administration advisories.</instruction>
+          <web>https://mausam.imd.gov.in/</web>
+          <area>
+            <areaDesc>Udaipur District, Rajsamand and Chittorgarh districts</areaDesc>
+            <polygon>24.20,73.30 25.10,73.30 25.10,74.40 24.20,74.40 24.20,73.30</polygon>
+            <geocode><valueName>state</valueName><value>Rajasthan</value></geocode>
+          </area>
+        </info>
+      </alert>
+    </item>
+    <item>
+      <link>https://sachet.ndma.gov.in/sample/2</link>
+      <alert xmlns="urn:oasis:names:tc:emergency:cap:1.2">
+        <identifier>SAMPLE-IMD-2026-09-04-0930</identifier>
+        <sender>imd.gov.in</sender>
+        <sent>2026-09-04T09:30:00+05:30</sent>
+        <status>Actual</status>
+        <msgType>Alert</msgType>
+        <scope>Public</scope>
+        <info>
+          <language>en-IN</language>
+          <category>Met</category>
+          <event>Thunderstorm with Lightning</event>
+          <urgency>Expected</urgency>
+          <severity>Moderate</severity>
+          <certainty>Possible</certainty>
+          <effective>2026-09-04T12:00:00+05:30</effective>
+          <expires>2026-09-04T21:00:00+05:30</expires>
+          <senderName>India Meteorological Department, Jaipur</senderName>
+          <headline>Thunderstorm accompanied with lightning likely at isolated places.</headline>
+          <description>Thunderstorm with lightning and gusty winds speed reaching 30-40 kmph very likely at isolated places over the districts listed during the next 12 hours.</description>
+          <instruction>Move indoors during thunderstorm activity. Do not shelter under isolated trees.</instruction>
+          <area>
+            <areaDesc>Jaipur, Ajmer and Tonk districts</areaDesc>
+            <circle>26.9124,75.7873 90</circle>
+            <geocode><valueName>state</valueName><value>Rajasthan</value></geocode>
+          </area>
+        </info>
+      </alert>
+    </item>
+  </channel>
+</rss>
