@@ -25,8 +25,8 @@ def compose_answer(payload: ComposeRequest) -> ComposeResponse:
         answer,
         {
             "numbers": collect_numbers(context),
-            "sources": [s.get("name") if isinstance(s, dict) else str(s) for s in payload.sources if s],
-            "warnings": [w.get("identifier") for w in payload.warnings if isinstance(w, dict) and w.get("identifier")],
+            "sources": [s.get("name") for s in payload.sources if s.get("name")],
+            "warnings": [w.get("identifier") for w in payload.warnings if w.get("identifier")],
         },
         question=payload.question,
     )

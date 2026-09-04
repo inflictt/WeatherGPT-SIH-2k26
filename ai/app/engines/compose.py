@@ -38,9 +38,6 @@ from .phrases import (
     RAIN_NO,
     RAIN_NONE,
     RAIN_YES,
-    RAIN_MODERATE,
-    WEATHER_OVERVIEW_RAIN,
-    WEATHER_OVERVIEW_DRY,
     RISK_FLOOR_SENTENCE,
     RISK_SENTENCE,
     RISK_WORD,
@@ -181,16 +178,6 @@ def _summary(language: str, intent: str, place: str, when: str,
         return say(WIND, language).format(
             place=place, when=when, wind=_fmt(wind), gust=_fmt(gust)), False
 
-    if intent == "general" and tmax is not None and tmin is not None:
-        if rain is not None and rain >= SIGNIFICANT_RAIN_MM:
-            band, _ = classify(rain, RAINFALL_24H)
-            return say(WEATHER_OVERVIEW_RAIN, language).format(
-                place=place, when=when, mm=_fmt(rain),
-                band=say(RAIN_BAND_PHRASE, language, key=band),
-                tmax=_fmt(tmax), tmin=_fmt(tmin)), False
-        return say(WEATHER_OVERVIEW_DRY, language).format(
-            place=place, when=when, tmax=_fmt(tmax), tmin=_fmt(tmin)), False
-
     if rain is None:
         return say(NO_DATA, language).format(place=place), True
 
@@ -202,7 +189,7 @@ def _summary(language: str, intent: str, place: str, when: str,
         return say(RAIN_YES, language).format(
             place=place, when=when, mm=_fmt(rain),
             band=say(RAIN_BAND_PHRASE, language, key=band)), False
-    return say(RAIN_MODERATE, language).format(place=place, when=when, mm=_fmt(rain)), False
+    return say(RAIN_NO, language).format(place=place, when=when, mm=_fmt(rain)), False
 
 
 # --------------------------------------------------------------------------
@@ -291,23 +278,18 @@ def compose(context: dict[str, Any]) -> dict[str, Any]:
     actions, actions_gloss = _actions(
         language, persona, _conditions(forecast, warning, risk))
 
-    # --- Bilingual gloss, and the Devanagari form for speech ----------------
+    # --- English gloss, and the Devanagari form for speech ----------------
     gloss = None
     if language != "en":
         gloss, _ = _summary("en", intent, place,
                             _when("en", context.get("window")), forecast, warning)
-    else:
-        gloss, _ = _summary("hi", intent, place,
-                            _when("hi", context.get("window")), forecast, warning)
 
     # Hinglish displays in Latin but must be *spoken* in Devanagari, or hi-IN
-    # will pronounce romanised words with English phonetics.
-    speech = summary
+    # pronounces it as English. Hindi and English speak their own summary.
     if language == "hinglish":
-        hi_summary, _ = _summary("hi", intent, place,
-                                 _when("hi", context.get("window")), forecast, warning)
-        speech = hi_summary
-    elif language == "en" and gloss:
+        speech, _ = _summary("hi", intent, place,
+                             _when("hi", context.get("window")), forecast, warning)
+    else:
         speech = summary
 
     sources = [

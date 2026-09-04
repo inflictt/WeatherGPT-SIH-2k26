@@ -116,12 +116,6 @@ RAIN_YES: dict[str, str] = {
     "hinglish": "Haan — {place} mein {when} {band} ki sambhavna hai, lagbhag {mm} mm.",
 }
 
-RAIN_MODERATE: dict[str, str] = {
-    "en": "Yes — around {mm} mm of light to moderate rain is expected in {place} {when}.",
-    "hi": "हाँ — {place} में {when} लगभग {mm} मिमी हल्की से मध्यम बारिश की संभावना है।",
-    "hinglish": "Haan — {place} mein {when} lagbhag {mm} mm halki se madhyam barish ki ummeed hai.",
-}
-
 RAIN_NO: dict[str, str] = {
     "en": "No — only about {mm} mm is expected in {place} {when}.",
     "hi": "नहीं — {place} में {when} केवल लगभग {mm} मिमी वर्षा की संभावना है।",
@@ -132,18 +126,6 @@ RAIN_NONE: dict[str, str] = {
     "en": "No — no significant rain is expected in {place} {when}.",
     "hi": "नहीं — {place} में {when} उल्लेखनीय वर्षा की संभावना नहीं है।",
     "hinglish": "Nahin — {place} mein {when} koi khaas barish ki ummeed nahin hai.",
-}
-
-WEATHER_OVERVIEW_RAIN: dict[str, str] = {
-    "en": "{place} {when}: expect {band} with around {mm} mm rain, high of {tmax} °C and low of {tmin} °C.",
-    "hi": "{place} में {when}: लगभग {mm} मिमी {band} की संभावना है। अधिकतम {tmax} °C और न्यूनतम {tmin} °C रहेगा।",
-    "hinglish": "{place} mein {when}: lagbhag {mm} mm {band} ki sambhavna hai. Adhiktam {tmax} °C aur nyuntam {tmin} °C rahega.",
-}
-
-WEATHER_OVERVIEW_DRY: dict[str, str] = {
-    "en": "{place} {when}: mostly dry conditions with a high of {tmax} °C and low of {tmin} °C.",
-    "hi": "{place} में {when}: मौसम मुख्यतः शुष्क रहेगा, अधिकतम {tmax} °C और न्यूनतम {tmin} °C।",
-    "hinglish": "{place} mein {when}: mausam mukhyatah shushk rahega, adhiktam {tmax} °C aur nyuntam {tmin} °C.",
 }
 
 TEMPERATURE: dict[str, str] = {

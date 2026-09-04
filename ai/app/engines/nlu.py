@@ -80,64 +80,23 @@ def _fold_all(words):
 _HINGLISH_RAW = frozenset(
     {
         # time
-        "kal", "aaj", "parso", "parson", "abhi", "subah", "shaam", "sham", "raat",
+        "kal", "aaj", "parso", "abhi", "subah", "shaam", "sham", "raat",
         "dopahar", "kab", "din",
         # weather
-        "barish", "baarish", "mausam", "mausom", "mosam", "garmi", "sardi", "thand", "hawa",
+        "barish", "baarish", "mausam", "garmi", "sardi", "thand", "hawa",
         "toofan", "tufan", "andhi", "aandhi", "badal", "dhoop", "paani",
         # place / person
         "gaon", "gaanv", "gram", "zila", "zile", "jila", "mera", "mere",
-        "meri", "hamare", "apne", "yahan", "yaha",
-        # verbs, questions & language switches
+        "meri", "hamare", "apne",
+        # verbs and question words
         "hoga", "hogi", "hoge", "hai", "hain", "kya", "kitna", "kitni",
         "karun", "karoon", "karna", "chahiye", "milega", "rahega", "rahegi",
-        "batao", "bataye", "bataiye", "bata", "bolo", "boliye", "samjhao", "samjha", "sunao",
-        "hindi", "hinglish", "sakta", "sakti", "kese", "kaise", "kaisa", "kaisi",
-        "lagta", "lagti", "haal",
+        "batao", "bataye", "sakta", "sakti",
         # farming / travel
-        "fasal", "sinchai", "khet", "kisan", "kisaan", "krishi", "safar", "yatra", "surakshit", "nikalna",
+        "fasal", "sinchai", "khet", "safar", "yatra", "surakshit", "nikalna",
     }
 )
 HINGLISH_MARKERS: frozenset[str] = frozenset(fold(w) for w in _HINGLISH_RAW)
-
-FARMER_KEYWORDS = frozenset(
-    fold(w) for w in (
-        "farmer", "kisan", "kisaan", "krishi", "agriculture", "fasal", "crop",
-        "crops", "sowing", "harvest", "harvesting", "spray", "spraying", "irrigate",
-        "irrigation", "sinchai", "khet", "field", "fields", "soil", "pesticide",
-        "fertilizer", "boai", "katai", "फ़सल", "फसल", "किसान", "खेत", "सिंचाई"
-    )
-)
-
-TRAVELLER_KEYWORDS = frozenset(
-    fold(w) for w in (
-        "travel", "travelling", "traveling", "drive", "driving", "trip", "road",
-        "highway", "journey", "commute", "flight", "train", "safar", "yatra", "tour",
-        "सफ़र", "सफर", "यात्रा"
-    )
-)
-
-OFFICIAL_KEYWORDS = frozenset(
-    fold(w) for w in (
-        "admin", "official", "officer", "dm", "collector", "sarpanch", "panchayat",
-        "ndrf", "sdrf", "block", "evacuation", "relief", "प्रशासन", "अधिकारी"
-    )
-)
-
-
-def detect_persona(text: str) -> str:
-    """Classify the question's target persona: general, farmer, traveller, official."""
-    if not text or not text.strip():
-        return "general"
-    lowered = text.lower()
-    words = {fold(w) for w in _WORD.findall(text)}
-    if words & FARMER_KEYWORDS or any(k in lowered for k in ("im a farmer", "i am a farmer", "as a farmer", "kisan hun")):
-        return "farmer"
-    if words & TRAVELLER_KEYWORDS or any(k in lowered for k in ("on the road", "going to", "travel to", "drive to")):
-        return "traveller"
-    if words & OFFICIAL_KEYWORDS:
-        return "official"
-    return "general"
 
 
 def detect_language(text: str) -> Language:
@@ -153,9 +112,6 @@ def detect_language(text: str) -> Language:
         return "en"
     if DEVANAGARI.search(text):
         return "hi"
-    lowered = text.lower()
-    if "hindi" in lowered or "hinglish" in lowered:
-        return "hinglish"
     words = {fold(w) for w in _WORD.findall(text)}
     return "hinglish" if words & HINGLISH_MARKERS else "en"
 
@@ -307,16 +263,10 @@ _STOP_TOKENS: frozenset[str] = frozenset(
         "dopahar", "mein", "me", "ke", "ki", "ka", "hai", "hain", "hoga",
         "hogi", "kya", "barish", "baarish", "mausam", "rain", "weather",
         "warning", "alert", "forecast", "temperature", "wind",
-        "hindi", "hinglish", "english", "urdu", "bengali", "marathi", "tamil", "telugu",
-        "kisan", "farmer", "krishi", "fasal", "batao", "bataiye", "bolo", "hu", "hoon", "hun",
-        # Devanagari stop words
-        "कल", "आज", "परसों", "सुबह", "शाम", "दोपहर", "रात", "में", "मे", "के",
-        "की", "का", "है", "हैं", "होगा", "होगी", "क्या", "बारिश", "मौसम", "चेतावनी", "अलर्ट",
-        "हिंदी", "हिन्दी", "किसान", "फसल", "बताओ", "बताइए",
         # Verbs and nouns that can follow a preposition but are never a place.
         "drive", "travel", "go", "going", "visit", "reach", "get", "walk",
         "safe", "district", "districts", "village", "town", "city", "state",
-        "place", "area", "hours", "week", "know", "see", "expect", "tell", "tellme",
+        "place", "area", "hours", "week", "know", "see", "expect",
     }
 )
 
@@ -326,27 +276,15 @@ _STOP_TOKENS: frozenset[str] = frozenset(
 #: to", and only the last one introduces a place.
 _IN_PLACE = re.compile(r"\b(?:in|for|at|near|around|to|over)\s+(?P<rest>.+?)$", re.IGNORECASE)
 _PREPOSITION = re.compile(r"\b(?:in|for|at|near|around|to|over)\s+", re.IGNORECASE)
-_PLACE_MEIN = re.compile(r"(?P<rest>[\wऀ-ॿ\s]+?)\s+(?:mein|me|men|में|मे)(?:\s+|$)", re.IGNORECASE)
+_PLACE_MEIN = re.compile(r"(?P<rest>[\wऀ-ॿ\s]+?)\s+(?:mein|me|men)\b", re.IGNORECASE)
 
 _MAX_PLACE_TOKENS = 4
-
-
-_VERB_TOKENS: frozenset[str] = frozenset(
-    {
-        "spray", "irrigate", "harvest", "sow", "plant", "drive", "travel", "go",
-        "walk", "visit", "head", "leave", "work", "do", "expect", "reach", "plan",
-        "water", "cover", "stay", "cut", "sowing", "spraying", "harvesting", "see",
-    }
-)
 
 
 def _take_place_tokens(rest: str) -> str | None:
     """Consume tokens until a stop word, keeping at most four."""
     out: list[str] = []
-    tokens = _WORD.findall(rest)
-    if not tokens or tokens[0].lower() in _VERB_TOKENS:
-        return None
-    for raw in tokens:
+    for raw in _WORD.findall(rest):
         if raw.lower() in _STOP_TOKENS:
             break
         out.append(raw)
@@ -412,13 +350,11 @@ def parse(text: str, *, default_language: str | None = None) -> dict[str, Any]:
         language = default_language  # type: ignore[assignment]
 
     intent = detect_intent(text)
-    persona = detect_persona(text)
     location, hint = extract_location(text)
 
     return {
         "intent": intent,
         "language": language,
-        "persona": persona,
         "location": location,
         "location_hint": hint,
         "window": parse_window(text),
