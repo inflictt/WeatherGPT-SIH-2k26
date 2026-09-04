@@ -1,6 +1,7 @@
 import {
   fetchForecast, fetchEnsemble, totalsFor24h, antecedentRainfall, describeCode, deriveCurrentCondition,
 } from '../services/openMeteo.js'
+import { fetchCurrentOpenWeather } from '../services/openWeather.js'
 import { warningsForPoint, highest } from '../services/capIngest.js'
 import { scoreRisk, scoreUncertainty, composeAnswer } from '../services/aiClient.js'
 import { locationFromQuery } from './weather.js'
@@ -8,7 +9,7 @@ import { locationFromQuery } from './weather.js'
 /**
  * The Phase 2 ↔ Phase 3 bridge, and the endpoint the Today screen calls.
  *
- * Fetches forecast, ensemble and warnings in parallel, hands them to the
+ * Fetches forecast, ensemble, live OpenWeather and warnings in parallel, hands them to the
  * Python engines, and returns one object. If the engine is unreachable the
  * response still carries forecast and warnings, flagged `degraded: true` —
  * the client renders exactly the same cards minus the score.
@@ -16,11 +17,13 @@ import { locationFromQuery } from './weather.js'
 export async function assess(req, res) {
   const loc = await locationFromQuery(req.validQuery)
 
-  const [forecast, ensemble, warnings] = await Promise.all([
+  const [forecast, ensemble, warnings, liveObs] = await Promise.all([
     fetchForecast(loc.lat, loc.lon, { days: 7 }),
     fetchEnsemble(loc.lat, loc.lon, { days: 3 }).catch(() => null),
     warningsForPoint({ lat: loc.lat, lon: loc.lon, district: loc.district, state: loc.state }),
+    fetchCurrentOpenWeather(loc.lat, loc.lon).catch(() => null),
   ])
+
 
   const now = new Date()
   const live = warnings.filter((w) => w.status === 'active' && (!w.expires || new Date(w.expires) > now))
@@ -67,7 +70,8 @@ export async function assess(req, res) {
   ])
 
   const sources = [
-    { name: 'Open-Meteo', role: 'forecast', fetchedAt: forecast.fetchedAt, cached: forecast.cached },
+    ...(liveObs ? [{ name: 'OpenWeatherMap', role: 'live observation', fetchedAt: liveObs.fetchedAt, cached: liveObs.cached }] : []),
+    { name: 'Open-Meteo', role: 'multi-model forecast', fetchedAt: forecast.fetchedAt, cached: forecast.cached },
     { name: 'NDMA Sachet (CAP)', role: 'warnings', count: live.length },
     ...(risk ? [{ name: 'WeatherGPT risk engine', role: 'risk', version: risk.engine_version }] : []),
   ]
@@ -102,12 +106,31 @@ export async function assess(req, res) {
     sources,
   })
 
+  // Blend live observation with forecast
+  const currentObs = liveObs ? {
+    time: liveObs.time,
+    tempC: liveObs.tempC ?? forecast.current.tempC,
+    feelsLikeC: liveObs.feelsLikeC ?? forecast.current.feelsLikeC,
+    humidity: liveObs.humidity ?? forecast.current.humidity,
+    pressureHpa: liveObs.pressureHpa ?? forecast.current.pressureHpa,
+    precipMm: liveObs.precipMm ?? forecast.current.precipMm,
+    cloudCover: liveObs.cloudCover ?? forecast.current.cloudCover,
+    visibilityM: liveObs.visibilityM ?? forecast.current.visibilityM,
+    windKmh: liveObs.windKmh ?? forecast.current.windKmh,
+    windDirDeg: liveObs.windDirDeg ?? forecast.current.windDirDeg,
+    gustKmh: liveObs.gustKmh ?? forecast.current.gustKmh,
+    weatherCode: liveObs.weatherCode ?? forecast.current.weatherCode,
+    condition: liveObs.condition || deriveCurrentCondition(forecast.current, forecast.hourly, riskPayload.forecast),
+    sunrise: liveObs.sunrise ?? forecast.daily?.[0]?.sunrise,
+    sunset: liveObs.sunset ?? forecast.daily?.[0]?.sunset,
+  } : {
+    ...forecast.current,
+    condition: deriveCurrentCondition(forecast.current, forecast.hourly, riskPayload.forecast),
+  }
+
   res.json({
     location: loc,
-    current: {
-      ...forecast.current,
-      condition: deriveCurrentCondition(forecast.current, forecast.hourly, riskPayload.forecast),
-    },
+    current: currentObs,
     summary24h: riskPayload.forecast,
     antecedent72hMm: riskPayload.antecedent.rain_72h_mm,
     warnings: live,
@@ -121,6 +144,7 @@ export async function assess(req, res) {
     checkedAt: now.toISOString(),
   })
 }
+
 
 /** 'HH:MM' in the forecast's own timezone — the label, not a computation. */
 const hhmm = (iso) => (iso ? new Date(iso).toTimeString().slice(0, 5) : null)

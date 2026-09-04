@@ -32,6 +32,10 @@ export const env = {
     .filter(Boolean),
   forecastTtlMinutes: int(process.env.FORECAST_TTL_MINUTES, 30),
 
+  // --- OpenWeatherMap (live real-time observations) ---
+  openWeatherApiKey: process.env.OPENWEATHER_API_KEY || '',
+  openWeatherBase: process.env.OPENWEATHER_BASE || 'https://api.openweathermap.org/data/2.5',
+
   // --- official warnings: free, public ---
   // The all-India CAP index. NOT `/CapFeed` — that path serves the portal's
   // HTML app shell, which parses to zero alerts and silently falls through to
