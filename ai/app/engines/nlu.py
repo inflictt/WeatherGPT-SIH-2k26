@@ -88,16 +88,56 @@ _HINGLISH_RAW = frozenset(
         # place / person
         "gaon", "gaanv", "gram", "zila", "zile", "jila", "mera", "mere",
         "meri", "hamare", "apne", "yahan", "yaha",
-        # verbs and question words
+        # verbs, questions & language switches
         "hoga", "hogi", "hoge", "hai", "hain", "kya", "kitna", "kitni",
         "karun", "karoon", "karna", "chahiye", "milega", "rahega", "rahegi",
-        "batao", "bataye", "sakta", "sakti", "kese", "kaise", "kaisa", "kaisi",
+        "batao", "bataye", "bataiye", "bata", "bolo", "boliye", "samjhao", "samjha", "sunao",
+        "hindi", "hinglish", "sakta", "sakti", "kese", "kaise", "kaisa", "kaisi",
         "lagta", "lagti", "haal",
         # farming / travel
-        "fasal", "sinchai", "khet", "safar", "yatra", "surakshit", "nikalna",
+        "fasal", "sinchai", "khet", "kisan", "kisaan", "krishi", "safar", "yatra", "surakshit", "nikalna",
     }
 )
 HINGLISH_MARKERS: frozenset[str] = frozenset(fold(w) for w in _HINGLISH_RAW)
+
+FARMER_KEYWORDS = frozenset(
+    fold(w) for w in (
+        "farmer", "kisan", "kisaan", "krishi", "agriculture", "fasal", "crop",
+        "crops", "sowing", "harvest", "harvesting", "spray", "spraying", "irrigate",
+        "irrigation", "sinchai", "khet", "field", "fields", "soil", "pesticide",
+        "fertilizer", "boai", "katai", "फ़सल", "फसल", "किसान", "खेत", "सिंचाई"
+    )
+)
+
+TRAVELLER_KEYWORDS = frozenset(
+    fold(w) for w in (
+        "travel", "travelling", "traveling", "drive", "driving", "trip", "road",
+        "highway", "journey", "commute", "flight", "train", "safar", "yatra", "tour",
+        "सफ़र", "सफर", "यात्रा"
+    )
+)
+
+OFFICIAL_KEYWORDS = frozenset(
+    fold(w) for w in (
+        "admin", "official", "officer", "dm", "collector", "sarpanch", "panchayat",
+        "ndrf", "sdrf", "block", "evacuation", "relief", "प्रशासन", "अधिकारी"
+    )
+)
+
+
+def detect_persona(text: str) -> str:
+    """Classify the question's target persona: general, farmer, traveller, official."""
+    if not text or not text.strip():
+        return "general"
+    lowered = text.lower()
+    words = {fold(w) for w in _WORD.findall(text)}
+    if words & FARMER_KEYWORDS or any(k in lowered for k in ("im a farmer", "i am a farmer", "as a farmer", "kisan hun")):
+        return "farmer"
+    if words & TRAVELLER_KEYWORDS or any(k in lowered for k in ("on the road", "going to", "travel to", "drive to")):
+        return "traveller"
+    if words & OFFICIAL_KEYWORDS:
+        return "official"
+    return "general"
 
 
 def detect_language(text: str) -> Language:
@@ -113,6 +153,9 @@ def detect_language(text: str) -> Language:
         return "en"
     if DEVANAGARI.search(text):
         return "hi"
+    lowered = text.lower()
+    if "hindi" in lowered or "hinglish" in lowered:
+        return "hinglish"
     words = {fold(w) for w in _WORD.findall(text)}
     return "hinglish" if words & HINGLISH_MARKERS else "en"
 
@@ -264,13 +307,16 @@ _STOP_TOKENS: frozenset[str] = frozenset(
         "dopahar", "mein", "me", "ke", "ki", "ka", "hai", "hain", "hoga",
         "hogi", "kya", "barish", "baarish", "mausam", "rain", "weather",
         "warning", "alert", "forecast", "temperature", "wind",
+        "hindi", "hinglish", "english", "urdu", "bengali", "marathi", "tamil", "telugu",
+        "kisan", "farmer", "krishi", "fasal", "batao", "bataiye", "bolo", "hu", "hoon", "hun",
         # Devanagari stop words
         "कल", "आज", "परसों", "सुबह", "शाम", "दोपहर", "रात", "में", "मे", "के",
         "की", "का", "है", "हैं", "होगा", "होगी", "क्या", "बारिश", "मौसम", "चेतावनी", "अलर्ट",
+        "हिंदी", "हिन्दी", "किसान", "फसल", "बताओ", "बताइए",
         # Verbs and nouns that can follow a preposition but are never a place.
         "drive", "travel", "go", "going", "visit", "reach", "get", "walk",
         "safe", "district", "districts", "village", "town", "city", "state",
-        "place", "area", "hours", "week", "know", "see", "expect",
+        "place", "area", "hours", "week", "know", "see", "expect", "tell", "tellme",
     }
 )
 
@@ -366,11 +412,13 @@ def parse(text: str, *, default_language: str | None = None) -> dict[str, Any]:
         language = default_language  # type: ignore[assignment]
 
     intent = detect_intent(text)
+    persona = detect_persona(text)
     location, hint = extract_location(text)
 
     return {
         "intent": intent,
         "language": language,
+        "persona": persona,
         "location": location,
         "location_hint": hint,
         "window": parse_window(text),

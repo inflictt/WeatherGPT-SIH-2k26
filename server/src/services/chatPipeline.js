@@ -264,11 +264,14 @@ export async function answerQuestion(input, deps = DEPS) {
 
   // 7 — compose. The context is entirely fetched or computed; nothing in it
   // originates with a language model.
+  const effectivePersona = nlu.persona && nlu.persona !== 'general' ? nlu.persona : (persona || 'general')
+  const effectiveLanguage = nlu.language || lang || 'en'
+
   const answer = await deps.composeAnswer({
     question: text,
     intent: nlu.intent,
-    language: nlu.language,
-    persona,
+    language: effectiveLanguage,
+    persona: effectivePersona,
     location: {
       name: location.name,
       district: location.district,

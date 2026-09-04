@@ -120,6 +120,7 @@ class NluResponse(BaseModel):
         "rain_forecast", "warning_check", "advice", "temperature", "wind", "general"
     ]
     language: Literal["en", "hi", "hinglish"]
+    persona: Literal["general", "farmer", "traveller", "official"] = "general"
     location: str | None
     location_hint: Literal["self"] | None
     window: WindowOut
