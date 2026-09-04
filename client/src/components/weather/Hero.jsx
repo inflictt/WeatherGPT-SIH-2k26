@@ -39,13 +39,21 @@ export default function Hero({ prefs }) {
     <section className="relative overflow-hidden">
       <div className="shell relative pb-4 pt-6 sm:pt-8">
         <Reveal>
-          <div className="glass-pill inline-flex items-center gap-2 rounded-full px-4 py-1.5 font-mono text-xs shadow-sm border border-line">
-            <span className="h-2 w-2 rounded-full bg-sev-orange animate-pulse" aria-hidden="true" />
-            <span className="font-semibold text-ink">{LOCATION?.name || 'Delhi'}</span>
-            <span className="text-ink-3">·</span>
-            <span className="text-ink-2 font-medium">
-              {LOCATION?.district ? `${LOCATION.district} district, ` : ''}{LOCATION?.state || 'Delhi'}
-            </span>
+          <div className="flex flex-wrap items-center gap-2">
+            <div className="glass-pill inline-flex items-center gap-2 rounded-full px-4 py-1.5 font-mono text-xs shadow-sm border border-line">
+              <span className="h-2 w-2 rounded-full bg-sev-orange animate-pulse" aria-hidden="true" />
+              <span className="font-semibold text-ink">{LOCATION?.name || 'Delhi'}</span>
+              <span className="text-ink-3">·</span>
+              <span className="text-ink-2 font-medium">
+                {LOCATION?.district ? `${LOCATION.district} district, ` : ''}{LOCATION?.state || 'Delhi'}
+              </span>
+            </div>
+
+            {/* Anti-Hallucination Provenance Chip */}
+            <div className="inline-flex items-center gap-1.5 rounded-full border border-sev-green/30 bg-sev-green/10 px-3 py-1 font-mono text-[10.5px] font-semibold text-sev-green shadow-sm">
+              <span className="h-1.5 w-1.5 rounded-full bg-sev-green" />
+              <span>ECMWF 9km Physics · IMD CAP Grounded</span>
+            </div>
           </div>
         </Reveal>
 

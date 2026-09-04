@@ -36,50 +36,110 @@ export default function MapView({ prefs }) {
     [warnings, location],
   )
 
+  const [mapMode, setMapMode] = useState('warnings') // 'warnings' | 'wind' | 'radar' | 'lightning'
+
   const active = warnings.find((w) => w.identifier === selected) || warnings[0] || null
+  const lat = location?.lat || 28.2435
+  const lon = location?.lon || 76.8453
 
   return (
     <div className="shell space-y-8 py-10">
       <Reveal>
-        <header>
-          <h1 className="headline text-heading text-ink">
-            Warning map
-          </h1>
-          <p className="mt-4 text-body-lg font-normal leading-relaxed text-ink-2">
-            Active warnings for your location, shaded by IMD severity. A solid
-            outline is the alert's own polygon; a dashed circle means the
-            bulletin named a district rather than drawing one.
-          </p>
+        <header className="flex flex-wrap items-center justify-between gap-4">
+          <div>
+            <h1 className="headline text-heading text-ink">
+              Interactive Hazard & Radar Map
+            </h1>
+            <p className="mt-2 text-body-lg font-normal leading-relaxed text-ink-2">
+              Switch between official IMD CAP disaster polygons and real-time animated wind &amp; precipitation particle flows.
+            </p>
+          </div>
+
+          {/* Map Layer Mode Switcher */}
+          <div className="flex flex-wrap items-center gap-1.5 rounded-xl border border-line bg-surface-2/60 p-1 backdrop-blur-sm">
+            <button
+              onClick={() => setMapMode('warnings')}
+              className={cn(
+                'rounded-lg px-3 py-1.5 font-mono text-xs font-semibold transition-all',
+                mapMode === 'warnings' ? 'bg-iris text-white shadow-sm' : 'text-ink-3 hover:text-ink'
+              )}
+            >
+              🛰️ IMD CAP Polygons
+            </button>
+
+            <button
+              onClick={() => setMapMode('wind')}
+              className={cn(
+                'rounded-lg px-3 py-1.5 font-mono text-xs font-semibold transition-all',
+                mapMode === 'wind' ? 'bg-cyanSignal text-black shadow-sm font-bold' : 'text-ink-3 hover:text-ink'
+              )}
+            >
+              💨 Animated Wind Stream
+            </button>
+
+            <button
+              onClick={() => setMapMode('radar')}
+              className={cn(
+                'rounded-lg px-3 py-1.5 font-mono text-xs font-semibold transition-all',
+                mapMode === 'radar' ? 'bg-sev-orange text-white shadow-sm' : 'text-ink-3 hover:text-ink'
+              )}
+            >
+              🌧️ Live Radar &amp; Rain
+            </button>
+
+            <button
+              onClick={() => setMapMode('lightning')}
+              className={cn(
+                'rounded-lg px-3 py-1.5 font-mono text-xs font-semibold transition-all',
+                mapMode === 'lightning' ? 'bg-sev-yellow text-black shadow-sm font-bold' : 'text-ink-3 hover:text-ink'
+              )}
+            >
+              ⚡ Storms &amp; Lightning
+            </button>
+          </div>
         </header>
       </Reveal>
 
       <div className="grid gap-4 lg:grid-cols-[1fr_312px]">
         <Reveal delay={60}>
-          <Card className="overflow-hidden">
-            <WarningMap
-              warnings={plotted}
-              centre={location}
-              selected={selected}
-              onSelect={setSelected}
-              className="aspect-[4/3] w-full sm:aspect-[16/10]"
-              tiles={!prefs?.dataSaver}
-            />
-            <div className="flex flex-wrap items-center gap-x-4 gap-y-2 border-t border-line-soft px-4 py-2.5">
-              {['green', 'yellow', 'orange', 'red'].map((k) => (
-                <span key={k} className="flex items-center gap-1.5">
-                  <span
-                    className={cn('h-1.5 w-1.5 rounded-full', SEVERITY[k].bg)}
-                    aria-hidden="true"
-                  />
-                  <span className="font-mono text-[9.5px] uppercase tracking-[0.11em] text-ink-3">
-                    {SEVERITY[k].label}
+          <Card className="overflow-hidden border border-line">
+            {mapMode === 'warnings' ? (
+              <>
+                <WarningMap
+                  warnings={plotted}
+                  centre={location}
+                  selected={selected}
+                  onSelect={setSelected}
+                  className="aspect-[4/3] w-full sm:aspect-[16/10]"
+                  tiles={!prefs?.dataSaver}
+                />
+                <div className="flex flex-wrap items-center gap-x-4 gap-y-2 border-t border-line-soft px-4 py-2.5">
+                  {['green', 'yellow', 'orange', 'red'].map((k) => (
+                    <span key={k} className="flex items-center gap-1.5">
+                      <span
+                        className={cn('h-1.5 w-1.5 rounded-full', SEVERITY[k].bg)}
+                        aria-hidden="true"
+                      />
+                      <span className="font-mono text-[9.5px] uppercase tracking-[0.11em] text-ink-3">
+                        {SEVERITY[k].label}
+                      </span>
+                    </span>
+                  ))}
+                  <span className="ml-auto font-mono text-[9.5px] uppercase tracking-[0.11em] text-ink-3">
+                    ⌘ / Ctrl + scroll to zoom
                   </span>
-                </span>
-              ))}
-              <span className="ml-auto font-mono text-[9.5px] uppercase tracking-[0.11em] text-ink-3">
-                ⌘ / Ctrl + scroll to zoom
-              </span>
-            </div>
+                </div>
+              </>
+            ) : (
+              <div className="relative aspect-[4/3] w-full sm:aspect-[16/10] bg-black">
+                <iframe
+                  title="Live Windy Particle Map"
+                  src={`https://embed.windy.com/embed.html?type=map&location=coordinates&metricRain=mm&metricTemp=%C2%B0C&metricWind=km%2Fh&zoom=7&overlay=${mapMode}&lat=${lat}&lon=${lon}&message=true`}
+                  className="h-full w-full border-0"
+                  loading="lazy"
+                />
+              </div>
+            )}
           </Card>
         </Reveal>
 
