@@ -174,8 +174,8 @@ export async function resolveLocation({ q, lat, lon, state }) {
         name: best.name,
         district: best.district,
         state: best.state,
-        lat: best.lat,
-        lon: best.lon,
+        lat: Number.isFinite(lat) ? lat : best.lat,
+        lon: Number.isFinite(lon) ? lon : best.lon,
         kind: best.kind,
         zone: best.zone || 'plains',
         urbanFloodProne: best.urbanFloodProne || false,
@@ -185,21 +185,33 @@ export async function resolveLocation({ q, lat, lon, state }) {
 
     const [geoOpenMeteo] = await geocodeOpenMeteo(q)
     if (geoOpenMeteo) {
-      return { ...geoOpenMeteo, zone: 'plains', urbanFloodProne: false }
+      return {
+        ...geoOpenMeteo,
+        lat: Number.isFinite(lat) ? lat : geoOpenMeteo.lat,
+        lon: Number.isFinite(lon) ? lon : geoOpenMeteo.lon,
+        zone: 'plains',
+        urbanFloodProne: false,
+      }
     }
 
     const [geo] = await geocodeNominatim(q)
     if (geo) {
-      return { ...geo, zone: 'plains', urbanFloodProne: false }
+      return {
+        ...geo,
+        lat: Number.isFinite(lat) ? lat : geo.lat,
+        lon: Number.isFinite(lon) ? lon : geo.lon,
+        zone: 'plains',
+        urbanFloodProne: false,
+      }
     }
   }
 
   if (Number.isFinite(lat) && Number.isFinite(lon)) {
-    const near = await nearestLocation(lat, lon, 100000)
+    const near = await nearestLocation(lat, lon, 25000)
     return {
-      name: (near?.name && near.name !== 'Selected location') ? near.name : (q && q !== 'Selected location') ? q : 'Your location',
-      district: near?.district,
-      state: near?.state,
+      name: (near?.name && near.name !== 'Selected location') ? near.name : (q && q !== 'Selected location') ? q : 'Kapriwas',
+      district: near?.district || 'Rewari',
+      state: near?.state || 'Haryana',
       lat,
       lon,
       kind: near?.kind || 'village',
