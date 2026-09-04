@@ -39,7 +39,7 @@ export default function Hero({ prefs }) {
     <section className="relative overflow-hidden">
       <div className="shell relative pb-4 pt-6 sm:pt-8">
         <Reveal>
-          <div className="glass-pill inline-flex items-center gap-2 rounded-full px-4 py-1.5 font-mono text-xs shadow-sm">
+          <div className="glass-pill inline-flex items-center gap-2 rounded-full px-4 py-1.5 font-mono text-xs shadow-sm border border-line">
             <span className="h-2 w-2 rounded-full bg-sev-orange animate-pulse" aria-hidden="true" />
             <span className="font-semibold text-ink">{LOCATION?.name || 'Delhi'}</span>
             <span className="text-ink-3">·</span>
@@ -50,28 +50,40 @@ export default function Hero({ prefs }) {
         </Reveal>
 
         <Reveal delay={70}>
-          <div className="mt-6 glass-panel rounded-2xl p-6 sm:p-8 flex flex-wrap items-center justify-between gap-6">
-            <div className="flex items-center gap-6 sm:gap-8">
+          <div className="mt-6 glass-panel rounded-2xl p-6 sm:p-8 flex flex-wrap items-center justify-between gap-6 shadow-xl relative overflow-hidden">
+            {/* Subtle atmospheric ambient glow inside card */}
+            <div className="absolute -right-16 -top-16 w-64 h-64 rounded-full bg-iris/10 blur-3xl pointer-events-none" />
+            <div className="absolute -left-16 -bottom-16 w-64 h-64 rounded-full bg-cyanSignal/10 blur-3xl pointer-events-none" />
+
+            <div className="flex items-center gap-6 sm:gap-8 relative z-10">
               <div className="font-display text-6xl sm:text-7xl lg:text-8xl font-light text-ink tracking-tight leading-none tnum flex items-baseline">
                 <span>{fmt.temp(c.tempC)}</span>
-                <span className="text-2xl sm:text-3xl text-ink-3 font-light ml-1">{fmt.tempUnit}</span>
+                <span className="text-2xl sm:text-3xl text-ink-3 font-light ml-1.5">{fmt.tempUnit}</span>
               </div>
-              <div>
-                <h1 className="text-2xl sm:text-3xl font-display font-light text-ink leading-tight">
+              <div className="space-y-1.5">
+                <h1 className="text-2xl sm:text-3xl font-display font-light text-ink leading-tight flex items-center gap-2.5">
                   <span className="sr-only">
                     {LOCATION?.name}
                     {LOCATION?.district ? `, ${LOCATION.district} district` : ''} —{' '}
                   </span>
-                  {c.condition}
+                  <span>{c.condition}</span>
                 </h1>
-                <p className="mt-1 text-sm text-ink-2">
-                  Feels like <span className="font-semibold text-ink">{fmt.temp(c.feelsLikeC)}{fmt.tempUnit}</span> · {Math.round((c.rainProb || 0) * 100)}% chance of rain · observed {ago(c.observedAt)}
-                </p>
+                <div className="flex flex-wrap items-center gap-2 text-xs font-mono text-ink-2">
+                  <span className="glass-pill px-2.5 py-1 rounded-md">
+                    Feels like <strong className="text-ink font-semibold">{fmt.temp(c.feelsLikeC)}{fmt.tempUnit}</strong>
+                  </span>
+                  <span className="glass-pill px-2.5 py-1 rounded-md">
+                    💧 {Math.round((c.rainProb || 0) * 100)}% rain chance
+                  </span>
+                  <span className="glass-pill px-2.5 py-1 rounded-md text-ink-3">
+                    observed {ago(c.observedAt)}
+                  </span>
+                </div>
               </div>
             </div>
 
-            <div className="hidden md:flex items-center gap-3">
-              <span className="glass-pill px-3.5 py-2 rounded-xl text-xs font-mono text-ink flex items-center gap-2">
+            <div className="hidden md:flex items-center gap-3 relative z-10">
+              <span className="glass-pill px-3.5 py-2 rounded-xl text-xs font-mono text-ink flex items-center gap-2 shadow-sm">
                 <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
                 Live Multi-Model Sync
               </span>
@@ -82,82 +94,82 @@ export default function Hero({ prefs }) {
         <Reveal delay={140}>
           <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-7">
             {/* Wind */}
-            <div className="glass-card rounded-2xl p-3.5 flex flex-col justify-between shadow-sm transition-all">
+            <div className="glass-card rounded-2xl p-3.5 flex flex-col justify-between shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-250">
               <div className="flex items-center justify-between">
-                <span className="text-[10px] font-mono font-semibold tracking-wider text-ink-3 uppercase">Wind</span>
-                <span className="text-xs">💨</span>
+                <span className="text-[10px] font-mono font-bold tracking-wider text-ink-3 uppercase">Wind</span>
+                <span className="flex h-6 w-6 items-center justify-center rounded-lg bg-cyanSignal/15 text-xs">💨</span>
               </div>
-              <div className="text-base sm:text-lg font-bold text-ink mt-2 tnum">
+              <div className="text-base sm:text-lg font-bold text-ink mt-3 tnum">
                 {fmt.speed(c.windKmh) ?? '0'}{' '}
-                <span className="text-xs font-normal text-ink-3 font-mono">{fmt.speedUnit} {c.windDir || ''}</span>
+                <span className="text-[11px] font-normal text-ink-3 font-mono">{fmt.speedUnit} {c.windDir || ''}</span>
               </div>
             </div>
 
             {/* Gusts */}
-            <div className="glass-card rounded-2xl p-3.5 flex flex-col justify-between shadow-sm transition-all">
+            <div className="glass-card rounded-2xl p-3.5 flex flex-col justify-between shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-250">
               <div className="flex items-center justify-between">
-                <span className="text-[10px] font-mono font-semibold tracking-wider text-ink-3 uppercase">Gusts</span>
-                <span className="text-xs">🌪️</span>
+                <span className="text-[10px] font-mono font-bold tracking-wider text-ink-3 uppercase">Gusts</span>
+                <span className="flex h-6 w-6 items-center justify-center rounded-lg bg-blue-500/15 text-xs">🌪️</span>
               </div>
-              <div className="text-base sm:text-lg font-bold text-ink mt-2 tnum">
+              <div className="text-base sm:text-lg font-bold text-ink mt-3 tnum">
                 {fmt.speed(c.gustKmh || c.windKmh) ?? '0'}{' '}
-                <span className="text-xs font-normal text-ink-3 font-mono">{fmt.speedUnit}</span>
+                <span className="text-[11px] font-normal text-ink-3 font-mono">{fmt.speedUnit}</span>
               </div>
             </div>
 
             {/* Humidity */}
-            <div className="glass-card rounded-2xl p-3.5 flex flex-col justify-between shadow-sm transition-all">
+            <div className="glass-card rounded-2xl p-3.5 flex flex-col justify-between shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-250">
               <div className="flex items-center justify-between">
-                <span className="text-[10px] font-mono font-semibold tracking-wider text-ink-3 uppercase">Humidity</span>
-                <span className="text-xs">💧</span>
+                <span className="text-[10px] font-mono font-bold tracking-wider text-ink-3 uppercase">Humidity</span>
+                <span className="flex h-6 w-6 items-center justify-center rounded-lg bg-sky-500/15 text-xs">💧</span>
               </div>
-              <div className="text-base sm:text-lg font-bold text-ink mt-2 tnum">
+              <div className="text-base sm:text-lg font-bold text-ink mt-3 tnum">
                 {c.humidity ?? 0}%
               </div>
             </div>
 
             {/* Visibility */}
-            <div className="glass-card rounded-2xl p-3.5 flex flex-col justify-between shadow-sm transition-all">
+            <div className="glass-card rounded-2xl p-3.5 flex flex-col justify-between shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-250">
               <div className="flex items-center justify-between">
-                <span className="text-[10px] font-mono font-semibold tracking-wider text-ink-3 uppercase">Visibility</span>
-                <span className="text-xs">👁️</span>
+                <span className="text-[10px] font-mono font-bold tracking-wider text-ink-3 uppercase">Visibility</span>
+                <span className="flex h-6 w-6 items-center justify-center rounded-lg bg-indigo-500/15 text-xs">👁️</span>
               </div>
-              <div className="text-base sm:text-lg font-bold text-ink mt-2 tnum">
+              <div className="text-base sm:text-lg font-bold text-ink mt-3 tnum">
                 {c.visibilityKm != null ? fmt.distance(c.visibilityKm) : '10'}{' '}
-                <span className="text-xs font-normal text-ink-3 font-mono">{fmt.distanceUnit}</span>
+                <span className="text-[11px] font-normal text-ink-3 font-mono">{fmt.distanceUnit}</span>
               </div>
             </div>
 
             {/* Pressure */}
-            <div className="glass-card rounded-2xl p-3.5 flex flex-col justify-between shadow-sm transition-all">
+            <div className="glass-card rounded-2xl p-3.5 flex flex-col justify-between shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-250">
               <div className="flex items-center justify-between">
-                <span className="text-[10px] font-mono font-semibold tracking-wider text-ink-3 uppercase">Pressure</span>
-                <span className="text-xs">⏲️</span>
+                <span className="text-[10px] font-mono font-bold tracking-wider text-ink-3 uppercase">Pressure</span>
+                <span className="flex h-6 w-6 items-center justify-center rounded-lg bg-emerald-500/15 text-xs">⏲️</span>
               </div>
-              <div className="text-base sm:text-lg font-bold text-ink mt-2 tnum">
+              <div className="text-base sm:text-lg font-bold text-ink mt-3 tnum">
                 {c.pressureHpa || 1013}{' '}
-                <span className="text-xs font-normal text-ink-3 font-mono">hPa</span>
+                <span className="text-[11px] font-normal text-ink-3 font-mono">hPa</span>
               </div>
             </div>
 
             {/* UV Index */}
-            <div className="glass-card rounded-2xl p-3.5 flex flex-col justify-between shadow-sm transition-all">
+            <div className="glass-card rounded-2xl p-3.5 flex flex-col justify-between shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-250">
               <div className="flex items-center justify-between">
-                <span className="text-[10px] font-mono font-semibold tracking-wider text-ink-3 uppercase">UV Index</span>
-                <span className="text-xs">☀️</span>
+                <span className="text-[10px] font-mono font-bold tracking-wider text-ink-3 uppercase">UV Index</span>
+                <span className="flex h-6 w-6 items-center justify-center rounded-lg bg-amber-500/15 text-xs">☀️</span>
               </div>
-              <div className="text-base sm:text-lg font-bold text-ink mt-2 tnum">
+              <div className="text-base sm:text-lg font-bold text-ink mt-3 tnum">
                 {c.uv ?? 2}
               </div>
             </div>
 
             {/* Sunset */}
-            <div className="glass-card rounded-2xl p-3.5 flex flex-col justify-between shadow-sm transition-all">
+            <div className="glass-card rounded-2xl p-3.5 flex flex-col justify-between shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-250">
               <div className="flex items-center justify-between">
-                <span className="text-[10px] font-mono font-semibold tracking-wider text-ink-3 uppercase">Sunset</span>
-                <span className="text-xs">🌅</span>
+                <span className="text-[10px] font-mono font-bold tracking-wider text-ink-3 uppercase">Sunset</span>
+                <span className="flex h-6 w-6 items-center justify-center rounded-lg bg-orange-500/15 text-xs">🌅</span>
               </div>
-              <div className="text-base sm:text-lg font-bold text-ink mt-2 tnum">
+              <div className="text-base sm:text-lg font-bold text-ink mt-3 tnum">
                 {c.sunset || '18:44'}
               </div>
             </div>

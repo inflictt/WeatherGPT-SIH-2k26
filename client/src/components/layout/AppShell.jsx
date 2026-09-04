@@ -2,6 +2,7 @@ import { useEffect } from 'react'
 import { useLocation } from 'react-router-dom'
 import useTheme from '../../lib/useTheme'
 import { useActiveWarnings } from '../../lib/DataContext'
+import DynamicBackdrop from './DynamicBackdrop'
 import SideNav from './SideNav'
 import MobileNav from './MobileNav'
 import TopHeader from './TopHeader'
@@ -18,8 +19,8 @@ export default function AppShell({ children, lang, setLang, picker, prefs, setPr
 
   return (
     <div className="relative flex min-h-screen">
-      {/* Immersive Windows/MSN Weather dynamic atmospheric background */}
-      <div className="weather-backdrop" aria-hidden="true" />
+      {/* Immersive Dynamic Weather Atmospheric Wallpaper */}
+      <DynamicBackdrop />
 
       <a
         href="#main"
