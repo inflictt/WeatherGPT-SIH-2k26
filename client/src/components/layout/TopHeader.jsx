@@ -5,7 +5,7 @@ import LangToggle from './LangToggle'
 import ThemeToggle from './ThemeToggle'
 
 export default function TopHeader({ lang, setLang, picker, resolved, toggleTheme, prefs, setPrefs }) {
-  const { current, location, warnings } = useData()
+  const { current, location, warnings, loading, refresh } = useData()
   const fmt = formatters(prefs?.units)
   const isImperial = prefs?.units === 'imperial'
 
@@ -64,8 +64,30 @@ export default function TopHeader({ lang, setLang, picker, resolved, toggleTheme
           <LocationPicker picker={picker} />
         </div>
 
-        {/* Right: Controls (°C/°F Unit Switcher, Language, Theme) */}
+        {/* Right: Controls (Refresh Now, °C/°F Unit Switcher, Language, Theme) */}
         <div className="flex items-center gap-2 order-2 sm:order-3">
+          {/* Refresh Now Button (1-min auto refresh sync) */}
+          <button
+            onClick={() => refresh && refresh()}
+            disabled={loading}
+            title="Refresh weather data now (Auto-refreshes every 60s)"
+            className="glass-pill px-2.5 py-1 rounded-lg font-mono text-xs font-semibold text-ink hover:bg-raised active:scale-95 transition-all duration-150 flex items-center gap-1.5 disabled:opacity-60"
+            aria-label="Refresh weather data"
+          >
+            <svg
+              className={`w-3.5 h-3.5 text-ink-2 ${loading ? 'animate-spin text-iris' : 'group-hover:rotate-180 transition-transform duration-500'}`}
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              strokeWidth="2.2"
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+            </svg>
+            <span className="hidden md:inline text-[11px] text-ink-2 font-medium">
+              {loading ? 'Updating…' : 'Refresh'}
+            </span>
+          </button>
+
           {/* Unit Toggle */}
           <button
             onClick={toggleUnits}

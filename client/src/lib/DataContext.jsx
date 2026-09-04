@@ -96,6 +96,11 @@ export function DataProvider({ children, query = { q: 'Kapriwas' }, persona = 'g
 
   useEffect(() => {
     load()
+    // Auto-refresh weather data every 60 seconds (1 minute)
+    const interval = setInterval(() => {
+      load()
+    }, 60000)
+    return () => clearInterval(interval)
   }, [load])
 
   const value = useMemo(() => ({ ...state, refresh: load }), [state, load])
