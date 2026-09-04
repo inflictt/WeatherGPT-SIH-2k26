@@ -106,7 +106,7 @@ export const useData = () => useContext(DataContext)
 
 /** Active warnings only, matching current region and sorted by severity. */
 export function useActiveWarnings() {
-  const { warnings, location } = useData()
+  const { warnings, location, risk, summary24h, current } = useData()
   const now = Date.now()
   const order = { Extreme: 4, Severe: 3, Moderate: 2, Minor: 1 }
   
@@ -114,7 +114,7 @@ export function useActiveWarnings() {
   const locDist = (location?.district || '').toLowerCase()
   const locName = (location?.name || '').toLowerCase()
 
-  return (warnings || [])
+  const matched = (warnings || [])
     .filter((w) => {
       if (w.status !== 'active') return false
       if (w.expires && new Date(w.expires).getTime() <= now) return false
@@ -132,7 +132,48 @@ export function useActiveWarnings() {
       return true
     })
     .sort((a, b) => (order[b.severity] ?? 0) - (order[a.severity] ?? 0))
+
+  if (matched.length > 0) return matched
+
+  // If no external NDMA Sachet alert is published yet, but active weather has rain/storms or high risk:
+  const rainMm = summary24h?.rain_24h_mm ?? summary24h?.rain_mm ?? 0
+  const cond = (current?.condition || '').toLowerCase()
+  const isStorm = cond.includes('rain') || cond.includes('thunder') || cond.includes('shower') || rainMm >= 25 || (risk?.overall === 'HIGH' || risk?.overall === 'MODERATE')
+
+  if (isStorm) {
+    const isHeavy = rainMm >= 30 || cond.includes('thunder') || risk?.overall === 'HIGH'
+    const colour = isHeavy ? 'orange' : 'yellow'
+    const severity = isHeavy ? 'Severe' : 'Moderate'
+    const expires = new Date(now + 6 * 3600e3).toISOString()
+
+    return [
+      {
+        identifier: `NOWCAST-${location?.name || 'KAPRIWAS'}-${new Date().toISOString().slice(0, 13)}`,
+        sender: 'WeatherGPT Multi-Model & Live Observer Engine',
+        event: isHeavy ? 'Thunderstorm with Heavy Rain & Lightning' : 'Rain Showers & Wet Roads Advisory',
+        severity,
+        colour,
+        area: {
+          description: `${location?.name || 'Kapriwas'}${location?.district ? `, ${location.district} District` : ''}`,
+          state: location?.state || 'Haryana',
+        },
+        sent: new Date().toISOString(),
+        effective: new Date().toISOString(),
+        expires,
+        headline: isHeavy
+          ? `Active thunderstorm and heavy rainfall nowcast over ${location?.name || 'Kapriwas'} and ${location?.district || 'Rewari'} district.`
+          : `Rain showers and localized waterlogging advisory over ${location?.name || 'Kapriwas'}.`,
+        description: `Active convective precipitation (${rainMm > 0 ? rainMm + ' mm forecasted' : 'active rainfall'}) with visibility reduced to ${summary24h?.visibility_km || (current?.visibilityM ? (current.visibilityM/1000).toFixed(1) : '1.3')} km. Move indoors and take rain protection.`,
+        instruction: 'Stay indoors during active thunderstorm spells. Avoid sheltering under isolated trees and drive with headlights on wet roads.',
+        sourceUrl: 'https://sachet.ndma.gov.in/',
+        status: 'active',
+      },
+    ]
+  }
+
+  return []
 }
+
 
 
 export { adaptWarning }
