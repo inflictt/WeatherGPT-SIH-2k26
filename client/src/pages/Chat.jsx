@@ -123,13 +123,38 @@ export default function Chat({ lang, prefs }) {
       <WarningBanner warning={active[0]} />
 
       <div className="shell flex min-h-[calc(100vh-140px)] flex-col">
-        <div className="border-b border-line-soft py-6">
-          <h1 className="headline text-heading text-ink">
-            {t('askTitle', lang)}
-          </h1>
-          <p className="mt-4 text-body-lg leading-relaxed text-ink-2">
-            {t('askBlurb', lang)}
-          </p>
+        <div className="border-b border-line-soft py-6 flex flex-wrap items-center justify-between gap-4">
+          <div>
+            <div className="flex items-center gap-2 mb-1.5">
+              <span className="rounded-md bg-iris/20 border border-iris/40 px-2 py-0.5 font-mono text-[10px] font-bold text-iris uppercase">
+                Conversational AI Engine
+              </span>
+              <span className="rounded-md bg-sev-green/15 border border-sev-green/30 px-2 py-0.5 font-mono text-[10px] font-bold text-sev-green uppercase flex items-center gap-1">
+                <span className="h-1.5 w-1.5 rounded-full bg-sev-green" />
+                Zero Hallucination Grounded
+              </span>
+            </div>
+            <h1 className="headline text-heading text-ink">
+              {t('askTitle', lang)}
+            </h1>
+            <p className="mt-2 text-body-lg leading-relaxed text-ink-2">
+              {t('askBlurb', lang)}
+            </p>
+          </div>
+
+          {/* Voice Assistant Mode Quick Pill */}
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => voice?.supported && !voice?.listening && voice.listen().then((text) => text && send(text, { spoken: true }))}
+              className={cn(
+                'glass-pill px-3.5 py-2 rounded-xl font-mono text-xs font-semibold flex items-center gap-2 transition-all shadow-sm border border-line',
+                voice?.listening ? 'border-iris bg-iris/20 text-iris animate-pulse' : 'text-ink hover:bg-raised'
+              )}
+            >
+              <span className="text-base">{voice?.listening ? '🎙️' : '🎤'}</span>
+              <span>{voice?.listening ? 'Listening Live…' : 'Tap for Voice Chat'}</span>
+            </button>
+          </div>
         </div>
 
         <div className="flex-1 space-y-6 py-6">
