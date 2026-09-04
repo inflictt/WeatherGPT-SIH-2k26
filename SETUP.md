@@ -255,7 +255,58 @@ Then add the Vercel URL to `CORS_ORIGINS` on the API and redeploy.
 
 ---
 
-## 9. Phase 4 — the one key you will eventually need
+## 9. Optional keys — the agriculture models and Gemini
+
+Everything above works without these. What they add, and what happens without
+them, is deliberately visible in the product rather than hidden:
+
+```bash
+# server/.env
+
+# Crop Doctor and Soil Check (PRD §7, §8). One token covers both models.
+#   https://huggingface.co/settings/tokens  — a free read token is enough
+HF_TOKEN=hf_...
+
+# The prose layer (PRD §10). Gemini rewrites six fields and nothing else.
+#   https://aistudio.google.com/apikey  — free tier is generous
+GEMINI_API_KEY=...
+GEMINI_MODEL=gemini-2.5-flash
+```
+
+**Without `HF_TOKEN`** the two image screens say "no model is connected",
+explain what a real result looks like, and offer no verdict. There is no code
+path that invents a class — `/api/agriculture/models` reports `configured:
+false` and the interface hides the analyse button rather than offering one
+that fails.
+
+**Without `GEMINI_API_KEY`** every answer is still complete. The deterministic
+composer produces the whole structured response — summary, risk band,
+confidence, actions, sources — and Gemini only ever rewrites its prose. The
+answer's own footer says `phrased locally` instead of `phrased by Gemini`, so
+nobody has to guess. Deleting the key changes how well the product reads,
+never what it says, and there is a test for that.
+
+A rewrite that introduces a figure not in the retrieved data, changes a risk
+band, drops a recommended action or names a chemical is discarded whole, and
+the deterministic answer is kept.
+
+## Keys that do nothing
+
+If you have set any of these, they are read by nothing in this codebase and
+can be deleted:
+
+```
+OPENWEATHER_API_KEY   WEATHERAPI_KEY   TOMORROW_API_KEY   GOOGLE_MAPS_WEATHER_KEY
+```
+
+Forecasts come from Open-Meteo, which needs no key and returns three models in
+one call — the spread between them is what the confidence engine reads, and a
+single-model paid source would make that worse, not better. Carrying an unused
+credential is a liability rather than a feature.
+
+---
+
+## 10. Phase 4 — the one key you will eventually need
 
 Phase 4 adds a language model for parsing questions and phrasing answers.
 Several are free:
@@ -273,7 +324,7 @@ architecture — and it means a free tier running out cannot embarrass you.
 
 ---
 
-## 10. Things that will bite you
+## 11. Things that will bite you
 
 1. **Nominatim will block you** if you leave the placeholder `CONTACT_EMAIL`.
    Put a real address in. It is in their usage policy.
@@ -289,7 +340,7 @@ architecture — and it means a free tier running out cannot embarrass you.
 
 ---
 
-## 11. Where these choices came from
+## 12. Where these choices came from
 
 Cross-checked against the two lists you shared:
 

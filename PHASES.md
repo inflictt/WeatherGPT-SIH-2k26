@@ -134,3 +134,46 @@ arriving on a phone has not been observed.
 - Rehearse the 90-second demo until it is boring
 
 **Done when** the evaluation report is a slide.
+
+---
+
+## Phase 8 — Farmer's Friend ✅ **engines and API done**
+
+The agricultural layer of the Master PRD, built on top of the weather and
+warning architecture rather than replacing it.
+
+Done:
+
+- `ai/app/agriculture/` — irrigation, the nine-category farm risk engine,
+  weather-aware disease fusion, an eight-crop calendar, and the context bundle
+  a language model is allowed to read. Pure Python, 232 tests, boundaries
+  checked on both sides of every threshold.
+- Every endpoint in PRD §42, plus §43's `POST /api/ai/farmer-friend/chat`.
+- `Farm` and `AIInference` models. Coordinates are `select: false` *and*
+  stripped in `toJSON`; deleting a farm deletes its inference log.
+- The Gemini layer — prose only, behind a gate that discards any rewrite
+  introducing a figure, changing a band, dropping an action or naming a
+  chemical.
+- The HuggingFace proxy for both image models, which has **no path that
+  returns a plausible class** when the model is unavailable.
+- Frontend: Farm Connect, Crop Doctor, Soil Check, the planner, and a Today
+  screen that opens with a sentence composed from IMD thresholds.
+- 73 server tests, 11 of them against a real MongoDB — the first time anything
+  in this project had been run against a database.
+
+**Remaining:** a real `HF_TOKEN` and `GEMINI_API_KEY`. Both are configuration,
+not code: the endpoints, the validation and the degraded paths are all built
+and tested, and the product says out loud which of them is missing.
+
+Not started, and deliberately so:
+
+- **AgriChat (PRD §9).** The context bundle it would consume exists; what is
+  missing is a reason to prefer it over the deterministic composer, which
+  currently produces every answer with no model at all.
+- **§32's ablation study and §33's metrics.** `AIInference` was designed to
+  make them possible — it logs the raw model prediction, the fused band and
+  the composer used — but nothing analyses that log yet.
+- **Pest risk.** It needs scouting or trap counts. A weather-only pest score
+  would be a number with nothing behind it, so the engine returns
+  "not assessed" and says why.
+

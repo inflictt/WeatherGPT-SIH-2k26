@@ -1,41 +1,19 @@
-# Dependencies
 node_modules/
-**/node_modules/
-.venv/
-**/.venv/
-__pycache__/
-**/__pycache__/
-*.pyc
-**/*.pyc
-.pytest_cache/
-**/.pytest_cache/
-
-# Production builds
 dist/
-**/dist/
-dist-standalone/
-
-# Environment variables & secrets
+.venv/
+__pycache__/
+*.pyc
 .env
-.env.*
 .env.local
-**/.env
-**/.env.*
-**/.env.local
-
-# Logs
 *.log
-**/*.log
-
-# OS & Editor
 .DS_Store
-**/.DS_Store
-.claude/
 
-# Large datasets downloaded on demand
+# large free datasets, downloaded on demand (see SETUP.md §7)
 server/data/IN.txt
 server/data/IN.zip
 server/data/admin1CodesASCII.txt
 server/data/admin2Codes.txt
-data/IN.txt
-data/IN.zip
+
+# scratch: local preview config
+.claude/launch.json
+dist-standalone/

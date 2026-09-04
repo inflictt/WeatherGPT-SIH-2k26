@@ -1,4 +1,4 @@
-# WeatherGPT-SIH-2k26
+# WeatherGPT
 
 **Conversational weather intelligence and early warning for India.**
 SIH26068 · *From weather forecasts to actionable warnings*
