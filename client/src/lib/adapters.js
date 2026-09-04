@@ -231,6 +231,7 @@ export function adaptAssessment(res) {
     // it, so the "umbrella / outdoors" verdicts come from the same figures the
     // risk band did rather than from a second, drifting calculation.
     summary24h: res.summary24h || null,
+    sectorDecisions: res.sectorDecisions || null,
     warnings,
     risk: adaptRisk(res.risk),
     confidence: adaptConfidence(res.confidence),

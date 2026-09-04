@@ -79,6 +79,7 @@ export function DataProvider({ children, query = { q: 'Kapriwas' }, persona = 'g
           sources: a.sources.length ? a.sources : MOCK.sources,
           advice: a.advice,
           summary24h: a.summary24h || MOCK.summary24h,
+          sectorDecisions: a.sectorDecisions || null,
           checkedAt: a.checkedAt,
         })
         return

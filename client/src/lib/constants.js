@@ -76,6 +76,7 @@ export const NAV = [
   { to: '/chat', label: 'Ask' },
   { to: '/alerts', label: 'Alerts' },
   { to: '/map', label: 'Map' },
+  { to: '/dev', label: 'Dev / Telemetry' },
   { to: '/settings', label: 'Settings' },
 ]
 
@@ -98,7 +99,8 @@ export const ACTIVE_LANGUAGES = LANGUAGES.filter((l) => l.ready)
 
 export const PERSONAS = [
   { key: 'general', label: 'General', blurb: 'Plain answers about your day.' },
-  { key: 'farmer', label: 'Farmer', blurb: 'Irrigation, spraying and harvest timing.' },
-  { key: 'traveller', label: 'Traveller', blurb: 'Road conditions, visibility and gusts.' },
-  { key: 'official', label: 'Local admin', blurb: 'Block-level alerts ranked by severity.' },
+  { key: 'farmer', label: '🌾 Farmer (Agromet)', blurb: 'Irrigation, spraying and harvest timing.' },
+  { key: 'marine', label: '⛵ Fishermen / Coast', blurb: 'IMD small-craft warning, wave swell and gale thresholds.' },
+  { key: 'traveller', label: '🚗 Traveller / Road', blurb: 'Road conditions, visibility and gusts.' },
+  { key: 'official', label: '🏙️ City Admin', blurb: 'Block-level alerts and waterlogging triggers.' },
 ]

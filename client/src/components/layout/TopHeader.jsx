@@ -1,11 +1,14 @@
+import { useState } from 'react'
 import { useData } from '../../lib/DataContext'
 import { formatters } from '../../lib/usePreferences'
 import LocationPicker from './LocationPicker'
 import LangToggle from './LangToggle'
 import ThemeToggle from './ThemeToggle'
+import ApiSettingsModal from '../ui/ApiSettingsModal'
 
 export default function TopHeader({ lang, setLang, picker, resolved, toggleTheme, prefs, setPrefs }) {
   const { current, location, warnings, loading, refresh } = useData()
+  const [showApiModal, setShowApiModal] = useState(false)
   const fmt = formatters(prefs?.units)
   const isImperial = prefs?.units === 'imperial'
 
@@ -18,8 +21,13 @@ export default function TopHeader({ lang, setLang, picker, resolved, toggleTheme
   return (
     <header className="sticky top-0 z-40 w-full glass-panel border-b border-line px-4 py-2.5 sm:px-6">
       <div className="flex flex-wrap items-center justify-between gap-3 max-w-7xl mx-auto">
-        {/* Left: Location & Condition Quick View */}
+        {/* Left: Brand Logo & Location Quick View */}
         <div className="flex items-center gap-3">
+          <a href="#/" className="flex items-center gap-2 group" title="WeatherGPT Home">
+            <img src="/favicon.svg" alt="WeatherGPT Logo" className="w-7 h-7 rounded-lg shadow-md group-hover:scale-105 transition-transform" />
+            <span className="font-display font-bold text-base text-ink tracking-tight hidden lg:inline">WeatherGPT</span>
+          </a>
+
           <div className="flex items-center gap-2 glass-pill px-3 py-1.5 rounded-lg">
             <span className="text-iris text-sm">📍</span>
             <span className="font-display font-light text-sm text-ink">
@@ -101,8 +109,20 @@ export default function TopHeader({ lang, setLang, picker, resolved, toggleTheme
 
           <LangToggle lang={lang} setLang={setLang} />
           <ThemeToggle resolved={resolved} toggle={toggleTheme} />
+
+          {/* API Keys / Ensemble Settings Modal Button */}
+          <button
+            onClick={() => setShowApiModal(true)}
+            title="Ensemble Settings & Custom API Keys"
+            className="glass-pill px-2.5 py-1 rounded-lg font-mono text-xs text-ink hover:bg-raised transition-colors duration-150 flex items-center gap-1"
+          >
+            <span>⚙️</span>
+            <span className="hidden xl:inline text-[11px] text-ink-2">Ensemble</span>
+          </button>
         </div>
       </div>
+
+      <ApiSettingsModal isOpen={showApiModal} onClose={() => setShowApiModal(false)} />
     </header>
   )
 }
