@@ -1,36 +1,31 @@
 import { useEffect, useRef, useState } from 'react'
 import { cn } from '../../lib/utils'
 
-/**
- * The place switcher.
- *
- * Opens as a popover from the current location, because the current location
- * *is* the button — there is no separate label taking up space to say what a
- * chevron next to a place name already says.
- *
- * Escape closes, an outside click closes, and focus lands in the field on open,
- * so someone who reaches for it by keyboard can type immediately.
- */
+const POPULAR_INDIAN_CITIES = [
+  { name: 'New Delhi', lat: 28.6139, lon: 77.209, state: 'Delhi', country: 'India' },
+  { name: 'Mumbai', lat: 19.076, lon: 72.8777, state: 'Maharashtra', country: 'India' },
+  { name: 'Bengaluru', lat: 12.9716, lon: 77.5946, state: 'Karnataka', country: 'India' },
+  { name: 'Hyderabad', lat: 17.385, lon: 78.4867, state: 'Telangana', country: 'India' },
+  { name: 'Ahmedabad', lat: 23.0225, lon: 72.5714, state: 'Gujarat', country: 'India' },
+  { name: 'Chennai', lat: 13.0827, lon: 80.2707, state: 'Tamil Nadu', country: 'India' },
+  { name: 'Kolkata', lat: 22.5726, lon: 88.3639, state: 'West Bengal', country: 'India' },
+  { name: 'Pune', lat: 18.5204, lon: 73.8567, state: 'Maharashtra', country: 'India' },
+  { name: 'Jaipur', lat: 26.9124, lon: 75.7873, state: 'Rajasthan', country: 'India' },
+  { name: 'Surat', lat: 21.1702, lon: 72.8311, state: 'Gujarat', country: 'India' },
+]
+
 export default function LocationPicker({ picker, className }) {
   const [open, setOpen] = useState(false)
-  const rootRef = useRef(null)
   const inputRef = useRef(null)
 
-  const { location, query, setQuery, results, searching, recents, gps, error } = picker
+  const { location, query, setQuery, results, searching, gps } = picker
 
   useEffect(() => {
     if (!open) return undefined
     const onKey = (e) => e.key === 'Escape' && setOpen(false)
-    const onClick = (e) => {
-      if (rootRef.current && !rootRef.current.contains(e.target)) setOpen(false)
-    }
     document.addEventListener('keydown', onKey)
-    document.addEventListener('mousedown', onClick)
-    inputRef.current?.focus()
-    return () => {
-      document.removeEventListener('keydown', onKey)
-      document.removeEventListener('mousedown', onClick)
-    }
+    setTimeout(() => inputRef.current?.focus(), 50)
+    return () => document.removeEventListener('keydown', onKey)
   }, [open])
 
   function choose(row) {
@@ -38,146 +33,115 @@ export default function LocationPicker({ picker, className }) {
     setOpen(false)
   }
 
-  const gpsMessage =
-    gps === 'denied'
-      ? 'Location access is blocked. Allow it in your browser settings, or search above.'
-      : gps === 'unsupported'
-        ? 'This browser cannot report a location. Search instead.'
-        : gps === 'failed'
-          ? "Couldn't get a fix. Try again, or search above."
-          : null
-
   return (
-    <div ref={rootRef} className={cn('relative', className)}>
+    <div className={cn('relative', className)}>
+      {/* Trigger Button */}
       <button
         type="button"
-        onClick={() => setOpen((v) => !v)}
-        aria-expanded={open}
-        aria-haspopup="dialog"
-        className={cn(
-          'flex min-h-[44px] w-full items-center gap-2 rounded-lg border px-3 py-2 text-left',
-          'transition-colors duration-250 ease-out',
-          open ? 'border-accent/45 bg-raised' : 'border-line hover:border-ink-3 hover:bg-raised',
-        )}
+        onClick={() => setOpen(true)}
+        className="flex min-h-[44px] w-full items-center gap-2 rounded-xl border border-line bg-surface-2/60 px-3 py-2 text-left transition-all hover:bg-surface-2 hover:border-line-hover shadow-sm"
       >
-        <svg viewBox="0 0 24 24" className="h-4 w-4 flex-none text-ink-3" fill="none"
-          stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-          <path d="M12 21s7-5.6 7-11a7 7 0 1 0-14 0c0 5.4 7 11 7 11Z" />
-          <circle cx="12" cy="10" r="2.5" />
-        </svg>
+        <span className="text-amber-400 text-sm">📍</span>
         <span className="min-w-0 flex-1">
-          <span className="block truncate text-[13.5px] text-ink">
-            {location?.name || 'Choose a location'}
+          <span className="block truncate text-xs font-bold text-ink font-mono">
+            {location?.name || 'Choose Location'}
           </span>
           {(location?.district || location?.state) && (
-            <span className="block truncate font-mono text-[9.5px] uppercase tracking-[0.11em] text-ink-3">
+            <span className="block truncate font-mono text-[9.5px] uppercase tracking-wider text-ink-3">
               {[location.district && `${location.district} district`, location.state]
                 .filter(Boolean)
                 .join(', ')}
             </span>
           )}
         </span>
-        <svg viewBox="0 0 24 24" aria-hidden="true"
-          className={cn('h-3.5 w-3.5 flex-none text-ink-3 transition-transform duration-250', open && 'rotate-180')}
-          fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
-          <path d="m6 9 6 6 6-6" />
-        </svg>
+        <span className="text-ink-3 text-xs">▼</span>
       </button>
 
+      {/* Select Location Modal */}
       {open && (
-        <div
-          role="dialog"
-          aria-label="Choose a location"
-          className="absolute left-0 right-0 top-[calc(100%+6px)] z-50 overflow-hidden rounded-lg border border-line bg-surface"
-        >
-          <div className="border-b border-line-soft p-2">
-            <input
-              ref={inputRef}
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              placeholder="Village, town or district…"
-              aria-label="Search for a place"
-              className="h-10 w-full rounded bg-raised px-3 text-[13.5px] text-ink placeholder:text-ink-3 focus:outline-none focus:ring-2 focus:ring-accent/35"
-            />
-          </div>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4 animate-fadeIn">
+          <div className="w-full max-w-lg overflow-hidden rounded-3xl glass-panel border border-line bg-surface/95 shadow-2xl space-y-4 p-5 sm:p-6">
+            {/* Modal Header */}
+            <div className="flex items-center justify-between border-b border-line pb-4">
+              <h3 className="font-display text-lg font-bold text-ink tracking-tight">
+                Select Location
+              </h3>
+              <button
+                onClick={() => setOpen(false)}
+                className="text-ink-3 hover:text-ink font-mono text-base p-1"
+                aria-label="Close"
+              >
+                ✕
+              </button>
+            </div>
 
-          <div className="max-h-[46vh] overflow-y-auto">
+            {/* GPS Auto-Detect Golden Button */}
             <button
-              type="button"
-              onClick={picker.useMyLocation}
+              onClick={() => {
+                picker.useMyLocation()
+                setOpen(false)
+              }}
               disabled={gps === 'locating'}
-              className="flex w-full items-center gap-2.5 border-b border-line-soft px-3 py-3 text-left transition-colors duration-200 hover:bg-raised disabled:opacity-60"
+              className="w-full rounded-2xl bg-amber-500 hover:bg-amber-400 text-black py-3.5 px-4 font-mono text-xs sm:text-sm font-bold flex items-center justify-center gap-2 transition-all shadow-lg active:scale-[0.99]"
             >
-              <svg viewBox="0 0 24 24" className="h-4 w-4 flex-none text-ink-3" fill="none"
-                stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
-                <circle cx="12" cy="12" r="3.2" />
-                <path d="M12 2v3M12 19v3M2 12h3M19 12h3" />
-              </svg>
-              <span className="text-[13px] text-ink">
-                {gps === 'locating' ? 'Finding you…' : 'Use my location'}
-              </span>
+              <span>📍</span>
+              <span>{gps === 'locating' ? 'Acquiring GPS Signal…' : 'Use Current Location (GPS)'}</span>
             </button>
 
-            {gpsMessage && (
-              <p role="alert" className="border-b border-line-soft px-3 py-2.5 text-[12px] leading-relaxed text-sev-orange">
-                {gpsMessage}
-              </p>
-            )}
+            {/* Search Input Box */}
+            <div className="relative">
+              <input
+                ref={inputRef}
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder="Search any city or state..."
+                className="w-full rounded-2xl border border-line bg-surface-2/80 py-3 px-4 text-xs font-mono text-ink placeholder:text-ink-3 focus:border-amber-400 focus:outline-none transition-all"
+              />
+              {searching && (
+                <span className="absolute right-3.5 top-3 text-xs font-mono text-amber-400 animate-pulse">
+                  Searching…
+                </span>
+              )}
+            </div>
 
-            {searching && (
-              <p className="px-3 py-3 text-[12.5px] text-ink-3" aria-busy="true">Searching…</p>
-            )}
-
-            {!searching && query.trim().length >= 2 && results.length === 0 && (
-              <p className="px-3 py-3 text-[12.5px] leading-relaxed text-ink-3">
-                {error === 'no-api'
-                  ? 'Search needs the API. Set VITE_API_URL, or pick a recent place below.'
-                  : `No place matching “${query.trim()}”. Try the district name.`}
-              </p>
-            )}
-
-            {results.map((r) => (
-              <Row key={r.id} row={r} onPick={choose} />
-            ))}
-
-            {!query.trim() && recents.length > 0 && (
-              <>
-                <p className="px-3 pb-1 pt-3 font-mono text-[9px] uppercase tracking-[0.13em] text-ink-3">
-                  Recent
-                </p>
-                {recents.map((r) => (
-                  <Row key={r.id} row={r} onPick={choose} active={r.id === location?.id} />
+            {/* Search Results if any */}
+            {query.trim().length > 0 && results && results.length > 0 && (
+              <div className="max-h-44 overflow-y-auto space-y-1 rounded-2xl border border-line bg-surface-2/40 p-2">
+                {results.map((r, i) => (
+                  <button
+                    key={i}
+                    onClick={() => choose(r)}
+                    className="w-full text-left px-3 py-2 rounded-xl text-xs font-mono text-ink hover:bg-surface-3 transition-colors flex items-center justify-between"
+                  >
+                    <span>{r.name}, {r.district || r.state}</span>
+                    <span className="text-ink-3 text-[10px] uppercase">{r.state}</span>
+                  </button>
                 ))}
-              </>
+              </div>
             )}
+
+            {/* Popular Cities in India Section */}
+            <div className="space-y-2.5 pt-2">
+              <span className="font-mono text-[10.5px] uppercase tracking-wider text-ink-3 font-semibold block">
+                Popular Cities in India
+              </span>
+
+              <div className="grid grid-cols-2 gap-2 max-h-56 overflow-y-auto pr-1">
+                {POPULAR_INDIAN_CITIES.map((c) => (
+                  <button
+                    key={c.name}
+                    onClick={() => choose(c)}
+                    className="rounded-2xl border border-line bg-surface-2/60 hover:bg-surface-2 hover:border-line-hover p-3 text-left font-mono text-xs font-semibold text-ink transition-all shadow-sm flex items-center justify-between"
+                  >
+                    <span>{c.name}</span>
+                    <span className="text-[10px] text-ink-3 font-normal">{c.state}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
           </div>
         </div>
       )}
     </div>
-  )
-}
-
-function Row({ row, onPick, active = false }) {
-  return (
-    <button
-      type="button"
-      onClick={() => onPick(row)}
-      className={cn(
-        'flex w-full items-baseline gap-2 px-3 py-2.5 text-left transition-colors duration-200 hover:bg-raised',
-        active && 'bg-accent-dim',
-      )}
-    >
-      <span className="min-w-0 flex-1">
-        <span className="block truncate text-[13.5px] text-ink">{row.name}</span>
-        <span className="block truncate font-mono text-[9.5px] uppercase tracking-[0.11em] text-ink-3">
-          {[row.district, row.state].filter(Boolean).join(', ') || row.kind || ''}
-        </span>
-      </span>
-      {row.kind && (
-        <span className="flex-none font-mono text-[9px] uppercase tracking-[0.11em] text-ink-3">
-          {row.kind}
-        </span>
-      )}
-    </button>
   )
 }

@@ -4,9 +4,10 @@ import { useActiveWarnings, useData } from '../lib/DataContext'
 import WarningBanner from '../components/warning/WarningBanner'
 import Hero from '../components/weather/Hero'
 import TelemetryGauges from '../components/weather/TelemetryGauges'
-import ForecastPanel from '../components/weather/ForecastPanel'
-import StatusTiles from '../components/weather/StatusTiles'
+import HourlyPills from '../components/weather/HourlyPills'
 import DailyList from '../components/weather/DailyList'
+import MultiHazardMatrix from '../components/risk/MultiHazardMatrix'
+import StatusTiles from '../components/weather/StatusTiles'
 import ConfidencePanel from '../components/weather/ConfidencePanel'
 import Recommendations from '../components/weather/Recommendations'
 import RiskPanel from '../components/risk/RiskPanel'
@@ -136,14 +137,21 @@ export default function Home({ persona, setPersona, prefs, picker }) {
         {/* 24-Hour Graph View */}
         {activeTab === '24h' && (
           <Reveal>
-            <ForecastPanel prefs={prefs} />
+            <HourlyPills />
           </Reveal>
         )}
 
         {/* 7-Day Detailed View */}
         {activeTab === '7day' && (
           <Reveal>
-            <DailyList prefs={prefs} />
+            <DailyList />
+          </Reveal>
+        )}
+
+        {/* Agro-Risk View */}
+        {activeTab === 'agro' && (
+          <Reveal>
+            <MultiHazardMatrix />
           </Reveal>
         )}
 
@@ -151,16 +159,6 @@ export default function Home({ persona, setPersona, prefs, picker }) {
         {activeTab === 'monthly' && (
           <Reveal>
             <MonthlyForecast prefs={prefs} />
-          </Reveal>
-        )}
-
-        {/* Agro-Risk View */}
-        {activeTab === 'agro' && (
-          <Reveal>
-            <div className="space-y-6">
-              <Recommendations persona="farmer" setPersona={setPersona} />
-              <RiskPanel />
-            </div>
           </Reveal>
         )}
 

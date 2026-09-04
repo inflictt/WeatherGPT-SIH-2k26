@@ -57,45 +57,75 @@ export default function MapView({ prefs }) {
           </div>
 
           {/* Map Layer Mode Switcher */}
-          <div className="flex flex-wrap items-center gap-1.5 rounded-xl border border-line bg-surface-2/60 p-1 backdrop-blur-sm">
-            <button
-              onClick={() => setMapMode('warnings')}
-              className={cn(
-                'rounded-lg px-3 py-1.5 font-mono text-xs font-semibold transition-all',
-                mapMode === 'warnings' ? 'bg-iris text-white shadow-sm' : 'text-ink-3 hover:text-ink'
-              )}
-            >
-              🛰️ IMD CAP Polygons
-            </button>
-
+          <div className="flex flex-wrap items-center gap-1.5 rounded-2xl border border-line bg-surface-2/60 p-1 backdrop-blur-sm shadow-sm">
             <button
               onClick={() => setMapMode('wind')}
               className={cn(
-                'rounded-lg px-3 py-1.5 font-mono text-xs font-semibold transition-all',
-                mapMode === 'wind' ? 'bg-cyanSignal text-black shadow-sm font-bold' : 'text-ink-3 hover:text-ink'
+                'rounded-xl px-3 py-1.5 font-mono text-xs font-semibold transition-all',
+                mapMode === 'wind' ? 'bg-amber-400 text-black shadow-sm font-bold' : 'text-ink-3 hover:text-ink'
               )}
             >
-              💨 Animated Wind Stream
+              💨 Wind Stream
+            </button>
+
+            <button
+              onClick={() => setMapMode('rain')}
+              className={cn(
+                'rounded-xl px-3 py-1.5 font-mono text-xs font-semibold transition-all',
+                mapMode === 'rain' ? 'bg-amber-400 text-black shadow-sm font-bold' : 'text-ink-3 hover:text-ink'
+              )}
+            >
+              🌧️ Rain &amp; Thunder
+            </button>
+
+            <button
+              onClick={() => setMapMode('temp')}
+              className={cn(
+                'rounded-xl px-3 py-1.5 font-mono text-xs font-semibold transition-all',
+                mapMode === 'temp' ? 'bg-amber-400 text-black shadow-sm font-bold' : 'text-ink-3 hover:text-ink'
+              )}
+            >
+              🌡️ Temperature
+            </button>
+
+            <button
+              onClick={() => setMapMode('clouds')}
+              className={cn(
+                'rounded-xl px-3 py-1.5 font-mono text-xs font-semibold transition-all',
+                mapMode === 'clouds' ? 'bg-amber-400 text-black shadow-sm font-bold' : 'text-ink-3 hover:text-ink'
+              )}
+            >
+              🛰️ Satellite Clouds
             </button>
 
             <button
               onClick={() => setMapMode('radar')}
               className={cn(
-                'rounded-lg px-3 py-1.5 font-mono text-xs font-semibold transition-all',
-                mapMode === 'radar' ? 'bg-sev-orange text-white shadow-sm' : 'text-ink-3 hover:text-ink'
+                'rounded-xl px-3 py-1.5 font-mono text-xs font-semibold transition-all',
+                mapMode === 'radar' ? 'bg-amber-400 text-black shadow-sm font-bold' : 'text-ink-3 hover:text-ink'
               )}
             >
-              🌧️ Live Radar &amp; Rain
+              📡 Weather Radar
             </button>
 
             <button
-              onClick={() => setMapMode('lightning')}
+              onClick={() => setMapMode('pressure')}
               className={cn(
-                'rounded-lg px-3 py-1.5 font-mono text-xs font-semibold transition-all',
-                mapMode === 'lightning' ? 'bg-sev-yellow text-black shadow-sm font-bold' : 'text-ink-3 hover:text-ink'
+                'rounded-xl px-3 py-1.5 font-mono text-xs font-semibold transition-all',
+                mapMode === 'pressure' ? 'bg-amber-400 text-black shadow-sm font-bold' : 'text-ink-3 hover:text-ink'
               )}
             >
-              ⚡ Storms &amp; Lightning
+              🌀 Pressure Isobars
+            </button>
+
+            <button
+              onClick={() => setMapMode('warnings')}
+              className={cn(
+                'rounded-xl px-3 py-1.5 font-mono text-xs font-semibold transition-all',
+                mapMode === 'warnings' ? 'bg-iris text-white shadow-sm font-bold' : 'text-ink-3 hover:text-ink'
+              )}
+            >
+              🚨 IMD CAP Polygons
             </button>
           </div>
         </header>
