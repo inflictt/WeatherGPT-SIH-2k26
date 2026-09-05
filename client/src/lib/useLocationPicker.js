@@ -185,7 +185,13 @@ export function useLocationPicker() {
     /** What DataProvider fetches with. Coordinates win; they are unambiguous. */
     asQuery:
       location?.lat != null && location?.lon != null
-        ? { lat: location.lat, lon: location.lon }
+        ? {
+            lat: location.lat,
+            lon: location.lon,
+            ...(location.name ? { name: location.name } : {}),
+            ...(location.district ? { district: location.district } : {}),
+            ...(location.state ? { state: location.state } : {}),
+          }
         : { q: location?.name || 'Udaipur' },
   }
 }

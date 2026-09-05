@@ -75,16 +75,17 @@ const ACTIONS = {
 
 const band = (mm) => (mm >= 204.5 ? 'EXTREME' : mm >= 115.6 ? 'HIGH' : mm >= 64.5 ? 'MODERATE' : 'LOW')
 
-export function mockAnswer(text, { persona = 'general' } = {}) {
+export function mockAnswer(text, { persona = 'general', location = null, warnings = [], daily = null } = {}) {
   const nlu = parseLocally(text)
   const lang = nlu.language
-  const place = LOCATION.name
+  const place = nlu.location || location?.name || LOCATION.name
 
-  const day = DAILY[nlu.window.day_offset] || DAILY[0]
+  const day = (daily && daily[nlu.window.day_offset]) || DAILY[nlu.window.day_offset] || DAILY[0]
   const mm = day?.mm ?? 0
 
   const now = Date.now()
-  const live = WARNINGS.filter(
+  const activeList = warnings?.length ? warnings : WARNINGS
+  const live = activeList.filter(
     (w) => w.status === 'active' && (!w.expires || new Date(w.expires).getTime() > now),
   )
   const warning = live[0] || null
@@ -98,8 +99,8 @@ export function mockAnswer(text, { persona = 'general' } = {}) {
     summary = FARM_STATUS_REPLY[lang](place, Math.round(mm), 'Good')
   } else if (nlu.intent === 'warning_check') {
     summary = warning
-      ? WARNING_ONLY[lang](place, COLOUR[warning.colour][lang], warning.event)
-      : RAIN_NONE[lang](place, when)
+      ? WARNING_ONLY[lang](place, COLOUR[warning.colour]?.[lang] || warning.colour, warning.event)
+      : (lang === 'hi' ? `${place} के लिए इस समय कोई आधिकारिक सक्रिय चेतावनी नहीं है।` : lang === 'hinglish' ? `${place} ke liye is samay koi official active warning nahi hai.` : `There is no active official warning for ${place} right now.`)
   } else if (mm == null) {
     summary = NO_DATA[lang](place)
     insufficient = true

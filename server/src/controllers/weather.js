@@ -10,6 +10,9 @@ export const pointSchema = z
     lat: z.coerce.number().min(-90).max(90).optional(),
     lon: z.coerce.number().min(-180).max(180).optional(),
     q: z.string().trim().min(2).max(80).optional(),
+    name: z.string().trim().max(120).optional(),
+    district: z.string().trim().max(120).optional(),
+    state: z.string().trim().max(120).optional(),
     days: z.coerce.number().int().min(1).max(16).optional(),
     // Consumed by /assess when composing the advice block. They change the
     // closing sentence and nothing else — same forecast, same risk.

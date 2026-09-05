@@ -69,12 +69,12 @@ export async function resolveForQuestion(nlu, ctx, deps = DEPS) {
   if (previous) return { ...previous.location, resolvedFrom: 'previous-turn' }
 
   if (Number.isFinite(lat) && Number.isFinite(lon)) {
-    const found = await deps.resolveLocation({ lat, lon })
+    const found = await deps.resolveLocation({ lat, lon, name: ctx.name, district: ctx.district, state: ctx.state })
     if (found) return { ...found, resolvedFrom: 'coordinates' }
   }
 
   if (q) {
-    const found = await deps.resolveLocation({ q })
+    const found = await deps.resolveLocation({ q, name: ctx.name, district: ctx.district, state: ctx.state })
     if (found) return { ...found, resolvedFrom: 'saved' }
   }
 
@@ -155,6 +155,9 @@ export async function answerQuestion(input, deps = DEPS) {
     persona = 'general',
     lat,
     lon,
+    name,
+    district,
+    state,
     q,
     history = [],
     now = new Date(),
@@ -164,7 +167,7 @@ export async function answerQuestion(input, deps = DEPS) {
   const nlu = await deps.parseNlu(text, lang)
 
   // 2 — resolve
-  const location = await resolveForQuestion(nlu, { lat, lon, q, history }, deps)
+  const location = await resolveForQuestion(nlu, { lat, lon, q, name, district, state, history }, deps)
   if (!location) {
     // §10: missing data produces "I don't know", never an estimate. A turn we
     // cannot place is still a well-formed turn — it just says so.

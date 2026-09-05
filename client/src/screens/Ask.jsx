@@ -54,7 +54,7 @@ export default function Ask({ lang = 'en', prefs, audience }) {
       if (!LIVE) {
         setBusy(true)
         setTimeout(() => {
-          const answer = mockAnswer(clean, { persona: prefs?.persona })
+          const answer = mockAnswer(clean, { persona: prefs?.persona, location, warnings: active })
           setMessages((m) => [...m, answer])
           if (spoken && voice.canSpeak && prefs?.voiceReplies !== false) {
             voice.speak(answer.speech || answer.summary)
@@ -71,7 +71,13 @@ export default function Ask({ lang = 'en', prefs, audience }) {
           lang,
           conversationId: conversationId || undefined,
           ...(location?.lat != null
-            ? { lat: location.lat, lon: location.lon }
+            ? {
+                lat: location.lat,
+                lon: location.lon,
+                ...(location.name ? { name: location.name } : {}),
+                ...(location.district ? { district: location.district } : {}),
+                ...(location.state ? { state: location.state } : {}),
+              }
             : location?.name
               ? { q: location.name }
               : {}),
@@ -91,7 +97,7 @@ export default function Ask({ lang = 'en', prefs, audience }) {
         const raw = String(err?.message || '')
         const unreachable = /fetch|network|abort|No API configured/i.test(raw)
         if (unreachable) {
-          const answer = mockAnswer(clean, { persona: prefs?.persona })
+          const answer = mockAnswer(clean, { persona: prefs?.persona, location, warnings: active })
           setMessages((m) => [...m, notice(t('apiUnreachableSample', lang)), answer])
           if (spoken && voice.canSpeak && prefs?.voiceReplies !== false) {
             voice.speak(answer.speech || answer.summary)

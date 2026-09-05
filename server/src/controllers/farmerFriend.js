@@ -30,12 +30,15 @@ export const chatSchema = z.object({
   lang: z.enum(['en', 'hi', 'hinglish']).optional(),
   lat: z.number().min(-90).max(90).optional(),
   lon: z.number().min(-180).max(180).optional(),
+  name: z.string().max(120).optional(),
+  district: z.string().max(120).optional(),
+  state: z.string().max(120).optional(),
   q: z.string().max(120).optional(),
 })
 
 export async function chat(req, res) {
   const started = Date.now()
-  const { message, farmId, conversationId, lang, lat, lon, q } = req.body
+  const { message, farmId, conversationId, lang, lat, lon, name, district, state, q } = req.body
 
   let farm = null
   if (req.user) {
@@ -51,6 +54,9 @@ export async function chat(req, res) {
     conversationId,
     lat,
     lon,
+    name,
+    district,
+    state,
     // A farm's district is a reasonable fallback when the question names no
     // place and no coordinates were sent — it is where the crop is.
     q: q || farm?.district || undefined,

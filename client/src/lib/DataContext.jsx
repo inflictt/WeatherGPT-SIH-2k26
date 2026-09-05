@@ -66,7 +66,7 @@ export function DataProvider({ children, query = { q: 'Udaipur' }, persona = 'ge
         loading: false,
         error: null,
         degraded: a.degraded,
-        location: a.location || MOCK.location,
+        location: (query.name ? { ...(a.location || {}), name: query.name, district: query.district || a.location?.district, state: query.state || a.location?.state } : a.location) || MOCK.location,
         current: a.current || MOCK.current,
         hourly: forecast ? adaptHourly(forecast.hourly) : MOCK.hourly,
         daily: forecast ? adaptDaily(forecast.daily) : MOCK.daily,

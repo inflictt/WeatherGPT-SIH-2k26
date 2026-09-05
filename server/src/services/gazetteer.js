@@ -141,19 +141,19 @@ export async function nearestLocation(lat, lon, maxMeters = 60000) {
  * One entry point for the rest of the app: a name, or a coordinate, becomes a
  * resolved place with a district (which the warning matcher needs).
  */
-export async function resolveLocation({ q, lat, lon, state }) {
+export async function resolveLocation({ q, lat, lon, state, district, name }) {
   if (Number.isFinite(lat) && Number.isFinite(lon)) {
     const near = await nearestLocation(lat, lon)
     return {
-      name: near?.name || 'Selected location',
-      district: near?.district,
-      state: near?.state,
+      name: name || near?.name || 'Selected location',
+      district: district || near?.district,
+      state: state || near?.state,
       lat,
       lon,
       kind: near?.kind || 'village',
       zone: near?.zone || 'plains',
       urbanFloodProne: near?.urbanFloodProne || false,
-      source: near ? 'gazetteer-nearest' : 'coordinates',
+      source: name ? 'client-provided' : (near ? 'gazetteer-nearest' : 'coordinates'),
     }
   }
 
