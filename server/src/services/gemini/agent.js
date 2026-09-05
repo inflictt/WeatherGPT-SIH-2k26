@@ -38,7 +38,7 @@ export function isConfigured() {
  * 'gemini' and is surfaced in the API response, so the interface can always
  * say which produced the words on screen.
  */
-export async function explain(answer, context, { lang = 'en', timeoutMs = 9000 } = {}) {
+export async function explain(answer, context, { lang = 'en', timeoutMs = 25000 } = {}) {
   if (!env.geminiApiKey) {
     return { answer, composer: 'deterministic', rejected: null }
   }
@@ -55,7 +55,7 @@ export async function explain(answer, context, { lang = 'en', timeoutMs = 9000 }
         contents: [{ role: 'user', parts: [{ text: buildPrompt(answer, context, lang) }] }],
         generationConfig: {
           temperature: 0.2,
-          maxOutputTokens: 900,
+          maxOutputTokens: 2048,
           // Structured output, so a malformed rewrite is a parse failure
           // rather than something that half-applies.
           responseMimeType: 'application/json',
@@ -75,12 +75,17 @@ export async function explain(answer, context, { lang = 'en', timeoutMs = 9000 }
     }
 
     const data = await res.json()
-    const text = data?.candidates?.[0]?.content?.parts?.[0]?.text
+    const part =
+      data?.candidates?.[0]?.content?.parts?.find((p) => p.text && !p.thought) ||
+      data?.candidates?.[0]?.content?.parts?.[0]
+    const text = part?.text
     if (!text) return { answer, composer: 'deterministic', rejected: ['empty_response'] }
 
     let rewrite
     try {
-      rewrite = JSON.parse(text)
+      const clean = text.replace(/```(?:json)?/gi, '').replace(/```/g, '').trim()
+      const jsonMatch = clean.match(/\{[\s\S]*\}/)
+      rewrite = JSON.parse(jsonMatch ? jsonMatch[0] : clean)
     } catch {
       return { answer, composer: 'deterministic', rejected: ['unparseable_json'] }
     }

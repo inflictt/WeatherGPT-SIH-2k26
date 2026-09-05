@@ -58,10 +58,39 @@ export async function resolveForQuestion(nlu, ctx, deps = DEPS) {
   const { lat, lon, q, history = [] } = ctx
 
   if (nlu.location) {
-    const found = await deps.resolveLocation({ q: nlu.location })
+    if (
+      ctx.name &&
+      (nlu.location.toLowerCase() === ctx.name.toLowerCase() ||
+        (ctx.district && nlu.location.toLowerCase() === ctx.district.toLowerCase()))
+    ) {
+      const found = await deps.resolveLocation({
+        lat,
+        lon,
+        name: ctx.name,
+        district: ctx.district,
+        state: ctx.state,
+      })
+      if (found) return { ...found, resolvedFrom: 'question-selected' }
+    }
+    const found = await deps.resolveLocation({
+      q: nlu.location,
+      lat: ctx.lat,
+      lon: ctx.lon,
+      name: ctx.name,
+      district: ctx.district,
+      state: ctx.state,
+    })
     if (found) return { ...found, resolvedFrom: 'question' }
-    // A named place we cannot find is a dead end, not an excuse to answer
-    // about somewhere else. §10: say so rather than guess.
+    if (Number.isFinite(lat) && Number.isFinite(lon)) {
+      const fallback = await deps.resolveLocation({
+        lat,
+        lon,
+        name: ctx.name || nlu.location,
+        district: ctx.district,
+        state: ctx.state,
+      })
+      if (fallback) return { ...fallback, resolvedFrom: 'coordinates-fallback' }
+    }
     return null
   }
 

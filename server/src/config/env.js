@@ -78,7 +78,7 @@ export const env = {
   // prose. Deleting this key must change how well the product reads, never
   // what it says.
   geminiApiKey: process.env.GEMINI_API_KEY || '',
-  geminiModel: process.env.GEMINI_MODEL || 'gemini-2.5-flash',
+  geminiModel: process.env.GEMINI_MODEL || 'gemini-flash-latest',
 
   // --- schedules ---
   cronWarnings: process.env.CRON_WARNINGS || '*/5 * * * *',

@@ -117,10 +117,14 @@ export async function warningsForPoint({ lat, lon, district, state }, now = new 
     })
   }
   if (district) {
-    clauses.push({ 'area.districts': { $regex: `^${escapeRe(district)}$`, $options: 'i' } })
+    const escDist = escapeRe(district)
+    clauses.push({ 'area.districts': { $regex: escDist, $options: 'i' } })
+    clauses.push({ 'area.description': { $regex: escDist, $options: 'i' } })
   }
-  if (state && !district) {
-    clauses.push({ 'area.state': { $regex: `^${escapeRe(state)}$`, $options: 'i' } })
+  if (state) {
+    const escState = escapeRe(state)
+    clauses.push({ 'area.state': { $regex: escState, $options: 'i' } })
+    clauses.push({ 'area.description': { $regex: escState, $options: 'i' } })
   }
   if (clauses.length === 0) return []
 

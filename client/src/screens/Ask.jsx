@@ -274,21 +274,33 @@ export default function Ask({ lang = 'en', prefs, audience }) {
           className="flex items-center gap-2 rounded-xl border border-line bg-surface p-2 transition-colors duration-150 focus-within:border-accent"
         >
           <input
-            value={draft}
+            value={voice.listening && voice.interim ? voice.interim : draft}
             onChange={(e) => setDraft(e.target.value)}
-            placeholder={t('composerHint', lang)}
+            placeholder={voice.listening ? (lang === 'hi' ? 'बोलिए, सुन रहे हैं…' : 'Listening… speak now') : t('composerHint', lang)}
             aria-label="Ask about weather"
-            className="h-10 min-w-0 flex-1 bg-transparent px-2.5 text-caption text-ink outline-none placeholder:text-ink-3"
+            className={cn(
+              'h-10 min-w-0 flex-1 bg-transparent px-2.5 text-caption outline-none placeholder:text-ink-3',
+              voice.listening ? 'text-accent font-medium italic' : 'text-ink',
+            )}
           />
           {voice.supported && (
             <button
               type="button"
-              onClick={voice.listening ? voice.stopListening : () => voice.listen((text) => send(text, { spoken: true }))}
+              onClick={async () => {
+                if (voice.listening) {
+                  voice.stopListening()
+                } else {
+                  const spokenText = await voice.listen()
+                  if (spokenText && spokenText.trim()) {
+                    send(spokenText.trim(), { spoken: true })
+                  }
+                }
+              }}
               aria-label={voice.listening ? 'Stop listening' : 'Ask by voice'}
               className={cn(
-                'tap grid h-10 w-10 flex-none place-items-center rounded-lg border transition-colors duration-150',
+                'tap grid h-10 w-10 flex-none place-items-center rounded-lg border transition-all duration-150',
                 voice.listening
-                  ? 'animate-pulse-ring border-accent bg-accent text-on-accent'
+                  ? 'animate-pulse border-accent bg-accent text-on-accent scale-105 shadow-md'
                   : 'border-line bg-sunk text-ink-2 hover:border-accent hover:text-accent',
               )}
             >
