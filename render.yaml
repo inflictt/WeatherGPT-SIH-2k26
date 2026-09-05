@@ -42,7 +42,7 @@ services:
       - key: JWT_SECRET
         generateValue: true  # Render generates and stores it
       - key: PYTHON_AI_URL
-        sync: false          # the weathergpt-ai URL above
+        value: https://weathergpt-ai.onrender.com
       - key: CORS_ORIGINS
         sync: false          # the Vercel URL
       - key: CONTACT_EMAIL
