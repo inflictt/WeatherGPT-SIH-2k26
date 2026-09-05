@@ -1,9 +1,11 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { api, LIVE } from '../lib/api'
 import { adaptAnswer } from '../lib/adapters'
 import { mockAnswer } from '../lib/mockAnswer'
 import { useActiveWarnings, useData } from '../lib/DataContext'
+import { useFarm } from '../lib/useFarm'
+import { evaluateFarmIntelligence } from '../lib/farmIntelligence'
 import { useVoice } from '../lib/useVoice'
 import { t } from '../lib/i18n'
 import { SEVERITY, RISK_TONE } from '../lib/constants'
@@ -11,6 +13,7 @@ import { cn } from '../lib/utils'
 import Icon from '../ui/Icon'
 import { Shell, PageHead, ConfidenceBars } from '../ui/Bits'
 import { SeverityTile } from '../ui/Severity'
+import VoiceAssistantBar from '../weather/VoiceAssistantBar'
 
 function turn(text, kind) {
   return { id: `s${Date.now()}${Math.random().toString(36).slice(2, 6)}`, role: 'system', kind, text }
@@ -18,16 +21,60 @@ function turn(text, kind) {
 const failure = (x) => turn(x, 'failure')
 const notice = (x) => turn(x, 'notice')
 
+const CHAT_STORAGE_KEY = 'wg_chat_messages_v1'
+
 export default function Ask({ lang = 'en', prefs, audience }) {
-  const [messages, setMessages] = useState([])
+  const [messages, setMessages] = useState(() => {
+    try {
+      const saved = localStorage.getItem(CHAT_STORAGE_KEY)
+      return saved ? JSON.parse(saved) : []
+    } catch {
+      return []
+    }
+  })
   const [busy, setBusy] = useState(false)
   const [draft, setDraft] = useState('')
-  const [conversationId, setConversationId] = useState(null)
+  const [conversationId, setConversationId] = useState(() => {
+    try {
+      return localStorage.getItem('wg_chat_conv_id') || null
+    } catch {
+      return null
+    }
+  })
 
+  const [speakingMessageId, setSpeakingMessageId] = useState(null)
   const endRef = useRef(null)
   const active = useActiveWarnings()
-  const { location, current } = useData()
+  const { location, current, daily, summary24h, hourly } = useData()
+  const { farm } = useFarm()
   const voice = useVoice(lang)
+
+  const intelligence = useMemo(() => {
+    return evaluateFarmIntelligence({
+      farm,
+      current,
+      daily,
+      summary24h,
+      hourly,
+      warnings: active,
+      lang,
+    })
+  }, [farm, current, daily, summary24h, hourly, active, lang])
+
+  // Persist messages whenever they change
+  useEffect(() => {
+    try {
+      if (messages.length > 0) {
+        localStorage.setItem(CHAT_STORAGE_KEY, JSON.stringify(messages.slice(-40)))
+      }
+    } catch {}
+  }, [messages])
+
+  useEffect(() => {
+    try {
+      if (conversationId) localStorage.setItem('wg_chat_conv_id', conversationId)
+    } catch {}
+  }, [conversationId])
 
   useEffect(() => {
     endRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' })
@@ -35,10 +82,17 @@ export default function Ask({ lang = 'en', prefs, audience }) {
 
   const speak = useCallback(
     (m) => {
-      if (voice.speaking) return voice.stopSpeaking()
-      voice.speak(m.speech || m.summary)
+      if (voice.isSpeaking && speakingMessageId === m.id) {
+        voice.stopSpeaking()
+        setSpeakingMessageId(null)
+        return
+      }
+      setSpeakingMessageId(m.id)
+      voice.speak(m.speech || m.summary, {
+        onEnd: () => setSpeakingMessageId(null),
+      })
     },
-    [voice],
+    [voice, speakingMessageId],
   )
 
   const send = useCallback(
@@ -54,7 +108,13 @@ export default function Ask({ lang = 'en', prefs, audience }) {
       if (!LIVE) {
         setBusy(true)
         setTimeout(() => {
-          const answer = mockAnswer(clean, { persona: prefs?.persona, location, warnings: active })
+          const answer = mockAnswer(clean, {
+            persona: prefs?.persona,
+            location,
+            warnings: active,
+            farm,
+            intelligence,
+          })
           setMessages((m) => [...m, answer])
           if (spoken && voice.canSpeak && prefs?.voiceReplies !== false) {
             voice.speak(answer.speech || answer.summary)
@@ -69,7 +129,9 @@ export default function Ask({ lang = 'en', prefs, audience }) {
         const res = await api.farmerFriend({
           message: clean,
           lang,
+          audience: audience === 'farm' ? 'farm' : 'general',
           conversationId: conversationId || undefined,
+          farmId: farm?.id || undefined,
           ...(location?.lat != null
             ? {
                 lat: location.lat,
@@ -102,8 +164,16 @@ export default function Ask({ lang = 'en', prefs, audience }) {
           if (spoken && voice.canSpeak && prefs?.voiceReplies !== false) {
             voice.speak(answer.speech || answer.summary)
           }
+        } else if (err?.status === 429) {
+          setMessages((m) => [
+            ...m,
+            failure(lang === 'hi' ? 'बहुत सारे अनुरोध प्राप्त हुए। कृपया कुछ क्षण बाद पुनः प्रयास करें।' : 'Too many requests. Please wait a moment and try again.'),
+          ])
         } else {
-          setMessages((m) => [...m, failure(`${t('failed', lang)} (${raw})`)])
+          const friendly = /invalid request/i.test(raw)
+            ? (lang === 'hi' ? 'कृपया अपना प्रश्न जांचें और पुनः प्रयास करें।' : 'Please verify your question and try again.')
+            : raw
+          setMessages((m) => [...m, failure(`${t('failed', lang)} (${friendly})`)])
         }
       } finally {
         setBusy(false)
@@ -111,6 +181,26 @@ export default function Ask({ lang = 'en', prefs, audience }) {
     },
     [busy, lang, conversationId, location, voice, prefs],
   )
+
+  // Auto-send query if navigated from Planner or Crop Doctor
+  useEffect(() => {
+    try {
+      const prefill = sessionStorage.getItem('kv_prefill_query')
+      if (prefill) {
+        sessionStorage.removeItem('kv_prefill_query')
+        send(prefill)
+      }
+    } catch {}
+  }, [send])
+
+  const clearChat = () => {
+    setMessages([])
+    setConversationId(null)
+    try {
+      localStorage.removeItem(CHAT_STORAGE_KEY)
+      localStorage.removeItem('wg_chat_conv_id')
+    } catch {}
+  }
 
   const suggestions =
     audience === 'farm'
@@ -180,11 +270,22 @@ export default function Ask({ lang = 'en', prefs, audience }) {
             {c}
           </span>
         ))}
-        {isFarm && (
-          <Link to="/farm" className="lbl ml-auto text-accent hover:text-accent-2">
-            {t('editFarm', lang)}
-          </Link>
-        )}
+        <div className="ml-auto flex items-center gap-3">
+          {messages.length > 0 && (
+            <button
+              type="button"
+              onClick={clearChat}
+              className="lbl text-ink-3 hover:text-sev-red transition-colors"
+            >
+              {lang === 'hi' ? 'चैट साफ़ करें' : 'Clear Chat'}
+            </button>
+          )}
+          {isFarm && (
+            <Link to="/farm" className="lbl text-accent hover:text-accent-2">
+              {t('editFarm', lang)}
+            </Link>
+          )}
+        </div>
       </div>
 
       {/* ------------------------------------------------------------ thread */}
@@ -222,7 +323,14 @@ export default function Ask({ lang = 'en', prefs, audience }) {
               </p>
             </div>
           ) : (
-            <AnswerCard key={m.id} m={m} lang={lang} onSpeak={voice.canSpeak ? speak : null} speaking={voice.speaking} />
+            <AnswerCard
+              key={m.id}
+              m={m}
+              lang={lang}
+              audience={audience}
+              onSpeak={voice.canSpeak ? speak : null}
+              speaking={voice.isSpeaking && speakingMessageId === m.id}
+            />
           ),
         )}
 
@@ -266,6 +374,14 @@ export default function Ask({ lang = 'en', prefs, audience }) {
           ))}
         </div>
 
+        <VoiceAssistantBar
+          voice={voice}
+          lang={lang}
+          onSend={(text) => send(text, { spoken: true })}
+          disabled={busy}
+          className="mb-1"
+        />
+
         <form
           onSubmit={(e) => {
             e.preventDefault()
@@ -274,45 +390,66 @@ export default function Ask({ lang = 'en', prefs, audience }) {
           className="flex items-center gap-2 rounded-xl border border-line bg-surface p-2 transition-colors duration-150 focus-within:border-accent"
         >
           <input
-            value={voice.listening && voice.interim ? voice.interim : draft}
+            value={
+              voice.isListening || voice.voiceState === 'transcribing'
+                ? (voice.interim || draft)
+                : draft
+            }
             onChange={(e) => setDraft(e.target.value)}
-            placeholder={voice.listening ? (lang === 'hi' ? 'बोलिए, सुन रहे हैं…' : 'Listening… speak now') : t('composerHint', lang)}
-            aria-label="Ask about weather"
+            placeholder={
+              voice.isListening
+                ? (lang === 'hi' ? 'बोलिए, सुन रहे हैं…' : lang === 'hinglish' ? 'Boliye, sun rahe hain…' : 'Listening… speak now')
+                : voice.voiceState === 'transcribing'
+                  ? (lang === 'hi' ? 'पहचान रहे हैं…' : lang === 'hinglish' ? 'Voice samajh rahe hain…' : 'Understanding…')
+                  : t('composerHint', lang)
+            }
+            aria-label="Ask about weather or farm"
             className={cn(
               'h-10 min-w-0 flex-1 bg-transparent px-2.5 text-caption outline-none placeholder:text-ink-3',
-              voice.listening ? 'text-accent font-medium italic' : 'text-ink',
+              voice.isListening ? 'text-accent font-semibold italic' : 'text-ink',
             )}
           />
+
           {voice.supported && (
             <button
               type="button"
-              onClick={async () => {
-                if (voice.listening) {
+              onClick={() => {
+                if (voice.isSpeaking) {
+                  voice.stopSpeaking()
+                } else if (voice.isListening) {
                   voice.stopListening()
                 } else {
-                  const spokenText = await voice.listen()
-                  if (spokenText && spokenText.trim()) {
-                    setDraft(spokenText.trim())
-                    send(spokenText.trim(), { spoken: true })
-                  }
+                  if (voice.hasError) voice.clearError()
+                  voice.listen((spokenText) => {
+                    if (spokenText && spokenText.trim()) {
+                      setDraft(spokenText.trim())
+                      send(spokenText.trim(), { spoken: true })
+                    }
+                  })
                 }
               }}
-              aria-label={voice.listening ? 'Stop listening' : 'Ask by voice'}
+              aria-label={voice.isListening ? 'Stop listening' : voice.isSpeaking ? 'Stop speaking' : 'Ask by voice'}
               className={cn(
-                'tap grid h-10 w-10 flex-none place-items-center rounded-lg border transition-all duration-150',
-                voice.listening
-                  ? 'animate-pulse border-accent bg-accent text-on-accent scale-105 shadow-md'
-                  : 'border-line bg-sunk text-ink-2 hover:border-accent hover:text-accent',
+                'relative tap grid h-10 w-10 flex-none place-items-center rounded-xl border transition-all duration-200',
+                voice.isListening
+                  ? 'border-accent bg-accent text-on-accent shadow-md ring-4 ring-accent/25'
+                  : voice.isSpeaking
+                    ? 'border-sev-green bg-sev-green text-on-sev shadow-sm'
+                    : 'border-line bg-sunk text-ink-2 hover:border-accent hover:text-accent',
               )}
             >
-              <Icon name="mic" size={17} />
+              {voice.isListening && (
+                <span className="absolute -inset-1 rounded-xl bg-accent opacity-30 animate-ping" />
+              )}
+              <Icon name={voice.isSpeaking ? 'speaker' : 'mic'} size={18} />
             </button>
           )}
+
           <button
             type="submit"
             disabled={busy || !draft.trim()}
             aria-label={t('send', lang)}
-            className="tap grid h-10 w-10 flex-none place-items-center rounded-lg bg-accent text-on-accent transition-opacity duration-150 disabled:opacity-40"
+            className="tap grid h-10 w-10 flex-none place-items-center rounded-xl bg-accent text-on-accent transition-opacity duration-150 disabled:opacity-40"
           >
             <Icon name="send" size={17} />
           </button>
@@ -326,18 +463,23 @@ export default function Ask({ lang = 'en', prefs, audience }) {
   )
 }
 
-function AnswerCard({ m, lang, onSpeak, speaking }) {
+function AnswerCard({ m, lang, audience, onSpeak, speaking }) {
   const sev = m.warning ? SEVERITY[m.warning.colour] || SEVERITY.green : null
   const isWarningQuery = m.intent === 'warning_check' || (m.warning && /active.*warning/i.test(m.summary || ''))
   const isSevereAlert = m.warning && String(m.warning.colour).toLowerCase() === 'red'
   const showOfficialBlock = m.warning && (isWarningQuery || isSevereAlert)
+  const assistantName = audience === 'farm'
+    ? (lang === 'hi' ? 'कृषिवाणी' : 'Krishivaani')
+    : (lang === 'hi' ? 'आकाशवाणी' : 'Akashvaani')
+
+  const hasBadges = Boolean(m.riskBand || m.confidence || (m.warning && !showOfficialBlock))
 
   return (
     <div>
       <div className="mb-2 flex items-center justify-between">
         <div className="flex items-center gap-2">
           <span className="h-1.5 w-1.5 rounded-full bg-accent" aria-hidden="true" />
-          <span className="lbl">{t('appName', lang)}</span>
+          <span className="lbl">{assistantName}</span>
         </div>
         {m.composer && (
           <span className="rounded bg-sunk px-2 py-0.5 text-[10px] font-mono font-medium uppercase tracking-wider text-ink-3">
@@ -371,31 +513,33 @@ function AnswerCard({ m, lang, onSpeak, speaking }) {
           <p className="text-body-sm leading-relaxed text-ink whitespace-pre-line">{m.summary}</p>
           {m.gloss && <p className="mt-2 text-data italic leading-relaxed text-ink-3">{m.gloss}</p>}
 
-          <div className="mt-3.5 flex flex-wrap items-center gap-2">
-            {m.riskBand && (
-              <span
-                className={cn(
-                  'inline-flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-label font-medium uppercase',
-                  SEVERITY[RISK_TONE[m.riskBand] || 'green'].wash,
-                  SEVERITY[RISK_TONE[m.riskBand] || 'green'].text,
-                )}
-              >
-                {t('tileRisk', lang)} {m.riskBand}
-                {m.riskScore != null && <span className="tnum opacity-70">{m.riskScore}</span>}
-              </span>
-            )}
-            {m.confidence && (
-              <span className="inline-flex items-center gap-2 rounded-md bg-sunk px-2.5 py-1.5">
-                <ConfidenceBars level={m.confidence} />
-                <span className="text-label font-medium uppercase text-ink-2">{m.confidence}</span>
-              </span>
-            )}
-            {m.warning && !showOfficialBlock && (
-              <span className={cn('rounded-md px-2 py-1 text-[11px] font-medium', sev.wash, sev.text)}>
-                Advisory: {m.warning.colour}
-              </span>
-            )}
-          </div>
+          {hasBadges && (
+            <div className="mt-3.5 flex flex-wrap items-center gap-2">
+              {m.riskBand && (
+                <span
+                  className={cn(
+                    'inline-flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-label font-medium uppercase',
+                    SEVERITY[RISK_TONE[m.riskBand] || 'green'].wash,
+                    SEVERITY[RISK_TONE[m.riskBand] || 'green'].text,
+                  )}
+                >
+                  {t('tileRisk', lang)} {m.riskBand}
+                  {m.riskScore != null && <span className="tnum opacity-70">{m.riskScore}</span>}
+                </span>
+              )}
+              {m.confidence && (
+                <span className="inline-flex items-center gap-2 rounded-md bg-sunk px-2.5 py-1.5">
+                  <ConfidenceBars level={m.confidence} />
+                  <span className="text-label font-medium uppercase text-ink-2">{m.confidence}</span>
+                </span>
+              )}
+              {m.warning && !showOfficialBlock && (
+                <span className={cn('rounded-md px-2 py-1 text-[11px] font-medium', sev.wash, sev.text)}>
+                  Advisory: {m.warning.colour}
+                </span>
+              )}
+            </div>
+          )}
 
           {/* --- actions --- */}
           {m.actions?.length > 0 && (
@@ -415,23 +559,35 @@ function AnswerCard({ m, lang, onSpeak, speaking }) {
           )}
         </div>
 
-        {/* --- provenance --- */}
-        <div className="flex flex-wrap items-center gap-x-2 gap-y-1 border-t border-line-soft bg-sunk px-4 py-2.5">
-          <span className="lbl">{t('sources', lang)}</span>
-          <span className="text-data text-ink-3">
-            {(m.sources || []).join(' · ')}
-          </span>
-          {onSpeak && (
-            <button
-              type="button"
-              onClick={() => onSpeak(m)}
-              aria-label={speaking ? t('stopSpeaking', lang) : t('speak', lang)}
-              className="tap ml-auto grid h-8 w-8 place-items-center rounded-md text-ink-3 transition-colors duration-150 hover:text-accent"
-            >
-              <Icon name="volume" size={15} />
-            </button>
-          )}
-        </div>
+        {/* --- provenance & audio listen --- */}
+        {(m.sources?.length > 0 || onSpeak) && (
+          <div className="flex flex-wrap items-center gap-x-2 gap-y-1 border-t border-line-soft bg-sunk px-4 py-2.5">
+            {m.sources?.length > 0 && (
+              <>
+                <span className="lbl">{t('sources', lang)}</span>
+                <span className="text-data text-ink-3">
+                  {m.sources.join(' · ')}
+                </span>
+              </>
+            )}
+            {onSpeak && (
+              <button
+                type="button"
+                onClick={() => onSpeak(m)}
+                aria-label={speaking ? t('stopSpeaking', lang) : t('speak', lang)}
+                className={cn(
+                  'tap ml-auto flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-xs font-semibold transition-colors duration-150',
+                  speaking
+                    ? 'bg-accent text-on-accent animate-pulse shadow-xs'
+                    : 'bg-surface border border-line text-ink-2 hover:border-accent hover:text-accent shadow-xs'
+                )}
+              >
+                <Icon name={speaking ? 'speaker' : 'volume'} size={14} />
+                <span>{speaking ? (lang === 'hi' ? 'रोकें' : 'Stop') : (lang === 'hi' ? 'सुनें' : 'Listen')}</span>
+              </button>
+            )}
+          </div>
+        )}
       </div>
     </div>
   )
