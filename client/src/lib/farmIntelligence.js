@@ -191,7 +191,7 @@ export function evaluateFarmIntelligence({
   }
 
   // -------------------------------------------------------------------------
-  // 2. Overall Farm Condition Summary
+  // 2. Overall Farm Health Score (0-100) & Condition Summary
   // -------------------------------------------------------------------------
   let overallCondition = 'good'
   let conditionLabel = lang === 'hi' ? 'उत्तम (Good)' : 'Good'
@@ -205,7 +205,18 @@ export function evaluateFarmIntelligence({
   const severeWarning = warnings.find((w) => ['orange', 'red'].includes(String(w.colour).toLowerCase()))
   const yellowWarning = warnings.find((w) => String(w.colour).toLowerCase() === 'yellow')
 
-  if (severeWarning || mm24 >= 64.5 || temp >= 40) {
+  let healthScore = 88
+  if (waterStatus === 'deficit' || waterStatus === 'saturated') healthScore -= 12
+  if (diseaseRisk === 'high') healthScore -= 16
+  else if (diseaseRisk === 'moderate') healthScore -= 6
+  if (sprayStatus !== 'optimal') healthScore -= 6
+  if (stressStatus !== 'optimal') healthScore -= 8
+  if (rainImpact === 'heavy' || rainImpact === 'excessive') healthScore -= 14
+  if (severeWarning) healthScore -= 18
+  else if (yellowWarning) healthScore -= 8
+  healthScore = Math.max(20, Math.min(98, healthScore))
+
+  if (severeWarning || mm24 >= 64.5 || temp >= 40 || healthScore < 50) {
     overallCondition = 'critical'
     conditionLabel = lang === 'hi' ? 'कार्रवाई आवश्यक (Action Needed)' : 'Action Needed'
     conditionTone = 'red'
@@ -215,7 +226,7 @@ export function evaluateFarmIntelligence({
       : lang === 'hinglish'
         ? `Active weather hazard (${evt}) ke kaaran farm precautions zaroori hain.`
         : `Active weather hazard (${evt}) requires immediate farm precautions.`
-  } else if (yellowWarning || diseaseRisk === 'high' || sprayStatus === 'rain_delay' || waterStatus === 'saturated') {
+  } else if (yellowWarning || diseaseRisk === 'high' || sprayStatus === 'rain_delay' || waterStatus === 'saturated' || healthScore < 75) {
     overallCondition = 'attention'
     conditionLabel = lang === 'hi' ? 'सतर्कता आवश्यक (Attention)' : 'Attention'
     conditionTone = 'yellow'
@@ -225,6 +236,61 @@ export function evaluateFarmIntelligence({
         ? 'Nami, barish ya weather watch ke kaaran disease scouting aur drainage par dhyan dein.'
         : 'Elevated humidity, rainfall, or weather watch require disease scouting and field checks.'
   }
+
+  const factors = {
+    water: waterStatus === 'adequate' || waterStatus === 'high' ? 'Good' : 'Watch',
+    weather: severeWarning ? 'Critical' : yellowWarning || rainProb >= 0.5 ? 'Watch' : 'Stable',
+    disease: diseaseRisk === 'low' ? 'Low' : diseaseRisk === 'moderate' ? 'Moderate' : 'Elevated',
+    workability: workStatus === 'good' ? 'Good' : 'Limited',
+  }
+
+  // -------------------------------------------------------------------------
+  // 2.5 Weather-Aware Task Conflict Detection
+  // -------------------------------------------------------------------------
+  const evaluatedTasks = (farm?.tasks || []).map((t) => {
+    let hasConflict = false
+    let severity = 'advisory'
+    let conflictReason = null
+    let conflictRecommendation = null
+
+    if (t.type === 'spray' || /spray|chhidkaw|dawa/i.test(t.title)) {
+      if (mm24 >= 8 || rainProb >= 0.4) {
+        hasConflict = true
+        severity = 'critical'
+        conflictReason = lang === 'hi' ? 'बारिश के कारण दवा धुलने का उच्च जोखिम' : 'High washout risk from upcoming rain'
+        conflictRecommendation = lang === 'hi' ? 'मौसम साफ होने तक छिड़काव टालें' : 'Reschedule spray until clear skies'
+      } else if (wind >= 18) {
+        hasConflict = true
+        severity = 'warning'
+        conflictReason = lang === 'hi' ? `हवा की गति (${Math.round(wind)} किमी/घंटा) से दवा उड़ने का खतरा` : `Wind speed (${Math.round(wind)} km/h) exceeds safe drift threshold`
+        conflictRecommendation = lang === 'hi' ? 'शांत सुबह या शाम के समय करें' : 'Reschedule to early calm morning'
+      }
+    } else if (t.type === 'irrigation' || /water|irrigate|sinchai|paani/i.test(t.title)) {
+      if (mm24 >= 20 || rainProb >= 0.5) {
+        hasConflict = true
+        severity = 'warning'
+        conflictReason = lang === 'hi' ? 'हालिया वर्षा या संभावित बारिश से नमी पर्याप्त' : 'Recent rainfall or expected precipitation provides adequate soil moisture'
+        conflictRecommendation = lang === 'hi' ? 'पानी और बिजली बचाने के लिए सिंचाई स्थगित करें' : 'Postpone irrigation today'
+      }
+    } else if (t.type === 'harvest' || /harvest|katai/i.test(t.title)) {
+      if (mm24 >= 15 || rainProb >= 0.6) {
+        hasConflict = true
+        severity = 'critical'
+        conflictReason = lang === 'hi' ? 'गीली मिट्टी व वर्षा से कटाई में बाधा' : 'Wet field and rain risk damaging harvested produce'
+        conflictRecommendation = lang === 'hi' ? 'कटी फसल ढकें और कटाई रोकें' : 'Cover produce and delay field cutting'
+      }
+    }
+
+    return {
+      ...t,
+      weatherConflict: {
+        hasConflict,
+        severity,
+        reason: conflictReason,
+        recommendation: conflictRecommendation,
+      },
+    }
+  })
 
   // -------------------------------------------------------------------------
   // 3. Intelligent Photo Request Trigger Logic
@@ -395,7 +461,11 @@ export function evaluateFarmIntelligence({
       label: conditionLabel,
       tone: conditionTone,
       headline,
+      score: healthScore,
+      factors,
     },
+    tasks: evaluatedTasks,
+    needsVisualCheck: photoRecommended,
     matrix: [
       {
         key: 'water',

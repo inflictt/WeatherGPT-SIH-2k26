@@ -172,6 +172,7 @@ export function adaptAnswer(res) {
     id: `a${Date.now()}`,
     role: 'assistant',
     lang: a?.language || 'en',
+    intent: res.intent || a?.intent || null,
 
     // prose
     summary: a?.summary ?? null,
@@ -183,7 +184,7 @@ export function adaptAnswer(res) {
     actions: a?.recommendedActions ?? [],
     actionsGloss: a?.actionsGloss ?? [],
 
-    // structure — none of this originates with a language model
+    // structure — only present when relevant
     warning,
     warningRef: a?.warningRef ?? warning?.identifier ?? null,
     officialText: a?.officialText ?? null,
@@ -195,14 +196,16 @@ export function adaptAnswer(res) {
     location: res.location ? adaptLocation(res.location) : null,
     unresolved: res.unresolved ?? null,
     forecast: res.forecast ?? null,
-    sources: a?.sources ?? (res.sources || []).map((s) => s.name).filter(Boolean),
+    sources: Array.isArray(a?.sources)
+      ? a.sources
+      : Array.isArray(res.sources)
+        ? res.sources.map((s) => s.name || s).filter(Boolean)
+        : [],
 
     // provenance: which layers actually answered
-    composer: a?.composer ?? null,
-    llmModel: a?.llm_model ?? null,
-    insufficientData: Boolean(a?.insufficient_data),
-    degraded: Boolean(res.degraded),
-    at: res.checkedAt || new Date().toISOString(),
+    composer: res.composer ?? a?.composer ?? 'deterministic',
+    grounded: Boolean(a?.grounded ?? true),
+    checkedAt: res.checkedAt || new Date().toISOString(),
   }
 }
 
