@@ -82,6 +82,30 @@ export async function searchGazetteer(query, { limit = 8, state } = {}) {
 let lastNominatim = 0
 
 /** Nominatim: free, no key, but strictly one request per second and a real UA. */
+export async function geocodeOpenMeteo(query) {
+  try {
+    const url = `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(query)}&count=6&language=en&format=json`
+    const res = await fetch(url)
+    if (!res.ok) return []
+    const data = await res.json()
+    return (data.results || [])
+      .filter((r) => !r.country_code || r.country_code === 'IN' || r.country === 'India')
+      .map((r) => ({
+        name: r.name,
+        slug: slugify(r.name || ''),
+        kind: r.admin3 ? 'village' : r.admin2 ? 'town' : 'city',
+        district: r.admin2 || r.admin1 || r.name,
+        state: r.admin1 || 'India',
+        lat: Number(r.latitude),
+        lon: Number(r.longitude),
+        source: 'open-meteo-geocoding',
+      }))
+  } catch (err) {
+    log.warn('open-meteo geocode failed', { error: String(err.message || err) })
+    return []
+  }
+}
+
 export async function geocodeNominatim(query) {
   const wait = 1100 - (Date.now() - lastNominatim)
   if (wait > 0) await sleep(wait)
@@ -110,6 +134,48 @@ export async function geocodeNominatim(query) {
   } catch (err) {
     log.warn('nominatim lookup failed', { error: String(err.message || err) })
     return []
+  }
+}
+
+export async function reverseGeocodeNominatim(lat, lon) {
+  const wait = 1100 - (Date.now() - lastNominatim)
+  if (wait > 0) await sleep(wait)
+  lastNominatim = Date.now()
+
+  const url = `${env.nominatimBase}/reverse?${new URLSearchParams({
+    lat: String(lat),
+    lon: String(lon),
+    format: 'jsonv2',
+    addressdetails: '1',
+  })}`
+
+  try {
+    const r = await getJson(url, { retries: 0, headers: { 'Accept-Language': 'en' } })
+    if (!r || !r.address) return null
+    const name =
+      r.address.village ||
+      r.address.suburb ||
+      r.address.town ||
+      r.address.city ||
+      r.address.city_district ||
+      r.address.county ||
+      r.name ||
+      r.display_name?.split(',')[0] ||
+      'Current Location'
+    const district = r.address.state_district || r.address.county || r.address.district || r.address.city
+    const state = r.address.state
+    return {
+      name,
+      district,
+      state,
+      lat: Number(lat),
+      lon: Number(lon),
+      kind: mapKind(r.type, r.addresstype),
+      source: 'nominatim-reverse',
+    }
+  } catch (err) {
+    log.warn('nominatim reverse lookup failed', { error: String(err.message || err) })
+    return null
   }
 }
 

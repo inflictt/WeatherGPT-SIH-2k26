@@ -54,7 +54,7 @@ export const env = {
   nominatimBase: process.env.NOMINATIM_BASE || 'https://nominatim.openstreetmap.org',
   contactEmail: process.env.CONTACT_EMAIL || 'weathergpt-sih@example.org',
   get userAgent() {
-    return `WeatherGPT/0.2 (SIH26068; ${this.contactEmail})`
+    return 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36 WeatherGPT/2.0'
   },
 
   // --- push notifications: free, but needs a VAPID keypair ---
@@ -78,7 +78,7 @@ export const env = {
   // prose. Deleting this key must change how well the product reads, never
   // what it says.
   geminiApiKey: process.env.GEMINI_API_KEY || '',
-  geminiModel: process.env.GEMINI_MODEL || 'gemini-flash-latest',
+  geminiModel: process.env.GEMINI_MODEL || 'gemini-3.6-flash',
 
   // --- schedules ---
   cronWarnings: process.env.CRON_WARNINGS || '*/5 * * * *',

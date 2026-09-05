@@ -25,7 +25,13 @@ export default function TopBar({
   const currentLoc = activeLocation || picker?.location
   const locName = currentLoc?.name || currentLoc?.district || t('changeLocation', lang)
 
-  const results = query.trim() ? searchDistricts(query, 6) : []
+  const localDistricts = query.trim() ? searchDistricts(query, 6) : []
+  const results = [
+    ...(picker?.results || []),
+    ...localDistricts.filter(
+      (d) => !(picker?.results || []).some((r) => r.name?.toLowerCase() === d.name?.toLowerCase()),
+    ),
+  ].slice(0, 8)
 
   useEffect(() => {
     const onDown = (e) => {
@@ -38,6 +44,7 @@ export default function TopBar({
   const pick = (row) => {
     picker.select(row)
     setQuery('')
+    picker?.setQuery?.('')
     setOpen(false)
   }
 
@@ -65,7 +72,9 @@ export default function TopBar({
             type="text"
             value={query}
             onChange={(e) => {
-              setQuery(e.target.value)
+              const val = e.target.value
+              setQuery(val)
+              picker?.setQuery?.(val)
               setOpen(true)
             }}
             onFocus={() => setOpen(true)}

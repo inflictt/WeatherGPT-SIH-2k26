@@ -292,6 +292,7 @@ export default function Ask({ lang = 'en', prefs, audience }) {
                 } else {
                   const spokenText = await voice.listen()
                   if (spokenText && spokenText.trim()) {
+                    setDraft(spokenText.trim())
                     send(spokenText.trim(), { spoken: true })
                   }
                 }

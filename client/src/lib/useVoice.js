@@ -85,16 +85,20 @@ export function useVoice(lang = 'en') {
       recognition.continuous = false
       recognition.maxAlternatives = 1
 
-      let finalText = ''
+      let capturedText = ''
 
       recognition.onresult = (event) => {
         let live = ''
-        for (let i = event.resultIndex; i < event.results.length; i += 1) {
-          const result = event.results[i]
-          if (result.isFinal) finalText += result[0].transcript
-          else live += result[0].transcript
+        let currentFinal = ''
+        for (let i = 0; i < event.results.length; i += 1) {
+          const res = event.results[i]
+          if (res[0]?.transcript) {
+            if (res.isFinal) currentFinal += res[0].transcript + ' '
+            else live += res[0].transcript
+          }
         }
-        setInterim(live)
+        capturedText = (currentFinal + live).trim()
+        setInterim(live || capturedText)
       }
 
       recognition.onerror = (event) => {
@@ -113,7 +117,7 @@ export function useVoice(lang = 'en') {
       recognition.onend = () => {
         setListening(false)
         setInterim('')
-        const text = finalText.trim()
+        const text = capturedText.trim()
         resolveRef.current?.(text || null)
         resolveRef.current = null
       }
