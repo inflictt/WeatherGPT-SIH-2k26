@@ -96,13 +96,102 @@ export function mockAnswer(text, { persona = 'general', location = null, warning
 
   let summary
   let insufficient = false
+  const lowerText = text.toLowerCase()
+
+  // 1. Farm status / condition
   if (nlu.intent === 'farm_status' || (/farm|khet|haal|report/i.test(text) && persona === 'farmer')) {
     summary = FARM_STATUS_REPLY[lang](place, Math.round(mm), 'Good')
-  } else if (nlu.intent === 'warning_check') {
+  }
+  // 2. Irrigation
+  else if (/irrigate|sinchai|सिंचाई|water/i.test(lowerText)) {
+    if (mm >= 2) {
+      if (lang === 'hi') {
+        summary = `सिफारिश: आज सिंचाई रोकें। ${place} में ${when} लगभग ${Math.round(mm)} मिमी बारिश की संभावना है। अभी सिंचाई करने से खेत में जलभराव और पोषक तत्वों के बहने का जोखिम हो सकता है।`
+      } else if (lang === 'hinglish') {
+        summary = `Recommendation: Aaj sinchai rok dein. ${place} mein ${when} lagbhag ${Math.round(mm)} mm barish hone ki sambhavna hai. Abhi sinchai karne se khet mein jal-bharaav ho sakta hai.`
+      } else {
+        summary = `Recommendation: Hold off on irrigation. Around ${Math.round(mm)} mm of rainfall is expected in ${place} ${when}. Irrigating now may cause root waterlogging and nutrient leaching.`
+      }
+    } else {
+      if (lang === 'hi') {
+        summary = `सिफारिश: सिंचाई करना सुरक्षित है। ${place} में ${when} कोई खास बारिश नहीं होगी (तापमान सामान्य रहेगा)। जड़ के पास 10-15 सेमी गहराई पर नमी जांचकर आवश्यकतानुसार पानी दें।`
+      } else if (lang === 'hinglish') {
+        summary = `Recommendation: Sinchai karna surakshit hai. ${place} mein ${when} koi khaas barish nahi hogi. Jar ke paas 10-15 cm gehrai par nami check karke sinchai karein.`
+      } else {
+        summary = `Recommendation: Safe to irrigate. No significant rain is expected in ${place} ${when}. Check soil moisture at root depth (10-15 cm) before applying water.`
+      }
+    }
+  }
+  // 3. Spray window
+  else if (/spray|chhidkaw|छिड़काव|dawa|दवा/i.test(lowerText)) {
+    if (mm >= 2) {
+      if (lang === 'hi') {
+        summary = `छिड़काव विंडो: बंद / प्रतिकूल। ${place} में ${when} बारिश (${Math.round(mm)} मिमी) के कारण दवा धुलने का जोखिम है। छिड़काव स्थगित रखें।`
+      } else if (lang === 'hinglish') {
+        summary = `Spray Window: Closed / Pratikool. ${place} mein ${when} barish (${Math.round(mm)} mm) ke kaaran spray karna theek nahi hai.`
+      } else {
+        summary = `Spray Window: Closed / Unfavourable. Expected rain (${Math.round(mm)} mm) creates a wash-off risk in ${place} ${when}. Hold off on spraying.`
+      }
+    } else {
+      if (lang === 'hi') {
+        summary = `छिड़काव विंडो: खुली / अनुकूल। ${place} में ${when} हवा शांत है और मौसम शुष्क रहेगा। सुबह 6 से 9 बजे का समय छिड़काव के लिए सर्वोत्तम है।`
+      } else if (lang === 'hinglish') {
+        summary = `Spray Window: Open / Anukool. ${place} mein ${when} mausam shant aur dry rahega. Subah 6 se 9 baje spray ka best time hai.`
+      } else {
+        summary = `Spray Window: Open / Favourable. Calm winds and dry conditions in ${place} ${when}. Optimal spray hours: Early morning (6:00 AM - 9:00 AM).`
+      }
+    }
+  }
+  // 4. Yellow leaves / disease inquiry
+  else if (/yellow|leaf|leaves|patte|peele|पीले|पत्ते|रोग/i.test(lowerText)) {
+    if (lang === 'hi') {
+      summary = `फसल पत्ती पीली पड़ने का विश्लेषण (${place}): 1. नाइट्रोजन या आवश्यक पोषक तत्वों की कमी (निचले पुराने पत्तों से शुरुआत)। 2. खेत में जलभराव या जड़ में अधिक नमी। 3. फंगल या ब्लाइट संक्रमण। सलाह: जड़ के पास 10-15 सेमी पर नमी जांचें, जल निकासी सुनिश्चित करें और पत्ती का नमूना नजदीकी KVK को दिखाएं।`
+    } else if (lang === 'hinglish') {
+      summary = `Crop Foliage Diagnostic (${place}): Patte peele hone ke mukhya kaaran: 1. Nitrogen/poshak tatva ki kami. 2. Khet mein jal-bharaav ya jado mein over-moisture. 3. Fungal ya blight sankraman. Salah: Jado ke paas 10-15 cm par nami check karein aur drainage saaf karein.`
+    } else {
+      summary = `Crop Foliage Diagnostic (${place}): Yellowing leaves typically indicate: 1. Nitrogen deficiency (chlorosis starting on older lower leaves). 2. Soil waterlogging & root suffocation. 3. Foliar fungal infection. Recommendation: Check root-zone moisture at 10-15 cm, ensure drainage furrows are open, and consult your local KVK extension officer.`
+    }
+  }
+  // 5. Travel safety
+  else if (/travel|safar|yatra|safe to travel|यात्रा|सफर/i.test(lowerText)) {
+    if (mm >= 20 || (warning && ['orange', 'red'].includes(warning.colour))) {
+      if (lang === 'hi') {
+        summary = `यात्रा सलाह: सावधानी बरतें। ${place} में ${when} भारी वर्षा (${Math.round(mm)} मिमी) की संभावना है। गैर-जरूरी यात्रा टालें और जलभराव वाले रास्तों से बचें।`
+      } else if (lang === 'hinglish') {
+        summary = `Travel Advisory: Caution rakhein. ${place} mein ${when} bhaari barish (${Math.round(mm)} mm) ki sambhavna hai. Gair-zaroori travel taal dein.`
+      } else {
+        summary = `Travel Advisory: Exercise caution. Significant rain (${Math.round(mm)} mm) expected in ${place} ${when}. Avoid low-lying underpasses and open highway stretches.`
+      }
+    } else {
+      if (lang === 'hi') {
+        summary = `यात्रा सलाह: यात्रा के लिए मौसम अनुकूल और सुरक्षित है। ${place} में ${when} कोई गंभीर मौसम चेतावनी नहीं है।`
+      } else if (lang === 'hinglish') {
+        summary = `Travel Advisory: Mausam safe aur clear hai. ${place} mein ${when} travel karne mein koi pareshani nahi hai.`
+      } else {
+        summary = `Travel Advisory: Safe for travel. Road and weather conditions in ${place} ${when} are clear with normal visibility.`
+      }
+    }
+  }
+  // 6. Temperature
+  else if (/temp|temperature|garmi|sardi|thand|गर्मी|सर्दी|तापमान/i.test(lowerText)) {
+    const tmax = day?.tempMaxC ?? 31
+    const tmin = day?.tempMinC ?? 22
+    if (lang === 'hi') {
+      summary = `${place} में ${when}: अधिकतम तापमान ${tmax} °C और न्यूनतम तापमान ${tmin} °C रहने का अनुमान है।`
+    } else if (lang === 'hinglish') {
+      summary = `${place} mein ${when}: Max temp ${tmax} °C aur min temp ${tmin} °C rehne ka anumaan hai.`
+    } else {
+      summary = `${place} ${when}: Expected high of ${tmax} °C and a comfortable low of ${tmin} °C.`
+    }
+  }
+  // 7. Warning check
+  else if (nlu.intent === 'warning_check' || /warning|alert|chetawani|चेतावनी/i.test(lowerText)) {
     summary = warning
       ? WARNING_ONLY[lang](place, COLOUR[warning.colour]?.[lang] || warning.colour, warning.event)
       : (lang === 'hi' ? `${place} के लिए इस समय कोई आधिकारिक सक्रिय चेतावनी नहीं है।` : lang === 'hinglish' ? `${place} ke liye is samay koi official active warning nahi hai.` : `There is no active official warning for ${place} right now.`)
-  } else if (mm == null) {
+  }
+  // 8. Rain forecast default
+  else if (mm == null) {
     summary = NO_DATA[lang](place)
     insufficient = true
   } else if (mm < 2) {
@@ -111,27 +200,13 @@ export function mockAnswer(text, { persona = 'general', location = null, warning
     summary = RAIN_YES[lang](place, when, RAIN_BAND[band(mm)][lang], Math.round(mm))
   }
 
-  const speech =
-    lang === 'hinglish'
-      ? nlu.intent === 'farm_status'
-        ? FARM_STATUS_REPLY.hi(place, Math.round(mm), 'Good')
-        : nlu.intent === 'warning_check' && warning
-          ? WARNING_ONLY.hi(place, COLOUR[warning.colour].hi, warning.event)
-          : mm < 2
-            ? RAIN_NONE.hi(place, (WHEN[whenKey] || WHEN.today).hi)
-            : RAIN_YES.hi(place, (WHEN[whenKey] || WHEN.today).hi, RAIN_BAND[band(mm)].hi, Math.round(mm))
-      : summary
-
-  const gloss =
-    lang === 'en'
-      ? null
-      : nlu.intent === 'farm_status'
-        ? FARM_STATUS_REPLY.en(place, Math.round(mm), 'Good')
-        : mm < 2
-          ? RAIN_NONE.en(place, WHEN[whenKey]?.en || 'today')
-          : RAIN_YES.en(place, WHEN[whenKey]?.en || 'today', RAIN_BAND[band(mm)].en, Math.round(mm))
+  const speech = summary
+  const gloss = lang === 'en' ? null : summary
 
   const actions = (ACTIONS[persona] || ACTIONS.general)[lang]
+  const isWarningSpecific = nlu.intent === 'warning_check' || /warning|alert|chetawani|चेतावनी/i.test(lowerText)
+  const isSevereAlert = warning && ['orange', 'red'].includes(String(warning.colour).toLowerCase())
+  const attachWarning = warning && (isWarningSpecific || isSevereAlert)
 
   return {
     id: `a${Date.now()}`,
@@ -140,10 +215,10 @@ export function mockAnswer(text, { persona = 'general', location = null, warning
     summary,
     gloss,
     speech,
-    warningMessage: warning
+    warningMessage: attachWarning
       ? GLOSS[lang](warning.sender || warning.senderName || 'IMD', COLOUR[warning.colour]?.[lang] || warning.colour)
       : null,
-    officialText: warning
+    officialText: attachWarning
       ? {
           headline: warning.headline,
           description: warning.description,
@@ -153,19 +228,19 @@ export function mockAnswer(text, { persona = 'general', location = null, warning
           expires: warning.expires,
         }
       : null,
-    warning,
-    warningRef: warning?.identifier ?? null,
-    riskBand: warning ? RISK.overall : 'LOW',
-    riskScore: warning ? RISK.score : 18,
-    flooredBy: warning ? RISK.flooredBy : null,
-    riskExplanation: warning ? `Overall farm condition is monitored with a risk score of ${RISK.score}/100.` : `Overall condition is normal with low weather risk.`,
+    warning: attachWarning ? warning : null,
+    warningRef: attachWarning ? warning?.identifier ?? null : null,
+    riskBand: attachWarning ? RISK.overall : 'LOW',
+    riskScore: attachWarning ? RISK.score : 18,
+    flooredBy: attachWarning ? RISK.flooredBy : null,
+    riskExplanation: attachWarning ? `Monitored with a risk score of ${RISK.score}/100.` : `Overall condition is normal with low weather risk.`,
     confidence: CONFIDENCE_RESULT.level,
     confidenceReasons: CONFIDENCE_RESULT.reasons,
     actions,
     actionsGloss: lang === 'en' ? [] : ACTIONS[persona]?.en || ACTIONS.general.en,
     location: location || LOCATION,
-    sources: ['Open-Meteo (NWP)', 'NDMA Sachet', 'Continuous Farm Condition Engine'],
-    composer: 'deterministic',
+    sources: ['Open-Meteo (NWP)', 'NDMA Sachet', 'Continuous Condition Engine'],
+    composer: 'Engine Grounded',
     insufficientData: insufficient,
     degraded: false,
     demo: true,

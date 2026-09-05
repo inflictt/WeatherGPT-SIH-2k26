@@ -30,6 +30,8 @@ export const querySchema = z
 /** How many prior turns are consulted when resolving a follow-up. */
 const HISTORY_TURNS = 6
 
+import * as gemini from '../services/gemini/agent.js'
+
 export async function query(req, res) {
   const input = req.body
   const started = Date.now()
@@ -55,6 +57,30 @@ export async function query(req, res) {
     lon: input.lon,
     history,
   })
+
+  let finalAnswer = result.answer
+  let composer = 'deterministic'
+  let rejected = null
+  if (result.answer) {
+    const explained = await gemini.explain(
+      result.answer,
+      {
+        question: input.text,
+        intent: result.nlu?.intent || 'general',
+        location: result.location,
+        forecast: result.forecast,
+        current: result.current,
+        weather: result.current,
+        risk: result.risk,
+        confidence: result.confidence,
+        warnings: result.warnings,
+      },
+      { lang: input.lang || result.answer?.language || 'en' },
+    )
+    finalAnswer = explained.answer
+    composer = explained.composer
+    rejected = explained.rejected
+  }
 
   // Persistence is best-effort: a database hiccup must not cost the user the
   // answer we already computed.
@@ -91,6 +117,9 @@ export async function query(req, res) {
 
   res.json({
     ...result,
+    answer: finalAnswer,
+    composer,
+    llmRejected: rejected,
     conversationId: conversation?._id ?? null,
     ms: Date.now() - started,
   })

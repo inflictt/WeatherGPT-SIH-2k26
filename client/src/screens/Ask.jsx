@@ -328,8 +328,8 @@ export default function Ask({ lang = 'en', prefs, audience }) {
 
 function AnswerCard({ m, lang, onSpeak, speaking }) {
   const sev = m.warning ? SEVERITY[m.warning.colour] || SEVERITY.green : null
-  const isWarningQuery = m.intent === 'warning_check' || /warning|alert|chetawani|चेतावनी|खतरा/i.test(m.summary || '')
-  const isSevereAlert = m.warning && ['orange', 'red'].includes(String(m.warning.colour).toLowerCase())
+  const isWarningQuery = m.intent === 'warning_check' || (m.warning && /active.*warning/i.test(m.summary || ''))
+  const isSevereAlert = m.warning && String(m.warning.colour).toLowerCase() === 'red'
   const showOfficialBlock = m.warning && (isWarningQuery || isSevereAlert)
 
   return (
