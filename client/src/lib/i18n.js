@@ -38,6 +38,11 @@ const S = {
     hinglish: 'Gaon, zila ya shehar search karein',
   },
   bundledGazetteer: { en: 'Bundled gazetteer', hi: 'संबद्ध स्थान सूची', hinglish: 'Matched locations' },
+  apiUnreachableSample: {
+    en: 'Connecting to live services… showing offline intelligence.',
+    hi: 'लाइव सेवाओं से संपर्क हो रहा है… ऑफ़लाइन आसूचना प्रदर्शित है।',
+    hinglish: 'Live server se connect ho raha hai… offline intelligence dikhaya ja raha hai.',
+  },
   noMatch: { en: 'No match found', hi: 'कोई परिणाम नहीं मिला', hinglish: 'Koi match nahi mila' },
   noMatchDetail: {
     en: 'Nothing bundled matches that. Connect the API for village-level search.',

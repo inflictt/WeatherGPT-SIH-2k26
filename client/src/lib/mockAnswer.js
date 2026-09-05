@@ -84,7 +84,8 @@ export function mockAnswer(text, { persona = 'general', location = null, warning
   const mm = day?.mm ?? 0
 
   const now = Date.now()
-  const activeList = warnings?.length ? warnings : WARNINGS
+  const isUdaipur = !location?.name || location.name.toLowerCase() === 'udaipur'
+  const activeList = Array.isArray(warnings) && warnings.length > 0 ? warnings : (isUdaipur ? WARNINGS : [])
   const live = activeList.filter(
     (w) => w.status === 'active' && (!w.expires || new Date(w.expires).getTime() > now),
   )
@@ -140,29 +141,29 @@ export function mockAnswer(text, { persona = 'general', location = null, warning
     gloss,
     speech,
     warningMessage: warning
-      ? GLOSS[lang](warning.sender, COLOUR[warning.colour][lang])
+      ? GLOSS[lang](warning.sender || warning.senderName || 'IMD', COLOUR[warning.colour]?.[lang] || warning.colour)
       : null,
     officialText: warning
       ? {
           headline: warning.headline,
           description: warning.description,
           instruction: warning.instruction,
-          senderName: warning.sender,
+          senderName: warning.sender || warning.senderName,
           colour: warning.colour,
           expires: warning.expires,
         }
       : null,
     warning,
     warningRef: warning?.identifier ?? null,
-    riskBand: RISK.overall,
-    riskScore: RISK.score,
-    flooredBy: RISK.flooredBy,
-    riskExplanation: `Overall farm condition is monitored with a risk score of ${RISK.score}/100.`,
+    riskBand: warning ? RISK.overall : 'LOW',
+    riskScore: warning ? RISK.score : 18,
+    flooredBy: warning ? RISK.flooredBy : null,
+    riskExplanation: warning ? `Overall farm condition is monitored with a risk score of ${RISK.score}/100.` : `Overall condition is normal with low weather risk.`,
     confidence: CONFIDENCE_RESULT.level,
     confidenceReasons: CONFIDENCE_RESULT.reasons,
     actions,
     actionsGloss: lang === 'en' ? [] : ACTIONS[persona]?.en || ACTIONS.general.en,
-    location: LOCATION,
+    location: location || LOCATION,
     sources: ['Open-Meteo (NWP)', 'NDMA Sachet', 'Continuous Farm Condition Engine'],
     composer: 'deterministic',
     insufficientData: insufficient,
