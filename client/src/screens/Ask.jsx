@@ -328,35 +328,47 @@ export default function Ask({ lang = 'en', prefs, audience }) {
 
 function AnswerCard({ m, lang, onSpeak, speaking }) {
   const sev = m.warning ? SEVERITY[m.warning.colour] || SEVERITY.green : null
+  const isWarningQuery = m.intent === 'warning_check' || /warning|alert|chetawani|चेतावनी|खतरा/i.test(m.summary || '')
+  const isSevereAlert = m.warning && ['orange', 'red'].includes(String(m.warning.colour).toLowerCase())
+  const showOfficialBlock = m.warning && (isWarningQuery || isSevereAlert)
 
   return (
     <div>
-      <div className="mb-2 flex items-center gap-2">
-        <span className="h-1.5 w-1.5 rounded-full bg-accent" aria-hidden="true" />
-        <span className="lbl">{t('appName', lang)}</span>
+      <div className="mb-2 flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <span className="h-1.5 w-1.5 rounded-full bg-accent" aria-hidden="true" />
+          <span className="lbl">{t('appName', lang)}</span>
+        </div>
+        {m.composer && (
+          <span className="rounded bg-sunk px-2 py-0.5 text-[10px] font-mono font-medium uppercase tracking-wider text-ink-3">
+            {m.composer === 'gemini' ? '✦ AI Grounded' : 'Engine Verified'}
+          </span>
+        )}
       </div>
 
       <div className="overflow-hidden rounded-xl rounded-tl-sm border border-line bg-surface shadow-card">
-        {/* --- warning --- */}
-        {m.warning && (
-          <div className={cn('flex items-start gap-3 border-b border-line-soft p-4', sev.wash)}>
-            <SeverityTile tone={m.warning.colour} size={36} />
-            <div className="min-w-0">
-              <div className={cn('lbl', sev.text)}>{t('officialTextUnedited', lang)}</div>
+        {/* --- only show official warning banner when query is warning-related or severe disaster alert --- */}
+        {showOfficialBlock && (
+          <div className={cn('flex items-start gap-3 border-b border-line-soft p-3.5', sev.wash)}>
+            <SeverityTile tone={m.warning.colour} size={28} />
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center justify-between">
+                <div className={cn('lbl font-semibold', sev.text)}>{t('officialTextUnedited', lang)}</div>
+                <span className="lbl text-[10px] text-ink-3">{m.warning.sender}</span>
+              </div>
               <p className="mt-1 text-data leading-relaxed text-ink-2">{m.warning.description}</p>
               {m.warning.instruction && (
-                <p className="mt-2 border-t border-line-soft pt-2 text-data leading-relaxed text-ink-2">
+                <p className="mt-1.5 border-t border-line-soft/50 pt-1.5 text-data font-medium leading-relaxed text-ink-2">
                   {m.warning.instruction}
                 </p>
               )}
-              <div className="lbl mt-2">{m.warning.sender}</div>
             </div>
           </div>
         )}
 
         {/* --- answer --- */}
         <div className="p-4 sm:p-5">
-          <p className="text-body-sm leading-relaxed text-ink">{m.summary}</p>
+          <p className="text-body-sm leading-relaxed text-ink whitespace-pre-line">{m.summary}</p>
           {m.gloss && <p className="mt-2 text-data italic leading-relaxed text-ink-3">{m.gloss}</p>}
 
           <div className="mt-3.5 flex flex-wrap items-center gap-2">
@@ -376,6 +388,11 @@ function AnswerCard({ m, lang, onSpeak, speaking }) {
               <span className="inline-flex items-center gap-2 rounded-md bg-sunk px-2.5 py-1.5">
                 <ConfidenceBars level={m.confidence} />
                 <span className="text-label font-medium uppercase text-ink-2">{m.confidence}</span>
+              </span>
+            )}
+            {m.warning && !showOfficialBlock && (
+              <span className={cn('rounded-md px-2 py-1 text-[11px] font-medium', sev.wash, sev.text)}>
+                Advisory: {m.warning.colour}
               </span>
             )}
           </div>

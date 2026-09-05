@@ -87,7 +87,18 @@ export async function chat(req, res) {
   // --- 3 & 4. prose, then the gate --------------------------------------
   const { answer: worded, composer, rejected } = await gemini.explain(
     answer,
-    { ...(agriculture || {}), weather: base.weather ?? agriculture?.weather },
+    {
+      question: message,
+      intent: base.nlu?.intent || 'advice',
+      location: base.location,
+      forecast: base.forecast,
+      current: base.current,
+      weather: base.weather ?? agriculture?.weather ?? base.current,
+      agriculture,
+      risk: base.risk,
+      confidence: base.confidence,
+      warnings: base.warnings,
+    },
     { lang: lang || base.answer?.language || 'en' },
   )
 

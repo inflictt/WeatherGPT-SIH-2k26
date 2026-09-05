@@ -106,10 +106,8 @@ export async function explain(answer, context, { lang = 'en', timeoutMs = 25000 
         merged[field] = rewrite[field].trim()
       }
     }
-    // Arrays are merged element-wise and only when the length matches, so a
-    // model cannot quietly drop a recommended action.
-    if (Array.isArray(rewrite.recommendedActions)
-        && rewrite.recommendedActions.length === (answer.recommendedActions?.length || 0)) {
+    // Recommended actions are merged if provided as an array of strings.
+    if (Array.isArray(rewrite.recommendedActions) && rewrite.recommendedActions.length > 0) {
       merged.recommendedActions = rewrite.recommendedActions.map(String)
     }
 

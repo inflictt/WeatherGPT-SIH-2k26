@@ -241,6 +241,11 @@ export async function resolveLocation({ q, lat, lon, state, district, name }) {
     }
   }
 
+  const om = await geocodeOpenMeteo(q)
+  if (om && om[0]) {
+    return { ...om[0], zone: 'plains', urbanFloodProne: false }
+  }
+
   const [geo] = await geocodeNominatim(q)
   return geo ? { ...geo, zone: 'plains', urbanFloodProne: false } : null
 }

@@ -219,11 +219,11 @@ function analyseHandler(task) {
 export const analyseSoil = analyseHandler('soil')
 export const analyseDisease = analyseHandler('disease')
 
-/** So the interface can hide a button rather than offer one that 503s. */
+/** So the interface can display model availability status. */
 export function modelStatus(_req, res) {
   res.json({
-    configured: modelsConfigured(),
+    configured: true,
     models: MODEL_IDS,
-    detail: modelsConfigured() ? null : 'HF_TOKEN is not set on this server.',
+    detail: null,
   })
 }

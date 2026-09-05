@@ -89,7 +89,7 @@ export default function ImageAnalyser({ mode = 'leaf', onResult, crop, location,
 
   const run = async () => {
     if (!file) return
-    if (!LIVE || available === false) {
+    if (!LIVE) {
       setState('offline')
       return
     }

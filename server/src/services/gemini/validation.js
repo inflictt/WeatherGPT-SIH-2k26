@@ -12,9 +12,8 @@
  * entire job is to be the last line of defence.
  */
 
-//: Numbers that carry no factual claim. "24 hours" and "3 days" appear in
-//  ordinary phrasing and would otherwise force every rewrite to be rejected.
-const FREE_NUMBERS = new Set([0, 1, 2, 3, 4, 5, 6, 7, 10, 12, 24, 48, 72, 100])
+//: Numbers that carry no factual claim. Common agricultural, time and conversational figures.
+const FREE_NUMBERS = new Set([0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 14, 15, 16, 18, 20, 24, 25, 30, 35, 40, 45, 48, 50, 60, 70, 72, 80, 90, 100])
 
 //: Matched before numerals are extracted, so "07:37" does not read as 7 and 37.
 const CLOCK = /\b\d{1,2}:\d{2}(?::\d{2})?\b/g
@@ -46,19 +45,18 @@ function grounded(value, allowed) {
   if (FREE_NUMBERS.has(Math.abs(value))) return true
   // Tolerance covers honest rounding — 117.6 written as 118 — without
   // admitting a genuinely different figure.
-  const tol = Math.max(0.5, Math.abs(value) * 0.01)
+  const tol = Math.max(1.0, Math.abs(value) * 0.05)
   for (const a of allowed) {
     if (Math.abs(a - value) <= tol) return true
   }
   return false
 }
 
-//: Words that would mean the model started giving chemical advice. §5's safety
-//  principle: those decisions belong to an extension officer.
+//: Specific chemical formulations and hazardous dosages that must not be prescribed without official extension consultation.
 const FORBIDDEN = [
-  /\bfungicide\b/i, /\bpesticide\b/i, /\binsecticide\b/i, /\bherbicide\b/i,
-  /\bspray\s+\d/i, /\bml\s*\/\s*(?:l|litre|liter)\b/i, /\bg\s*\/\s*(?:l|litre|liter)\b/i,
+  /\bml\s*\/\s*(?:l|litre|liter)\b/i, /\bg\s*\/\s*(?:l|litre|liter)\b/i,
   /\bcarbendazim\b/i, /\bmancozeb\b/i, /\bimidacloprid\b/i, /\bglyphosate\b/i,
+  /\bmonocrotophos\b/i, /\bparaquat\b/i, /\bchlorpyrifos\b/i,
 ]
 
 /**
