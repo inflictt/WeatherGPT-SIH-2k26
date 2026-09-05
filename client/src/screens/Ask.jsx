@@ -170,10 +170,11 @@ export default function Ask({ lang = 'en', prefs, audience }) {
             failure(lang === 'hi' ? 'बहुत सारे अनुरोध प्राप्त हुए। कृपया कुछ क्षण बाद पुनः प्रयास करें।' : 'Too many requests. Please wait a moment and try again.'),
           ])
         } else {
-          const friendly = /invalid request/i.test(raw)
-            ? (lang === 'hi' ? 'कृपया अपना प्रश्न जांचें और पुनः प्रयास करें।' : 'Please verify your question and try again.')
-            : raw
-          setMessages((m) => [...m, failure(`${t('failed', lang)} (${friendly})`)])
+          const isInvalid = /invalid request/i.test(raw)
+          const friendly = isInvalid
+            ? (lang === 'hi' ? 'कृपया अपना प्रश्न थोड़ा और स्पष्ट लिखकर या बोलकर पूछें।' : 'Please clarify your question and try again.')
+            : (lang === 'hi' ? 'उत्तर प्राप्त करने में असमर्थ। कृपया पुनः प्रयास करें।' : (raw && raw.length < 80 && !/500|400|error/i.test(raw) ? raw : 'Unable to answer at the moment. Please try again.'))
+          setMessages((m) => [...m, failure(friendly)])
         }
       } finally {
         setBusy(false)

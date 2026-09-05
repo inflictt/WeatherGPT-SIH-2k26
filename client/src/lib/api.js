@@ -166,9 +166,11 @@ export const api = {
 
   activities: (farmId, token) => req('/api/agriculture/activities' + qs({ farmId }), { token }),
   createActivity: (body, token) => req('/api/agriculture/activities', { method: 'POST', body, token }),
+  deleteActivity: (id, token) => req(`/api/agriculture/activities/${id}`, { method: 'DELETE', token }),
 
   finance: (farmId, token) => req('/api/agriculture/finance' + qs({ farmId }), { token }),
   createFinance: (body, token) => req('/api/agriculture/finance', { method: 'POST', body, token }),
+  deleteFinance: (id, token) => req(`/api/agriculture/finance/${id}`, { method: 'DELETE', token }),
 
   timeline: (farmId, token) => req('/api/agriculture/timeline' + qs({ farmId }), { token }),
 

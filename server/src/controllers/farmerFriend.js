@@ -70,6 +70,7 @@ export async function chat(req, res) {
     q,
   } = req.body
   const activeConvId = conversationId || `c_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`
+  const storeConvId = req.user?.id ? `${req.user.id}:${activeConvId}` : `anon:${activeConvId}`
 
   let farm = null
   if (req.user) {
@@ -81,7 +82,7 @@ export async function chat(req, res) {
   }
 
   // Load prior conversation turns for follow-up resolution
-  let history = getHistory(activeConvId)
+  let history = getHistory(storeConvId)
   if (req.user && activeConvId && /^[0-9a-fA-F]{24}$/.test(activeConvId) && history.length === 0) {
     try {
       const dbConv = await Conversation.findOne({ _id: activeConvId, userId: req.user.id })
@@ -149,7 +150,7 @@ export async function chat(req, res) {
       { lang: userLang },
     )
 
-    saveTurn(activeConvId, {
+    saveTurn(storeConvId, {
       text: message,
       intent: INTENTS.GREETING,
       summary: worded?.summary,
@@ -213,7 +214,7 @@ export async function chat(req, res) {
       { lang: userLang },
     )
 
-    saveTurn(activeConvId, {
+    saveTurn(storeConvId, {
       text: message,
       intent: INTENTS.GENERAL_CONVERSATION,
       summary: worded?.summary,
@@ -271,7 +272,7 @@ export async function chat(req, res) {
       { lang: userLang },
     )
 
-    saveTurn(activeConvId, {
+    saveTurn(storeConvId, {
       text: message,
       intent: INTENTS.UNRELATED,
       summary: worded?.summary,
@@ -355,7 +356,7 @@ export async function chat(req, res) {
       { lang: userLang },
     )
 
-    saveTurn(activeConvId, {
+    saveTurn(storeConvId, {
       text: message,
       intent: INTENTS.RAIN_GEAR,
       summary: worded?.summary,
@@ -451,7 +452,7 @@ export async function chat(req, res) {
       { lang: userLang },
     )
 
-    saveTurn(activeConvId, {
+    saveTurn(storeConvId, {
       text: message,
       intent: INTENTS.CROP_SOWING,
       crop: cropName,
@@ -526,7 +527,7 @@ export async function chat(req, res) {
       { lang: userLang },
     )
 
-    saveTurn(activeConvId, {
+    saveTurn(storeConvId, {
       text: message,
       intent: INTENTS.FOLLOW_UP,
       summary: worded?.summary,
@@ -685,7 +686,7 @@ export async function chat(req, res) {
     { lang: userLang },
   )
 
-  saveTurn(activeConvId, {
+  saveTurn(storeConvId, {
     text: message,
     intent: intentInfo.intent,
     crop: activeCrop,

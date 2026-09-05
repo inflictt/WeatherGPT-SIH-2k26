@@ -59,7 +59,7 @@ export default function InsightsScreen({ audience = 'farm', lang = 'en' }) {
   const taskRate = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 100
 
   // Rain water conservation estimate
-  const rainMm = summary24h?.rainMm || 40.4
+  const rainMm = Number(summary24h?.rainMm) || 0
   const estimatedLitersRain = Math.round(rainMm * (Number(farm?.areaHa) || 2.5) * 10000)
 
   const handleCreateFinance = (e) => {

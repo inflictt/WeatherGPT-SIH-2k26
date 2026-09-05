@@ -60,26 +60,28 @@ r.delete('/agriculture/farm/:id', requireAuth, wrap(agriculture.deleteFarm))
 /* --- agriculture: farm management (Fields, Tasks, Activities, Finance, Timeline) --- */
 r.get('/agriculture/fields', optionalAuth, wrap(farmManagement.listFields))
 r.post('/agriculture/fields', optionalAuth, validate(farmManagement.fieldSchema), wrap(farmManagement.createField))
-r.patch('/agriculture/fields/:id', optionalAuth, wrap(farmManagement.updateField))
+r.patch('/agriculture/fields/:id', optionalAuth, validate(farmManagement.fieldSchema.partial()), wrap(farmManagement.updateField))
 r.delete('/agriculture/fields/:id', optionalAuth, wrap(farmManagement.deleteField))
 
 r.get('/agriculture/tasks', optionalAuth, wrap(farmManagement.listTasks))
 r.post('/agriculture/tasks', optionalAuth, validate(farmManagement.taskSchema), wrap(farmManagement.createTask))
-r.patch('/agriculture/tasks/:id', optionalAuth, wrap(farmManagement.updateTask))
+r.patch('/agriculture/tasks/:id', optionalAuth, validate(farmManagement.taskSchema.partial()), wrap(farmManagement.updateTask))
 r.post('/agriculture/tasks/:id/complete', optionalAuth, wrap(farmManagement.completeTask))
 r.delete('/agriculture/tasks/:id', optionalAuth, wrap(farmManagement.deleteTask))
 
 r.get('/agriculture/activities', optionalAuth, wrap(farmManagement.listActivities))
 r.post('/agriculture/activities', optionalAuth, validate(farmManagement.activitySchema), wrap(farmManagement.createActivity))
+r.delete('/agriculture/activities/:id', optionalAuth, wrap(farmManagement.deleteActivity))
 
 r.get('/agriculture/finance', optionalAuth, wrap(farmManagement.listFinance))
 r.post('/agriculture/finance', optionalAuth, validate(farmManagement.financeSchema), wrap(farmManagement.createFinance))
+r.delete('/agriculture/finance/:id', optionalAuth, wrap(farmManagement.deleteFinance))
 
 r.get('/agriculture/timeline', optionalAuth, wrap(farmManagement.listTimeline))
 
 r.get('/agriculture/livestock', optionalAuth, wrap(farmManagement.listLivestock))
 r.post('/agriculture/livestock', optionalAuth, validate(farmManagement.livestockSchema), wrap(farmManagement.createLivestock))
-r.patch('/agriculture/livestock/:id', optionalAuth, wrap(farmManagement.updateLivestock))
+r.patch('/agriculture/livestock/:id', optionalAuth, validate(farmManagement.livestockSchema.partial()), wrap(farmManagement.updateLivestock))
 r.delete('/agriculture/livestock/:id', optionalAuth, wrap(farmManagement.deleteLivestock))
 
 /* --- agriculture: the brief and the engines ------------------------------ */

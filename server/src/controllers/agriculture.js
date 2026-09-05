@@ -1,6 +1,12 @@
 import { z } from 'zod'
 import { Farm } from '../models/Farm.js'
 import { AIInference } from '../models/AIInference.js'
+import { Field } from '../models/Field.js'
+import { FarmTask } from '../models/FarmTask.js'
+import { FarmActivity } from '../models/FarmActivity.js'
+import { FarmFinance } from '../models/FarmFinance.js'
+import { FarmEvent } from '../models/FarmEvent.js'
+import { Livestock } from '../models/Livestock.js'
 import { AppError, notFound, badRequest } from '../utils/AppError.js'
 import { log } from '../utils/logger.js'
 import * as engines from '../services/agriculture/engines.js'
@@ -74,11 +80,20 @@ export async function updateFarm(req, res) {
 
 export async function deleteFarm(req, res) {
   // §46: a farmer can delete their farm data, and it goes — including the
-  // inference log tied to it, which would otherwise outlive the farm it
-  // describes.
+  // inference log, fields, tasks, activities, finances, events, and livestock.
   const farm = await Farm.findOneAndDelete({ _id: req.params.id, userId: req.user.id })
   if (!farm) throw notFound('No such farm')
-  await AIInference.deleteMany({ farmId: farm._id })
+
+  await Promise.all([
+    AIInference.deleteMany({ farmId: farm._id }).catch(() => {}),
+    Field.deleteMany({ farmId: farm._id }).catch(() => {}),
+    FarmTask.deleteMany({ farmId: farm._id }).catch(() => {}),
+    FarmActivity.deleteMany({ farmId: farm._id }).catch(() => {}),
+    FarmFinance.deleteMany({ farmId: farm._id }).catch(() => {}),
+    FarmEvent.deleteMany({ farmId: farm._id }).catch(() => {}),
+    Livestock.deleteMany({ farmId: farm._id }).catch(() => {}),
+  ])
+
   res.json({ deleted: true })
 }
 

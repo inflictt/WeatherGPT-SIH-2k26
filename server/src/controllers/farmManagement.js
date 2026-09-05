@@ -136,6 +136,11 @@ export async function listFields(req, res) {
 }
 
 export async function createField(req, res) {
+  if (req.user?.id) {
+    const ownsFarm = await Farm.exists({ _id: req.body.farmId, userId: req.user.id })
+    if (!ownsFarm) throw notFound('Farm not found or unauthorized')
+  }
+
   const field = await Field.create({
     ...req.body,
     userId: getUserId(req),
@@ -156,18 +161,24 @@ export async function createField(req, res) {
 }
 
 export async function updateField(req, res) {
-  const field = await Field.findByIdAndUpdate(
-    req.params.id,
+  const filter = { _id: req.params.id }
+  if (req.user?.id) filter.userId = getUserId(req)
+
+  const field = await Field.findOneAndUpdate(
+    filter,
     { $set: req.body },
-    { new: true },
+    { new: true, runValidators: true },
   )
-  if (!field) throw notFound('Field not found')
+  if (!field) throw notFound('Field not found or unauthorized')
   res.json({ field })
 }
 
 export async function deleteField(req, res) {
-  const field = await Field.findByIdAndDelete(req.params.id)
-  if (!field) throw notFound('Field not found')
+  const filter = { _id: req.params.id }
+  if (req.user?.id) filter.userId = getUserId(req)
+
+  const field = await Field.findOneAndDelete(filter)
+  if (!field) throw notFound('Field not found or unauthorized')
   res.json({ ok: true })
 }
 
@@ -180,11 +191,16 @@ export async function listTasks(req, res) {
   if (status) filter.status = status
   if (req.user?.id) filter.userId = getUserId(req)
 
-  const tasks = await FarmTask.find(filter).sort({ dueDate: 1 })
+  const tasks = await FarmTask.find(filter).sort({ dueDate: 1 }).limit(100)
   res.json({ tasks })
 }
 
 export async function createTask(req, res) {
+  if (req.user?.id) {
+    const ownsFarm = await Farm.exists({ _id: req.body.farmId, userId: req.user.id })
+    if (!ownsFarm) throw notFound('Farm not found or unauthorized')
+  }
+
   const task = await FarmTask.create({
     ...req.body,
     userId: getUserId(req),
@@ -198,22 +214,28 @@ export async function updateTask(req, res) {
   const patch = { ...req.body }
   if (patch.dueDate) patch.dueDate = new Date(patch.dueDate)
 
-  const task = await FarmTask.findByIdAndUpdate(
-    req.params.id,
+  const filter = { _id: req.params.id }
+  if (req.user?.id) filter.userId = getUserId(req)
+
+  const task = await FarmTask.findOneAndUpdate(
+    filter,
     { $set: patch },
-    { new: true },
+    { new: true, runValidators: true },
   )
-  if (!task) throw notFound('Task not found')
+  if (!task) throw notFound('Task not found or unauthorized')
   res.json({ task })
 }
 
 export async function completeTask(req, res) {
-  const task = await FarmTask.findByIdAndUpdate(
-    req.params.id,
+  const filter = { _id: req.params.id }
+  if (req.user?.id) filter.userId = getUserId(req)
+
+  const task = await FarmTask.findOneAndUpdate(
+    filter,
     { $set: { status: 'completed', completedAt: new Date() } },
     { new: true },
   )
-  if (!task) throw notFound('Task not found')
+  if (!task) throw notFound('Task not found or unauthorized')
 
   // Log to timeline
   await FarmEvent.create({
@@ -230,8 +252,11 @@ export async function completeTask(req, res) {
 }
 
 export async function deleteTask(req, res) {
-  const task = await FarmTask.findByIdAndDelete(req.params.id)
-  if (!task) throw notFound('Task not found')
+  const filter = { _id: req.params.id }
+  if (req.user?.id) filter.userId = getUserId(req)
+
+  const task = await FarmTask.findOneAndDelete(filter)
+  if (!task) throw notFound('Task not found or unauthorized')
   res.json({ ok: true })
 }
 
@@ -248,6 +273,11 @@ export async function listActivities(req, res) {
 }
 
 export async function createActivity(req, res) {
+  if (req.user?.id) {
+    const ownsFarm = await Farm.exists({ _id: req.body.farmId, userId: req.user.id })
+    if (!ownsFarm) throw notFound('Farm not found or unauthorized')
+  }
+
   const activity = await FarmActivity.create({
     ...req.body,
     userId: getUserId(req),
@@ -304,6 +334,15 @@ export async function createActivity(req, res) {
   res.status(201).json({ activity })
 }
 
+export async function deleteActivity(req, res) {
+  const filter = { _id: req.params.id }
+  if (req.user?.id) filter.userId = getUserId(req)
+
+  const activity = await FarmActivity.findOneAndDelete(filter)
+  if (!activity) throw notFound('Activity not found or unauthorized')
+  res.json({ ok: true })
+}
+
 /* ---------------------------------------------------------------- FINANCE */
 
 export async function listFinance(req, res) {
@@ -346,6 +385,11 @@ export async function listFinance(req, res) {
 }
 
 export async function createFinance(req, res) {
+  if (req.user?.id) {
+    const ownsFarm = await Farm.exists({ _id: req.body.farmId, userId: req.user.id })
+    if (!ownsFarm) throw notFound('Farm not found or unauthorized')
+  }
+
   const item = await FarmFinance.create({
     ...req.body,
     userId: getUserId(req),
@@ -354,12 +398,22 @@ export async function createFinance(req, res) {
   res.status(201).json({ item })
 }
 
+export async function deleteFinance(req, res) {
+  const filter = { _id: req.params.id }
+  if (req.user?.id) filter.userId = getUserId(req)
+
+  const item = await FarmFinance.findOneAndDelete(filter)
+  if (!item) throw notFound('Finance record not found or unauthorized')
+  res.json({ ok: true })
+}
+
 /* --------------------------------------------------------------- TIMELINE */
 
 export async function listTimeline(req, res) {
   const { farmId } = req.query
   const filter = {}
   if (farmId) filter.farmId = farmId
+  if (req.user?.id) filter.userId = getUserId(req)
 
   const events = await FarmEvent.find(filter).sort({ timestamp: -1 }).limit(60)
   res.json({ events })
@@ -373,11 +427,16 @@ export async function listLivestock(req, res) {
   if (farmId) filter.farmId = farmId
   if (req.user?.id) filter.userId = getUserId(req)
 
-  const animals = await Livestock.find(filter).sort({ createdAt: -1 })
+  const animals = await Livestock.find(filter).sort({ createdAt: -1 }).limit(100)
   res.json({ animals })
 }
 
 export async function createLivestock(req, res) {
+  if (req.user?.id) {
+    const ownsFarm = await Farm.exists({ _id: req.body.farmId, userId: req.user.id })
+    if (!ownsFarm) throw notFound('Farm not found or unauthorized')
+  }
+
   const animal = await Livestock.create({
     ...req.body,
     userId: getUserId(req),
@@ -386,17 +445,23 @@ export async function createLivestock(req, res) {
 }
 
 export async function updateLivestock(req, res) {
-  const animal = await Livestock.findByIdAndUpdate(
-    req.params.id,
+  const filter = { _id: req.params.id }
+  if (req.user?.id) filter.userId = getUserId(req)
+
+  const animal = await Livestock.findOneAndUpdate(
+    filter,
     { $set: req.body },
-    { new: true },
+    { new: true, runValidators: true },
   )
-  if (!animal) throw notFound('Livestock record not found')
+  if (!animal) throw notFound('Livestock record not found or unauthorized')
   res.json({ animal })
 }
 
 export async function deleteLivestock(req, res) {
-  const animal = await Livestock.findByIdAndDelete(req.params.id)
-  if (!animal) throw notFound('Livestock record not found')
+  const filter = { _id: req.params.id }
+  if (req.user?.id) filter.userId = getUserId(req)
+
+  const animal = await Livestock.findOneAndDelete(filter)
+  if (!animal) throw notFound('Livestock record not found or unauthorized')
   res.json({ ok: true })
 }

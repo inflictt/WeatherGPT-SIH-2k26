@@ -550,6 +550,21 @@ export function useFarm() {
     return newAct
   }, [])
 
+  const deleteActivity = useCallback((id) => {
+    setStore((prev) => {
+      const updated = prev.farms.map((f) => {
+        if (f.id === prev.activeFarmId) {
+          return {
+            ...f,
+            activities: (f.activities || []).filter((a) => a.id !== id && a._id !== id),
+          }
+        }
+        return f
+      })
+      return { ...prev, farms: updated }
+    })
+  }, [])
+
   // Finance
   const addFinance = useCallback((fin) => {
     const newFin = {
@@ -570,6 +585,21 @@ export function useFarm() {
       return { ...prev, farms: updated }
     })
     return newFin
+  }, [])
+
+  const deleteFinance = useCallback((id) => {
+    setStore((prev) => {
+      const updated = prev.farms.map((f) => {
+        if (f.id === prev.activeFarmId) {
+          return {
+            ...f,
+            finances: (f.finances || []).filter((it) => it.id !== id && it._id !== id),
+          }
+        }
+        return f
+      })
+      return { ...prev, farms: updated }
+    })
   }, [])
 
   // Livestock
@@ -758,7 +788,9 @@ export function useFarm() {
     completeTask,
     deleteTask,
     addActivity,
+    deleteActivity,
     addFinance,
+    deleteFinance,
     addLivestock,
     updateLivestock,
     deleteLivestock,
