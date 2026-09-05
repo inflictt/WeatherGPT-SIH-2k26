@@ -11,21 +11,18 @@ import { log } from '../utils/logger.js'
  * where it can be tested without a database.
  */
 
-export const querySchema = z
-  .object({
-    text: z.string().trim().min(1).max(500),
-    lang: z.enum(['en', 'hi', 'hinglish']).optional(),
-    persona: z.enum(['general', 'farmer', 'traveller', 'official']).optional(),
-    // Where the user currently is, or what they have selected. One of these is
-    // needed for a question that names no place.
-    q: z.string().trim().min(2).max(80).optional(),
-    lat: z.coerce.number().min(-90).max(90).optional(),
-    lon: z.coerce.number().min(-180).max(180).optional(),
-    conversationId: z.string().trim().max(64).optional(),
-  })
-  .refine((v) => v.q || (v.lat != null && v.lon != null) || v.conversationId, {
-    message: 'Provide a location (q, or lat and lon) or a conversationId to continue',
-  })
+export const querySchema = z.object({
+  text: z.string().trim().min(1, 'Message cannot be empty').max(2000),
+  lang: z.enum(['en', 'hi', 'hinglish']).optional().default('en'),
+  persona: z
+    .enum(['general', 'everyone', 'farmer', 'farm', 'traveller', 'official'])
+    .optional()
+    .transform((v) => (v === 'farm' ? 'farmer' : v === 'everyone' ? 'general' : v || 'general')),
+  q: z.string().trim().min(1).max(120).nullable().optional(),
+  lat: z.coerce.number().min(-90).max(90).nullable().optional(),
+  lon: z.coerce.number().min(-180).max(180).nullable().optional(),
+  conversationId: z.string().trim().max(64).nullable().optional(),
+})
 
 /** How many prior turns are consulted when resolving a follow-up. */
 const HISTORY_TURNS = 6
