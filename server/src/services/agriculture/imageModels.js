@@ -41,6 +41,14 @@ export function isConfigured() {
   return Boolean(env.geminiApiKey || env.hfToken)
 }
 
+const VISION_CANDIDATE_MODELS = [
+  'gemini-3.5-flash',
+  'gemini-3.5-flash-lite',
+  'gemini-3.8-flash',
+  'gemini-flash-lite-latest',
+  'gemini-3.1-flash-lite-preview',
+]
+
 async function classifyGeminiVision(task, buffer, { timeoutMs = 25000 } = {}) {
   const started = Date.now()
   const base64 = buffer.toString('base64')
@@ -49,68 +57,75 @@ async function classifyGeminiVision(task, buffer, { timeoutMs = 25000 } = {}) {
       ? 'You are an expert agricultural botanist and plant pathologist. Inspect this image. If it shows crop leaves or foliage, diagnose the exact condition (e.g. Healthy Crop, Leaf Rust, Powdery Mildew, Early Blight, Leaf Spot, Rice Blast). If it shows general crop fields, harvesting, or farmers, diagnose the standing crop foliage health (e.g. Healthy Mature Wheat / Foliage Normal). Return strictly valid JSON: {"prediction": "string", "confidence": number, "alternatives": [{"label": "string", "confidence": number}]}.'
       : 'You are an expert soil scientist and agronomist. Inspect this image. Identify the soil classification, texture, and moisture type (e.g. Sandy Loam, Clay Loam, Black Cotton Soil, Red Sandy Loam, Alluvial Soil, Silt Loam). Return strictly valid JSON: {"prediction": "string", "confidence": number, "alternatives": [{"label": "string", "confidence": number}]}.'
 
-  const ctl = new AbortController()
-  const timer = setTimeout(() => ctl.abort(), timeoutMs)
-  try {
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent?key=${env.geminiApiKey}`
-    const res = await fetch(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        contents: [
-          {
-            role: 'user',
-            parts: [
-              { text: prompt },
-              { inlineData: { mimeType: 'image/jpeg', data: base64 } },
-            ],
-          },
-        ],
-        generationConfig: {
-          temperature: 0.1,
-          responseMimeType: 'application/json',
-        },
-      }),
-      signal: ctl.signal,
-    })
-
-    if (!res.ok) {
-      throw new Error(`Gemini Vision HTTP ${res.status}`)
-    }
-
-    const data = await res.json()
-    const part =
-      data?.candidates?.[0]?.content?.parts?.find((p) => p.text && !p.thought) ||
-      data?.candidates?.[0]?.content?.parts?.[0]
-    const text = part?.text || ''
-    const clean = text.replace(/```(?:json)?/gi, '').replace(/```/g, '').trim()
-    let parsed = {}
+  let lastError = null
+  for (const model of VISION_CANDIDATE_MODELS) {
+    const ctl = new AbortController()
+    const timer = setTimeout(() => ctl.abort(), timeoutMs)
     try {
-      parsed = JSON.parse(clean.match(/\{[\s\S]*\}/)?.[0] || clean)
-    } catch {
-      parsed = { prediction: task === 'disease' ? 'Healthy Crop Foliage' : 'Sandy Loam Soil', confidence: 0.85 }
-    }
+      const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${env.geminiApiKey}`
+      const res = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contents: [
+            {
+              role: 'user',
+              parts: [
+                { text: prompt },
+                { inlineData: { mimeType: 'image/jpeg', data: base64 } },
+              ],
+            },
+          ],
+          generationConfig: {
+            temperature: 0.1,
+            responseMimeType: 'application/json',
+          },
+        }),
+        signal: ctl.signal,
+      })
 
-    const prediction =
-      parsed.prediction ||
-      parsed.condition ||
-      parsed.soil_type ||
-      parsed.label ||
-      (task === 'disease' ? 'Healthy Crop Foliage' : 'Sandy Loam Soil')
+      if (!res.ok) {
+        lastError = new Error(`Gemini Vision ${model} HTTP ${res.status}`)
+        continue
+      }
 
-    return {
-      model: 'gemini-3.6-flash-vision',
-      prediction,
-      confidence: typeof parsed.confidence === 'number' && parsed.confidence > 0 ? parsed.confidence : 0.88,
-      alternatives: (parsed.alternatives || []).slice(0, 3).map((a) => ({
-        label: a.label || a.prediction || (task === 'disease' ? 'Early Leaf Spot' : 'Clay Loam'),
-        confidence: typeof a.confidence === 'number' ? a.confidence : 0.12,
-      })),
-      latencyMs: Date.now() - started,
+      const data = await res.json()
+      const part =
+        data?.candidates?.[0]?.content?.parts?.find((p) => p.text && !p.thought) ||
+        data?.candidates?.[0]?.content?.parts?.[0]
+      const text = part?.text || ''
+      const clean = text.replace(/```(?:json)?/gi, '').replace(/```/g, '').trim()
+      let parsed = {}
+      try {
+        parsed = JSON.parse(clean.match(/\{[\s\S]*\}/)?.[0] || clean)
+      } catch {
+        parsed = { prediction: task === 'disease' ? 'Healthy Crop Foliage' : 'Sandy Loam Soil', confidence: 0.85 }
+      }
+
+      const prediction =
+        parsed.prediction ||
+        parsed.condition ||
+        parsed.soil_type ||
+        parsed.label ||
+        (task === 'disease' ? 'Healthy Crop Foliage' : 'Sandy Loam Soil')
+
+      return {
+        model: `${model}-vision`,
+        prediction,
+        confidence: typeof parsed.confidence === 'number' && parsed.confidence > 0 ? parsed.confidence : 0.88,
+        alternatives: (parsed.alternatives || []).slice(0, 3).map((a) => ({
+          label: a.label || a.prediction || (task === 'disease' ? 'Early Leaf Spot' : 'Clay Loam'),
+          confidence: typeof a.confidence === 'number' ? a.confidence : 0.12,
+        })),
+        latencyMs: Date.now() - started,
+      }
+    } catch (err) {
+      lastError = err
+    } finally {
+      clearTimeout(timer)
     }
-  } finally {
-    clearTimeout(timer)
   }
+  throw lastError || new Error('All vision models failed')
 }
 
 async function classifyHuggingFace(task, spec, buffer, { timeoutMs = 25000 } = {}) {

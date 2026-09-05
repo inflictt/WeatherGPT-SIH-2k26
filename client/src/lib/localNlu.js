@@ -24,17 +24,18 @@ export function detectLanguage(text) {
 
 /** First match wins; order is significance, not specificity. */
 const INTENTS = [
-  ['warning_check', ['warning', 'warnings', 'alert', 'alerts', 'चेतावनी', 'अलर्ट']],
+  ['warning_check', ['warning', 'warnings', 'alert', 'alerts', 'chetawani', 'chetwani', 'चेतावनी', 'अलर्ट', 'खतरा']],
   ['farm_status', ['farm status', 'farm condition', 'farm update', 'khet ka haal', 'khet kaisa', 'mere farm', 'mere khet', 'fasal ka haal', 'खेत का हाल', 'फार्म स्थिति', 'फसल कैसी']],
+  ['travel_advice', ['travel', 'travek', 'travl', 'trave', 'trip', 'journey', 'safar', 'yatra', 'driving', 'drive', 'highway', 'road', 'nikalna', 'safe to travel', 'सफर', 'यात्रा']],
   ['advice', ['should i', 'safe to', 'is it safe', 'karun', 'karoon', 'chahiye',
-    'करूँ', 'चाहिए', 'सुरक्षित', 'surakshit', 'sinchai', 'irrigate', 'harvest',
-    'fasal', 'khet', 'crop', 'yatra', 'safar', 'spray', 'chhidkaw', 'peele', 'yellow']],
-  ['rain_forecast', ['rain', 'rainfall', 'shower', 'drizzle', 'monsoon', 'barish',
-    'baarish', 'बारिश', 'बरसात', 'वर्षा']],
-  ['temperature', ['temperature', 'hot', 'cold', 'warm', 'heat', 'garmi', 'sardi',
-    'thand', 'तापमान', 'गर्मी', 'ठंड']],
+    'करूँ', 'चाहिए', 'सुरक्षित', 'surakshit', 'sinchai', 'irrigate', 'irrigation', 'harvest',
+    'fasal', 'khet', 'crop', 'spray', 'chhidkaw', 'chhidkao', 'peele', 'yellow', 'leaves', 'patti', 'dawa']],
+  ['temperature', ['temperature', 'temp', 'hot', 'cold', 'warm', 'heat', 'garmi', 'sardi',
+    'thand', 'तापमान', 'गर्मी', 'ठंड', 'सर्दी']],
   ['wind', ['wind', 'gust', 'squall', 'storm', 'hawa', 'andhi', 'toofan', 'tufan',
     'हवा', 'आंधी', 'तूफान']],
+  ['rain_forecast', ['rain', 'rainfall', 'shower', 'showers', 'drizzle', 'monsoon', 'barish',
+    'baarish', 'बारिश', 'बरसात', 'वर्षा', 'paani']],
 ].map(([k, words]) => [k, words.map(fold)])
 
 const DAYS = [

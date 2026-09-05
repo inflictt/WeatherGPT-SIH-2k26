@@ -269,8 +269,8 @@ export default function Farm({ audience = 'farm', setAudience, lang = 'en' }) {
             lang={lang}
             onResult={(r) => {
               logObservation({ mode: 'leaf', prediction: r.prediction, confidence: r.confidence })
-              setTab('intelligence') // Return to intelligence dashboard with updated state
             }}
+            onViewDashboard={() => setTab('intelligence')}
           />
         </div>
       )}
@@ -284,8 +284,8 @@ export default function Farm({ audience = 'farm', setAudience, lang = 'en' }) {
             onResult={(r) => {
               logObservation({ mode: 'soil', prediction: r.prediction, confidence: r.confidence })
               set({ soilType: r.prediction, soilConfidence: r.confidence, soilSource: 'model' })
-              setTab('intelligence') // Return to intelligence dashboard
             }}
+            onViewDashboard={() => setTab('intelligence')}
           />
         </div>
       )}

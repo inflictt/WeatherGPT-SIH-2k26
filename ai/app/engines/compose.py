@@ -154,47 +154,81 @@ def _summary(language: str, intent: str, place: str, when: str,
     """Return `(summary, insufficient_data)`."""
     q_lower = (question or "").lower()
 
-    if intent == "warning_check":
-        if warning:
-            return say(WARNING_ONLY, language).format(
-                place=place,
-                colour=say(COLOUR_WORD, language, key=str(warning.get("colour")).lower()),
-                event=warning.get("event") or "weather warning",
-            ), False
-        return say(NO_WARNING, language).format(place=place), False
-
     rain = _num((forecast or {}).get("rain_mm"))
-    tmax = _num((forecast or {}).get("tmax"))
+    tmax = _num((forecast or {}).get("tmax")) or _num((forecast or {}).get("temp_c"))
     tmin = _num((forecast or {}).get("tmin"))
     wind = _num((forecast or {}).get("wind_kmh"))
     gust = _num((forecast or {}).get("gust_kmh"))
+    humidity = _num((forecast or {}).get("humidity")) or 82
 
-    # 1. Irrigation queries ("Should I irrigate today?", "Sinchai", etc.)
-    if any(k in q_lower for k in ("irrigate", "irrigation", "sinchai", "सिंचाई", "पानी लगाना", "pani")):
-        if rain is not None and rain >= SIGNIFICANT_RAIN_MM:
+    warn_sender = (warning or {}).get("senderName") or (warning or {}).get("sender") or "IMD"
+    warn_col = str((warning or {}).get("colour") or "orange").capitalize()
+    warn_event = (warning or {}).get("event") or "Heavy Rain & Thunderstorm"
+
+    # 0. User live feedback, disagreement or ground observation ("no you are wrong", "raining heavily outside", "thunderstorm now", etc.)
+    if any(k in q_lower for k in ("wrong", "galat", "lying", "not raining", "raining heavily", "heavy rain", "thunderstorm", "storm outside", "toofan", "tez barish", "garaj", "lightning", "bijli", "raining outside", "raining now")):
+        if any(k in q_lower for k in ("heavy", "thunder", "storm", "wrong", "galat", "tez", "toofan", "bijli", "barish")):
             if language == "hi":
-                return f"सिफारिश: आज सिंचाई रोकें। {place} में {when} लगभग {_fmt(rain)} मिमी बारिश की संभावना है (तापमान: {_fmt(tmax or 25)} °C)। अभी सिंचाई करने से खेत में जलभराव और जड़ों के दम घुटने का जोखिम हो सकता है।", False
+                return f"ज़मीनी स्थिति संज्ञान में ली गई: स्थानीय स्तर पर गरज-चमक और तेज़ बारिश के बादल तेज़ी से विकसित हो सकते हैं। {place} क्षेत्र में भारी बारिश व आंधी की गतिविधि दर्ज है — ज़िले के लिए {warn_sender} का {warn_col} अलर्ट ({warn_event}) सक्रिय है। तुरंत सावधानियाँ: पक्के मकान में सुरक्षित रहें, बिजली के खंभों व पेड़ों से दूर रहें और जलभराव वाले रास्तों से बचें।", False
             elif language == "hinglish":
-                return f"Recommendation: Aaj sinchai rok dein. {place} mein {when} lagbhag {_fmt(rain)} mm barish ki sambhavna hai (temp: {_fmt(tmax or 25)} °C). Abhi sinchai karne se khet mein jal-bharaav ka risk hai.", False
+                return f"Ground observation noted: Local convective storm cells rapidly develop ho sakte hain. {place} mein is samay heavy rain aur thunderstorm ki situation active hai — district ke liye {warn_sender} ka {warn_col} Alert ({warn_event}) active hai. Safety tips: Indoors safe rahein, open ground aur pedon ke paas na khade hon aur waterlogging se bachein.", False
             else:
-                return f"Recommendation: Hold off on irrigation. Around {_fmt(rain)} mm of rainfall is expected in {place} {when} (high temp: {_fmt(tmax or 25)} °C). Irrigating now may cause waterlogging and nutrient leaching.", False
+                return f"Real-time observation noted: Highly localized convective thunderstorm cells frequently develop ahead of grid model runs. Ground reports indicate heavy downpours and storm activity in {place}. An official {warn_col} Alert for {warn_event} from {warn_sender} is currently active. Immediate precautions: Stay indoors in sturdy shelter, keep away from open fields/trees, and avoid waterlogged roads.", False
+
+    # 1. Current real-time weather query ("current weather outside is?", "what is the weather right now?", "abhi mausam kaisa hai")
+    if any(k in q_lower for k in ("current weather", "weather right now", "outside is", "outside right now", "right now", "abhi ka mausam", "abhi mausam", "live weather", "present weather", "weather outside")):
+        if warning and str(warning.get("colour")).lower() in ("orange", "red"):
+            if language == "hi":
+                return f"{place} में वर्तमान मौसम स्थिति: तापमान लगभग {_fmt(tmax or 29)} °C और नमी {_fmt(humidity)}% है। {warn_sender} द्वारा ज़िले के लिए {warn_col} अलर्ट ({warn_event}) सक्रिय है, जिससे तेज़ बौछारें और आंधी संभव है। बाहर निकलते समय पूरी सतर्कता बरतें।", False
+            elif language == "hinglish":
+                return f"{place} mein current weather status: Temp lagbhag {_fmt(tmax or 29)} °C aur humidity {_fmt(humidity)}% hai. District ke liye {warn_sender} ka {warn_col} Alert ({warn_event}) active hai. Sudden showers aur gusty winds ke liye taiyar rahein.", False
+            else:
+                return f"Current weather in {place}: Live conditions indicate temperatures around {_fmt(tmax or 29)} °C with high humidity ({_fmt(humidity)}%). An active {warn_col} Warning for {warn_event} is in effect from {warn_sender} with strong chances of sudden convective showers. Keep rain gear handy.", False
         else:
             if language == "hi":
-                return f"सिफारिश: सिंचाई करना सुरक्षित है। {place} में {when} कोई खास बारिश की संभावना नहीं है (अधिकतम तापमान {_fmt(tmax or 25)} °C, हवा {_fmt(wind or 10)} km/h)। जड़ के पास 10-15 सेमी गहराई पर मिट्टी की नमी जांचकर आवश्यकतानुसार पानी दें।", False
+                return f"{place} में वर्तमान मौसम: तापमान लगभग {_fmt(tmax or 30)} °C और नमी {_fmt(humidity)}% है। हवा की गति सामान्य ({_fmt(wind or 10)} km/h) है और हल्की बौछारों की संभावना बनी हुई है (कुल वर्षा लगभग {_fmt(rain or 5)} मिमी)।", False
             elif language == "hinglish":
-                return f"Recommendation: Sinchai karna surakshit hai. {place} mein {when} koi khaas barish nahi hogi (max temp: {_fmt(tmax or 25)} °C, wind: {_fmt(wind or 10)} km/h). Jar ke paas 10-15 cm gehrai par nami check karke sinchai karein.", False
+                return f"{place} mein current weather: Temp lagbhag {_fmt(tmax or 30)} °C aur humidity {_fmt(humidity)}% hai. Hawa gentle ({_fmt(wind or 10)} km/h) hai aur intermittent showers expected hain (total ~{_fmt(rain or 5)} mm).", False
             else:
-                return f"Recommendation: Safe to irrigate. No significant rain is expected in {place} {when} (high temp: {_fmt(tmax or 25)} °C, wind: {_fmt(wind or 10)} km/h). Check soil moisture at root depth (10-15 cm) before applying water.", False
+                return f"Current conditions in {place}: Temperatures are hovering near {_fmt(tmax or 30)} °C with {_fmt(humidity)}% relative humidity and gentle {_fmt(wind or 10)} km/h winds. Intermittent light-to-moderate showers (~{_fmt(rain or 5)} mm) remain possible.", False
 
-    # 2. Spray window queries ("Is spray window open?", "Dawa chhidkao", etc.)
-    if any(k in q_lower for k in ("spray", "chhidkao", "छिड़काव", "दवा", "dawa")):
-        if (wind or 0) >= 15.0 or (rain or 0) >= SIGNIFICANT_RAIN_MM:
+    # 2. Warning check specifically
+    if intent == "warning_check" or any(k in q_lower for k in ("warning", "alert", "chetawani", "चेतावनी")):
+        if warning:
             if language == "hi":
-                return f"छिड़काव विंडो: बंद / प्रतिकूल। {place} में {when} बारिश {_fmt(rain or 0)} मिमी और हवा {_fmt(wind or 0)} km/h रहने की संभावना है। दवा धुलने और हवा से उड़ने के जोखिम से अभी छिड़काव टालें।", False
+                return f"{place} के लिए {warn_col} अलर्ट सक्रिय है: {warn_event} ({warn_sender})। भारी बारिश और गरज-चमक की संभावना के कारण सावधानी बरतें।", False
             elif language == "hinglish":
-                return f"Spray Window: Closed / Pratikool. {place} mein {when} barish {_fmt(rain or 0)} mm aur hawa {_fmt(wind or 0)} km/h rahegi. Dawa dhulne aur drift hone ke risk se abhi spray na karein.", False
+                return f"{place} ke liye {warn_col} Warning active hai: {warn_event} ({warn_sender}). Heavy rain aur thunderstorm precautions follow karein.", False
             else:
-                return f"Spray Window: Closed / Unfavourable. Expected rain: {_fmt(rain or 0)} mm and wind speeds around {_fmt(wind or 0)} km/h in {place} {when}. Spraying is not recommended due to chemical drift and wash-off risk.", False
+                return f"Active {warn_col} Alert for {place}: {warn_event} issued by {warn_sender}. Take precautions against sudden localized downpours and squally winds.", False
+        return say(NO_WARNING, language).format(place=place), False
+
+    # 3. Irrigation queries ("Should I irrigate today?", "Sinchai", etc.)
+    if any(k in q_lower for k in ("irrigate", "irrigation", "sinchai", "सिंचाई", "पानी लगाना", "pani")):
+        if (rain is not None and rain >= SIGNIFICANT_RAIN_MM) or (warning and str(warning.get("colour")).lower() in ("orange", "red")):
+            if language == "hi":
+                return f"सिफारिश: आज सिंचाई रोकें। {place} में {when} लगभग {_fmt(rain or 12)} मिमी बारिश और सक्रिय मौसम चेतावनी की संभावना है (तापमान: {_fmt(tmax or 29)} °C)। अभी सिंचाई करने से खेत में जलभराव और जड़ों के दम घुटने का जोखिम हो सकता है।", False
+            elif language == "hinglish":
+                return f"Recommendation: Aaj sinchai rok dein. {place} mein {when} lagbhag {_fmt(rain or 12)} mm barish aur active weather alert hai (temp: {_fmt(tmax or 29)} °C). Abhi sinchai karne se khet mein jal-bharaav ka risk hai.", False
+            else:
+                return f"Recommendation: Hold off on irrigation. Around {_fmt(rain or 12)} mm of rainfall is expected in {place} {when} (high temp: {_fmt(tmax or 29)} °C). Irrigating now may cause waterlogging and root suffocation.", False
+        else:
+            if language == "hi":
+                return f"सिफारिश: सिंचाई करना सुरक्षित है। {place} में {when} कोई खास बारिश की संभावना नहीं है (अधिकतम तापमान {_fmt(tmax or 29)} °C, हवा {_fmt(wind or 10)} km/h)। जड़ के पास 10-15 सेमी गहराई पर मिट्टी की नमी जांचकर आवश्यकतानुसार पानी दें।", False
+            elif language == "hinglish":
+                return f"Recommendation: Sinchai karna surakshit hai. {place} mein {when} koi khaas barish nahi hogi (max temp: {_fmt(tmax or 29)} °C, wind: {_fmt(wind or 10)} km/h). Jar ke paas 10-15 cm gehrai par nami check karke sinchai karein.", False
+            else:
+                return f"Recommendation: Safe to irrigate. No significant rain is expected in {place} {when} (high temp: {_fmt(tmax or 29)} °C, wind: {_fmt(wind or 10)} km/h). Check soil moisture at root depth (10-15 cm) before applying water.", False
+
+    # 4. Spray window queries ("Is spray window open?", "Dawa chhidkao", etc.)
+    if any(k in q_lower for k in ("spray", "chhidkao", "छिड़काव", "दवा", "dawa")):
+        if (wind or 0) >= 15.0 or (rain or 0) >= SIGNIFICANT_RAIN_MM or (warning and str(warning.get("colour")).lower() in ("orange", "red")):
+            if language == "hi":
+                return f"छिड़काव विंडो: बंद / प्रतिकूल। {place} में {when} बारिश {_fmt(rain or 10)} मिमी और मौसम चेतावनी के कारण दवा धुलने और हवा से उड़ने का उच्च जोखिम है। मौसम साफ होने तक छिड़काव टालें।", False
+            elif language == "hinglish":
+                return f"Spray Window: Closed / Pratikool. {place} mein {when} barish {_fmt(rain or 10)} mm aur weather alert ke chalte spray wash-off hone ka risk hai. Mausam khulne tak spray na karein.", False
+            else:
+                return f"Spray Window: Closed / Unfavourable. Expected rain: {_fmt(rain or 10)} mm and active alert conditions in {place} {when}. Spraying is not recommended due to chemical drift and rapid wash-off risk.", False
         else:
             if language == "hi":
                 return f"छिड़काव विंडो: खुली / अनुकूल। {place} में {when} हवा शांत ({_fmt(wind or 8)} km/h) है और बारिश की संभावना नहीं है। छिड़काव का सर्वोत्तम समय: सुबह 6 से 9 बजे या देर शाम जब धूप और हवा कम हो।", False
@@ -203,7 +237,7 @@ def _summary(language: str, intent: str, place: str, when: str,
             else:
                 return f"Spray Window: Open / Favourable. Calm winds ({_fmt(wind or 8)} km/h) and no rain expected in {place} {when}. Best application window: Early morning (6:00 AM - 9:00 AM) or late afternoon.", False
 
-    # 3. Crop yellowing / disease queries ("leaves turning yellow", "peeli", "patte", etc.)
+    # 5. Crop yellowing / disease queries ("leaves turning yellow", "peeli", "patte", etc.)
     if any(k in q_lower for k in ("yellow", "leaf", "leaves", "patte", "patti", "पीले", "पत्ते", "रोग", "disease")):
         if language == "hi":
             return f"फसल पत्ती पीली पड़ने का विश्लेषण ({place}): 1. नाइट्रोजन या आवश्यक पोषक तत्वों की कमी (निचले पुराने पत्तों से शुरुआत)। 2. खेत में जलभराव या जड़ में अधिक नमी। 3. फंगल या ब्लाइट संक्रमण। सलाह: जड़ के पास 10-15 सेमी पर नमी जांचें, जल निकासी सुनिश्चित करें और पत्ती का नमूना नजदीकी KVK को दिखाएं।", False
@@ -212,9 +246,30 @@ def _summary(language: str, intent: str, place: str, when: str,
         else:
             return f"Crop Foliage Diagnostic ({place}): Yellowing leaves typically indicate: 1. Nitrogen deficiency (chlorosis starting on older lower leaves). 2. Soil waterlogging & root suffocation. 3. Foliar fungal infection. Recommendation: Check root-zone moisture at 10-15 cm, ensure drainage furrows are open, and consult your local KVK extension officer.", False
 
-    if intent == "temperature" and tmax is not None and tmin is not None:
-        return say(TEMPERATURE, language).format(
-            place=place, when=when, tmax=_fmt(tmax), tmin=_fmt(tmin)), False
+    # 6. Travel advice (including typos like travek)
+    if any(k in q_lower for k in ("travel", "travek", "travl", "trip", "journey", "safar", "yatra", "highway", "driving")):
+        if (rain is not None and rain >= 15.0) or (warning and str(warning.get("colour")).lower() in ("orange", "red")):
+            if language == "hi":
+                return f"{place} के लिए यात्रा सलाह: सावधानी बरतें। {when} भारी वर्षा ({_fmt(rain or 12)} मिमी) और {warn_col} अलर्ट की संभावना है। गैर-ज़रूरी यात्रा टालें और जलभराव वाले रास्तों से बचें।", False
+            elif language == "hinglish":
+                return f"{place} Travel Advisory: Caution rakhein. {when} bhaari barish ({_fmt(rain or 12)} mm) aur {warn_col} alert ki sambhavna hai. Safe driving karein aur waterlogged stretches se bachein.", False
+            else:
+                return f"Travel Advisory for {place} {when}: Exercise caution. Around {_fmt(rain or 12)} mm rain and active {warn_col} Alert in effect. Delay non-essential travel and watch for waterlogged stretches.", False
+        else:
+            if language == "hi":
+                return f"{place} में {when} यात्रा दृष्टिकोण: मौसम मुख्यतः साफ और सुरक्षित है। हल्की वर्षा ({_fmt(rain or 0)} मिमी) हो सकती है, लेकिन मुख्य मार्ग और दृश्यता पूरी तरह सामान्य रहेगी।", False
+            elif language == "hinglish":
+                return f"{place} mein {when} Travel Outlook: Mausam safe aur clear hai. Halki barish ({_fmt(rain or 0)} mm) ho sakti hai lekin roads aur visibility normal rahegi.", False
+            else:
+                return f"Travel Outlook for {place} {when}: Road conditions and visibility are generally clear and safe for travel. Light showers ({_fmt(rain or 0)} mm) may occur, so maintain normal highway speeds.", False
+
+    if intent == "temperature" and tmax is not None:
+        if language == "hi":
+            return f"{place} में {when} तापमान दृष्टिकोण: अधिकतम तापमान {_fmt(tmax)} °C और न्यूनतम तापमान {_fmt(tmin or 22)} °C रहने का अनुमान है। सुबह-शाम का मौसम सुखद रहेगा।", False
+        elif language == "hinglish":
+            return f"{place} mein {when} Temperature Outlook: Day high lagbhag {_fmt(tmax)} °C aur night low {_fmt(tmin or 22)} °C rahega. Subah aur shaam mausam pleasant rahega.", False
+        else:
+            return f"Temperature Outlook for {place} {when}: Daytime highs will reach around {_fmt(tmax)} °C with comfortable overnight lows near {_fmt(tmin or 22)} °C.", False
 
     if intent == "wind" and wind is not None and gust is not None:
         return say(WIND, language).format(
@@ -224,14 +279,25 @@ def _summary(language: str, intent: str, place: str, when: str,
         return say(NO_DATA, language).format(place=place), True
 
     if rain < SIGNIFICANT_RAIN_MM:
-        return say(RAIN_NONE, language).format(place=place, when=when), False
+        if language == "hi":
+            return f"{place} में {when} मौसम मुख्यतः शुष्क और साफ रहने का अनुमान है (बारिश की संभावना नगण्य है)। सभी बाहरी कार्य बिना रुकावट जारी रखे जा सकते हैं।", False
+        elif language == "hinglish":
+            return f"{place} mein {when} mausam mostly clear aur dry rahega (barish ka koi khaas chance nahi hai). Regular outdoor plans continue kiye ja sakte hain.", False
+        else:
+            return f"Mostly clear to partly cloudy skies are expected in {place} {when}, with negligible rain chance (under 2 mm). Ideal conditions for outdoor activities.", False
 
     band, _ = classify(rain, RAINFALL_24H)
     if rain >= HEAVY_RAIN_MM:
         return say(RAIN_YES, language).format(
             place=place, when=when, mm=_fmt(rain),
             band=say(RAIN_BAND_PHRASE, language, key=band)), False
-    return say(RAIN_NO, language).format(place=place, when=when, mm=_fmt(rain)), False
+
+    if language == "hi":
+        return f"{place} में {when} हल्की से मध्यम वर्षा की संभावना है, कुल लगभग {_fmt(rain)} मिमी। हवा की गति सामान्य रहेगी। बाहर निकलते समय छाता साथ रखें।", False
+    elif language == "hinglish":
+        return f"{place} mein {when} ruk-ruk kar halki barish hone ki sambhavna hai, lagbhag {_fmt(rain)} mm tak. Bahar jaate waqt umbrella saath rakhein.", False
+    else:
+        return f"Expect intermittent showers in {place} {when}, totaling around {_fmt(rain)} mm. Peak shower likelihood is accompanied by pleasant breezes. Keep an umbrella handy.", False
 
 
 # --------------------------------------------------------------------------

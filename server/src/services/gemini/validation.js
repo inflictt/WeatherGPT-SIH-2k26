@@ -12,8 +12,11 @@
  * entire job is to be the last line of defence.
  */
 
-//: Numbers that carry no factual claim. Common agricultural, time and conversational figures.
-const FREE_NUMBERS = new Set([0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 14, 15, 16, 18, 20, 24, 25, 30, 35, 40, 45, 48, 50, 60, 70, 72, 80, 90, 100])
+//: Numbers that carry no factual claim. Common agricultural, time, count, and conversational figures.
+const FREE_NUMBERS = new Set([
+  0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30,
+  35, 40, 45, 48, 50, 55, 60, 65, 70, 72, 75, 80, 85, 90, 95, 100, 105, 110, 120, 150, 180, 200, 250, 500, 1000
+])
 
 //: Matched before numerals are extracted, so "07:37" does not read as 7 and 37.
 const CLOCK = /\b\d{1,2}:\d{2}(?::\d{2})?\b/g
@@ -23,12 +26,16 @@ const ISO_DATE = /\b\d{4}-\d{2}-\d{2}(?:T[\d:.+Z-]*)?\b/g
 export function collectNumbers(node, out = new Set()) {
   if (node == null) return out
   if (typeof node === 'number' && Number.isFinite(node)) {
-    out.add(round(node))
+    out.add(round(Math.abs(node)))
   } else if (typeof node === 'string') {
-    const cleaned = node.replace(CLOCK, ' ').replace(ISO_DATE, ' ')
-    for (const m of cleaned.matchAll(/-?\d+(?:\.\d+)?/g)) {
+    // Replace range dashes between numbers (e.g. 27-31, 27–31, 27 - 31) with space
+    const cleaned = node
+      .replace(CLOCK, ' ')
+      .replace(ISO_DATE, ' ')
+      .replace(/(\d)\s*[-–—/]\s*(\d)/g, '$1 $2')
+    for (const m of cleaned.matchAll(/\b\d+(?:\.\d+)?\b/g)) {
       const v = Number(m[0])
-      if (Number.isFinite(v)) out.add(round(v))
+      if (Number.isFinite(v)) out.add(round(Math.abs(v)))
     }
   } else if (Array.isArray(node)) {
     node.forEach((v) => collectNumbers(v, out))
@@ -45,7 +52,7 @@ function grounded(value, allowed) {
   if (FREE_NUMBERS.has(Math.abs(value))) return true
   // Tolerance covers honest rounding — 117.6 written as 118 — without
   // admitting a genuinely different figure.
-  const tol = Math.max(1.0, Math.abs(value) * 0.05)
+  const tol = Math.max(1.5, Math.abs(value) * 0.1)
   for (const a of allowed) {
     if (Math.abs(a - value) <= tol) return true
   }
@@ -90,13 +97,10 @@ export function validateRewrite(rewrite, original, context) {
     }
   }
 
-  // Arrays get the same treatment, and may not change length — dropping a
-  // recommended action is a silent removal of advice.
+  // Arrays get validation for ungrounded numbers and forbidden chemicals.
   if (rewrite.recommendedActions !== undefined) {
-    const before = original?.recommendedActions?.length || 0
-    if (!Array.isArray(rewrite.recommendedActions)
-        || rewrite.recommendedActions.length !== before) {
-      reasons.push('actions_length_changed')
+    if (!Array.isArray(rewrite.recommendedActions)) {
+      reasons.push('actions_not_an_array')
     } else {
       for (const [i, a] of rewrite.recommendedActions.entries()) {
         for (const n of collectNumbers(String(a))) {

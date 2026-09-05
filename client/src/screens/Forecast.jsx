@@ -62,6 +62,7 @@ export default function Forecast({ prefs, lang = 'en' }) {
         </div>
       )}
 
+      {/* ------------------------------------------------------------- header */}
       <PageHead
         eyebrow={placeLine(location)}
         title={location?.name || t('forecastTitle', lang)}
@@ -72,16 +73,12 @@ export default function Forecast({ prefs, lang = 'en' }) {
         }
       />
 
-      {/* ------------------------------------------------------ current card */}
+      {/* ---------------------------------------------------------- hero card */}
       <Card>
         <div className="grid gap-0 lg:grid-cols-[minmax(0,1fr)_1.4fr]">
-          <div className="flex items-center gap-5 border-b border-line-soft p-6 lg:border-b-0 lg:border-r">
-            <Icon
-              name={(daily?.[0]?.mm ?? 0) > 2 ? 'cloudRain' : 'sun'}
-              size={58}
-              className="flex-none text-accent"
-            />
-            <div className="min-w-0">
+          <div className="flex items-start gap-4">
+            <Icon name="sun" size={54} className="flex-none text-accent" />
+            <div>
               <div className="flex items-start">
                 <span className="tnum text-figure font-semibold text-ink">{fmt.temp(current?.tempC)}</span>
                 <span className="mt-2 text-subheading font-medium text-ink-3">{fmt.tempUnit}</span>
@@ -100,7 +97,7 @@ export default function Forecast({ prefs, lang = 'en' }) {
               {
                 icon: 'drop',
                 label: t('rainChance', lang),
-                value: `${Math.round((current?.rainProb ?? 0) * 100)}%`,
+                value: `${Math.round(resolvedRainProb * 100)}%`,
                 note: `${fmt.rain(daily?.[0]?.mm ?? 0)} ${fmt.rainUnit} ${t('in24h', lang)}`,
               },
               {

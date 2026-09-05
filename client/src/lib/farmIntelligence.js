@@ -202,24 +202,28 @@ export function evaluateFarmIntelligence({
       ? 'Khet ki overall condition acchi aur safe hai.'
       : 'Farm condition is healthy and in optimal range.'
 
-  if (warnings.length > 0 || mm24 >= 115.6 || temp >= 40) {
+  const severeWarning = warnings.find((w) => ['orange', 'red'].includes(String(w.colour).toLowerCase()))
+  const yellowWarning = warnings.find((w) => String(w.colour).toLowerCase() === 'yellow')
+
+  if (severeWarning || mm24 >= 64.5 || temp >= 40) {
     overallCondition = 'critical'
-    conditionLabel = lang === 'hi' ? 'चेतावनी (Alert)' : 'Action Needed'
+    conditionLabel = lang === 'hi' ? 'कार्रवाई आवश्यक (Action Needed)' : 'Action Needed'
     conditionTone = 'red'
+    const evt = severeWarning?.event || (mm24 >= 64.5 ? 'Heavy Rainfall' : 'Extreme Heat')
     headline = lang === 'hi'
-      ? 'मौसम चेतावनी या अत्यधिक वर्षा के कारण सुरक्षात्मक कदम उठाएँ।'
+      ? `सक्रिय मौसम जोखिम (${evt}) के कारण खेत में सुरक्षात्मक कदम उठाएँ।`
       : lang === 'hinglish'
-        ? 'Mausam alert ya heavy rain ke kaaran precautions zaroori hain.'
-        : 'Active weather hazard requires immediate farm precautions.'
-  } else if (diseaseRisk === 'high' || sprayStatus === 'rain_delay' || waterStatus === 'saturated') {
+        ? `Active weather hazard (${evt}) ke kaaran farm precautions zaroori hain.`
+        : `Active weather hazard (${evt}) requires immediate farm precautions.`
+  } else if (yellowWarning || diseaseRisk === 'high' || sprayStatus === 'rain_delay' || waterStatus === 'saturated') {
     overallCondition = 'attention'
-    conditionLabel = lang === 'hi' ? 'ध्यान दें (Attention)' : 'Attention'
+    conditionLabel = lang === 'hi' ? 'सतर्कता आवश्यक (Attention)' : 'Attention'
     conditionTone = 'yellow'
     headline = lang === 'hi'
-      ? 'नमी और वर्षा के कारण फ़सल रोग जोखिम और जल निकासी पर ध्यान दें।'
+      ? 'नमी, वर्षा या मौसम सतर्कता के कारण फ़सल रोग जोखिम और जल निकासी पर ध्यान दें।'
       : lang === 'hinglish'
-        ? 'Nami aur barish ki wajah se fasal bimari aur jal nikasi par dhyan dein.'
-        : 'High humidity and rainfall require disease scouting and drainage checks.'
+        ? 'Nami, barish ya weather watch ke kaaran disease scouting aur drainage par dhyan dein.'
+        : 'Elevated humidity, rainfall, or weather watch require disease scouting and field checks.'
   }
 
   // -------------------------------------------------------------------------

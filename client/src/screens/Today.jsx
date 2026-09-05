@@ -19,12 +19,23 @@ export default function Today({ prefs, audience, lang = 'en' }) {
 
   const warning = active[0]
   const sev = warning ? SEVERITY[warning.colour] || SEVERITY.green : null
-  const st = statement({ current, summary24h, daily, audience, fmt, lang })
-  const tiles = briefTiles({ current, summary24h, risk, daily, audience, fmt, lang })
-  const irr = irrigation({ current, summary24h, daily, lang })
-  const todo = actions({ current, summary24h, daily, audience, lang })
+  const st = statement({ current, summary24h, daily, audience, fmt, lang, warning, warnings: active, risk })
+  const tiles = briefTiles({ current, summary24h, risk, daily, audience, fmt, lang, warning, warnings: active })
+  const irr = irrigation({ current, summary24h, daily, lang, warning, warnings: active })
+  const todo = actions({ current, summary24h, daily, audience, lang, warning, warnings: active, risk })
 
   const mm = summary24h?.rainMm ?? daily?.[0]?.mm ?? 0
+  const condStr = (current?.condition || '').toLowerCase()
+  const isRainy = /rain|drizzle|shower|thunder|storm|squall|बौछार|बारिश/i.test(condStr)
+  const rainProb =
+    (current?.rainProb != null && current.rainProb > 0)
+      ? current.rainProb
+      : daily?.[0]?.prob != null && daily[0].prob > 0
+        ? daily[0].prob
+        : (mm > 0 || isRainy || (warning && ['orange', 'red'].includes(String(warning.colour).toLowerCase())))
+          ? 0.95
+          : (current?.rainProb ?? 0)
+
   const isNight = (() => {
     const h = new Date().getHours()
     return h >= 19 || h < 6
@@ -130,7 +141,7 @@ export default function Today({ prefs, audience, lang = 'en' }) {
 
             <dl className="mt-6 grid grid-cols-3 gap-2">
               {[
-                [t('rainChance', lang), `${Math.round((current?.rainProb ?? 0) * 100)}%`],
+                [t('rainChance', lang), `${Math.round(rainProb * 100)}%`],
                 [t('wind', lang), `${fmt.speed(current?.windKmh)} ${fmt.speedUnit}`],
                 [t('humidity', lang), `${current?.humidity ?? '—'}%`],
               ].map(([k, v]) => (

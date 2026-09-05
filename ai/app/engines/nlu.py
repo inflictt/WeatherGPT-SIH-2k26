@@ -267,6 +267,12 @@ _STOP_TOKENS: frozenset[str] = frozenset(
         "drive", "travel", "go", "going", "visit", "reach", "get", "walk",
         "safe", "district", "districts", "village", "town", "city", "state",
         "place", "area", "hours", "week", "know", "see", "expect",
+        # Agricultural actions & domain vocabulary
+        "spray", "spraying", "pesticide", "pesticides", "insecticide", "fungicide",
+        "irrigate", "irrigation", "sinchai", "water", "watering", "sow", "sowing",
+        "plant", "planting", "harvest", "harvesting", "fertilize", "fertilizer",
+        "urea", "dap", "crop", "crops", "field", "fields", "farm", "khet", "fasal",
+        "dawa", "medicine", "prune", "pruning", "cut", "plough", "till",
     }
 )
 

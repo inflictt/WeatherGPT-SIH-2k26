@@ -31,6 +31,14 @@ export function isConfigured() {
   return Boolean(env.geminiApiKey)
 }
 
+const CANDIDATE_MODELS = [
+  'gemini-3.5-flash-lite',
+  'gemini-3.5-flash',
+  'gemini-3.8-flash',
+  'gemini-flash-lite-latest',
+  'gemini-3.1-flash-lite-preview',
+]
+
 /**
  * Rewrite the prose of an already-complete answer.
  *
@@ -43,84 +51,88 @@ export async function explain(answer, context, { lang = 'en', timeoutMs = 25000 
     return { answer, composer: 'deterministic', rejected: null }
   }
 
-  const ctl = new AbortController()
-  const timer = setTimeout(() => ctl.abort(), timeoutMs)
+  const modelsToTry = Array.from(new Set([env.geminiModel, ...CANDIDATE_MODELS].filter(Boolean)))
+  let lastError = null
 
-  try {
-    const res = await fetch(`${ENDPOINT(env.geminiModel)}?key=${env.geminiApiKey}`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      signal: ctl.signal,
-      body: JSON.stringify({
-        contents: [{ role: 'user', parts: [{ text: buildPrompt(answer, context, lang) }] }],
-        generationConfig: {
-          temperature: 0.2,
-          maxOutputTokens: 2048,
-          // Structured output, so a malformed rewrite is a parse failure
-          // rather than something that half-applies.
-          responseMimeType: 'application/json',
-        },
-        // The prose is about weather warnings and crop damage. Default safety
-        // settings sometimes refuse that vocabulary outright, and a refusal
-        // here would silently drop the rewrite — which is safe, but noisy.
-        safetySettings: [
-          { category: 'HARM_CATEGORY_DANGEROUS_CONTENT', threshold: 'BLOCK_ONLY_HIGH' },
-        ],
-      }),
-    })
+  for (const model of modelsToTry) {
+    const ctl = new AbortController()
+    const timer = setTimeout(() => ctl.abort(), timeoutMs)
 
-    if (!res.ok) {
-      log.warn('gemini call failed', { status: res.status })
-      return { answer, composer: 'deterministic', rejected: [`http_${res.status}`] }
-    }
-
-    const data = await res.json()
-    const part =
-      data?.candidates?.[0]?.content?.parts?.find((p) => p.text && !p.thought) ||
-      data?.candidates?.[0]?.content?.parts?.[0]
-    const text = part?.text
-    if (!text) return { answer, composer: 'deterministic', rejected: ['empty_response'] }
-
-    let rewrite
     try {
-      const clean = text.replace(/```(?:json)?/gi, '').replace(/```/g, '').trim()
-      const jsonMatch = clean.match(/\{[\s\S]*\}/)
-      rewrite = JSON.parse(jsonMatch ? jsonMatch[0] : clean)
-    } catch {
-      return { answer, composer: 'deterministic', rejected: ['unparseable_json'] }
-    }
+      const res = await fetch(`${ENDPOINT(model)}?key=${env.geminiApiKey}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        signal: ctl.signal,
+        body: JSON.stringify({
+          contents: [{ role: 'user', parts: [{ text: buildPrompt(answer, context, lang) }] }],
+          generationConfig: {
+            temperature: 0.3,
+            maxOutputTokens: 2048,
+            responseMimeType: 'application/json',
+          },
+          safetySettings: [
+            { category: 'HARM_CATEGORY_DANGEROUS_CONTENT', threshold: 'BLOCK_ONLY_HIGH' },
+          ],
+        }),
+      })
 
-    // The gate. Everything the model produced is checked against the facts it
-    // was given, and a single ungrounded number rejects the *whole* rewrite —
-    // not just the offending field. A partially-trusted answer is worse than
-    // an untouched one, because nobody can tell which half to believe.
-    const { ok, reasons } = validateRewrite(rewrite, answer, context)
-    if (!ok) {
-      log.warn('gemini rewrite rejected', { reasons })
-      return { answer, composer: 'deterministic', rejected: reasons }
-    }
-
-    const merged = { ...answer }
-    for (const field of PROSE_FIELDS) {
-      if (typeof rewrite[field] === 'string' && rewrite[field].trim()) {
-        merged[field] = rewrite[field].trim()
+      if (!res.ok) {
+        log.warn(`gemini call to ${model} failed with status ${res.status}`)
+        lastError = [`http_${res.status}`]
+        continue
       }
-    }
-    // Recommended actions are merged if provided as an array of strings.
-    if (Array.isArray(rewrite.recommendedActions) && rewrite.recommendedActions.length > 0) {
-      merged.recommendedActions = rewrite.recommendedActions.map(String)
-    }
 
-    return { answer: merged, composer: 'gemini', rejected: null }
-  } catch (err) {
-    if (err?.name === 'AbortError') {
-      return { answer, composer: 'deterministic', rejected: ['timeout'] }
+      const data = await res.json()
+      const part =
+        data?.candidates?.[0]?.content?.parts?.find((p) => p.text && !p.thought) ||
+        data?.candidates?.[0]?.content?.parts?.[0]
+      const text = part?.text
+      if (!text) {
+        lastError = ['empty_response']
+        continue
+      }
+
+      let rewrite
+      try {
+        const clean = text.replace(/```(?:json)?/gi, '').replace(/```/g, '').trim()
+        const jsonMatch = clean.match(/\{[\s\S]*\}/)
+        rewrite = JSON.parse(jsonMatch ? jsonMatch[0] : clean)
+      } catch {
+        lastError = ['unparseable_json']
+        continue
+      }
+
+      const { ok, reasons } = validateRewrite(rewrite, answer, context)
+      if (!ok) {
+        log.warn('gemini rewrite rejected', { reasons, model })
+        lastError = reasons
+        continue
+      }
+
+      const merged = { ...answer }
+      for (const field of PROSE_FIELDS) {
+        if (typeof rewrite[field] === 'string' && rewrite[field].trim()) {
+          merged[field] = rewrite[field].trim()
+        }
+      }
+      if (Array.isArray(rewrite.recommendedActions) && rewrite.recommendedActions.length > 0) {
+        merged.recommendedActions = rewrite.recommendedActions.map(String)
+      }
+
+      return { answer: merged, composer: 'gemini', rejected: null, modelUsed: model }
+    } catch (err) {
+      if (err?.name === 'AbortError') {
+        lastError = ['timeout']
+      } else {
+        log.warn(`gemini ${model} unreachable`, { error: String(err?.message || err) })
+        lastError = ['unreachable']
+      }
+    } finally {
+      clearTimeout(timer)
     }
-    log.warn('gemini unreachable', { error: String(err?.message || err) })
-    return { answer, composer: 'deterministic', rejected: ['unreachable'] }
-  } finally {
-    clearTimeout(timer)
   }
+
+  return { answer, composer: 'deterministic', rejected: lastError }
 }
 
 export default { explain, isConfigured }

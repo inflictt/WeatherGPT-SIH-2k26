@@ -147,6 +147,17 @@ export function normaliseForecast(raw) {
   }))
 
   const c = raw.current || {}
+  const nowIso = c.time
+  const matchedHour = hourly.find((h) => h.time === nowIso) || hourly[0]
+  const currentRainProb =
+    matchedHour?.precipProb != null
+      ? matchedHour.precipProb / 100
+      : daily[0]?.precipProbMax != null
+        ? daily[0].precipProbMax / 100
+        : c.precipitation > 0
+          ? 0.95
+          : null
+
   return {
     current: {
       time: c.time ?? null,
@@ -154,6 +165,7 @@ export function normaliseForecast(raw) {
       feelsLikeC: c.apparent_temperature ?? null,
       humidity: c.relative_humidity_2m ?? null,
       precipMm: c.precipitation ?? 0,
+      rainProb: currentRainProb,
       weatherCode: c.weather_code ?? null,
       pressureHpa: c.pressure_msl ?? null,
       cloudCover: c.cloud_cover ?? null,

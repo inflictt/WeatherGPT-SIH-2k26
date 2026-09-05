@@ -23,7 +23,10 @@ export function greeting(now = new Date(), lang = 'en') {
 /**
  * The headline sentence and its supporting line.
  */
-export function statement({ current, summary24h, daily, audience = 'everyone', fmt, lang = 'en' }) {
+/**
+ * The headline sentence and its supporting line.
+ */
+export function statement({ current, summary24h, daily, audience = 'everyone', fmt, lang = 'en', warning, warnings = [], risk }) {
   if (!current || current.tempC == null) {
     return {
       headline: t('headNoConditions', lang),
@@ -37,33 +40,47 @@ export function statement({ current, summary24h, daily, audience = 'everyone', f
   const gust = current.gustKmh ?? wind
   const temp = current.tempC
   const prob = current.rainProb ?? 0
+  const cond = (current.condition || '').toLowerCase()
+  const isThunder = /thunder|storm|squall|तूफान|गरज/i.test(cond)
+  const isRain = /rain|drizzle|shower|बौछार|बारिश/i.test(cond)
+  const isRainyCondition = isThunder || isRain
+  const severeWarning =
+    (warning && ['orange', 'red'].includes(String(warning.colour).toLowerCase())) ||
+    (Array.isArray(warnings) && warnings.some((w) => ['orange', 'red'].includes(String(w?.colour).toLowerCase())))
 
   // --- first half: what the weather is doing ---
   let headKey
-  if (mm >= RAIN.veryHeavy) headKey = 'headExtremelyHeavy'
+  if (severeWarning) {
+    const evt = (warning?.event || warnings?.[0]?.event || '').toLowerCase()
+    if (evt.includes('thunder') || evt.includes('squall') || evt.includes('wind') || isThunder) headKey = 'headSquallyWinds'
+    else if (evt.includes('heavy') || evt.includes('rain')) headKey = 'headHeavyRain'
+    else headKey = 'headVeryHeavy'
+  } else if (mm >= RAIN.veryHeavy) headKey = 'headExtremelyHeavy'
   else if (mm >= RAIN.heavy) headKey = 'headVeryHeavy'
   else if (mm >= RAIN.light) headKey = 'headHeavyRain'
+  else if (isThunder) headKey = 'headSquallyWinds'
+  else if (isRain && mm >= 2) headKey = 'headRainLikely'
   else if (prob >= 0.6) headKey = 'headRainLikely'
   else if (gust >= WIND.squall) headKey = 'headSquallyWinds'
   else if (temp >= 40) headKey = 'headDangerousHeat'
   else if (temp >= 35) headKey = 'headHotDry'
-  else if (prob >= 0.3) headKey = 'headMixedShowers'
+  else if (prob >= 0.3 || isRainyCondition) headKey = 'headMixedShowers'
   else headKey = 'headDryBright'
 
   // --- second half: what it means for the person asking ---
   let tailKey
   if (audience === 'farm') {
-    if (mm >= RAIN.heavy) tailKey = 'tailHoldOffSpraying'
-    else if (mm >= RAIN.light) tailKey = 'tailDelayIrrigation'
+    if (severeWarning || isThunder || mm >= RAIN.heavy) tailKey = 'tailHoldOffSpraying'
+    else if (mm >= RAIN.light || isRainyCondition) tailKey = 'tailDelayIrrigation'
     else if (wind >= WIND.strong) tailKey = 'tailTooWindySpray'
     else if (prob >= 0.5) tailKey = 'tailNarrowSprayWindow'
-    else if (wind <= WIND.breezy && temp < 35) tailKey = 'tailGoodSprayWindow'
+    else if (wind <= WIND.breezy && temp < 35 && !severeWarning && !isRainyCondition) tailKey = 'tailGoodSprayWindow'
     else tailKey = 'tailCheckIrrigation'
-  } else if (mm >= RAIN.heavy) tailKey = 'tailAvoidLowLying'
-  else if (mm >= RAIN.light) tailKey = 'tailTravelDisruption'
+  } else if (severeWarning || isThunder || mm >= RAIN.heavy) tailKey = 'tailAvoidLowLying'
+  else if (mm >= RAIN.light || isRainyCondition) tailKey = 'tailTravelDisruption'
   else if (gust >= WIND.squall) tailKey = 'tailSecureLoose'
   else if (temp >= 40) tailKey = 'tailStayOutHeat'
-  else if (prob >= 0.5) tailKey = 'tailCarryUmbrella'
+  else if (prob >= 0.5 || isRainyCondition) tailKey = 'tailCarryUmbrella'
   else tailKey = 'tailGoodOutdoors'
 
   // Sub line with data points
@@ -72,7 +89,7 @@ export function statement({ current, summary24h, daily, audience = 'everyone', f
     const rainVal = fmt ? fmt.rain(mm) : Math.round(mm)
     const unit = fmt ? fmt.rainUnit : 'mm'
     bits.push(`${rainVal} ${unit} ${t('expectedIn24h', lang)}`)
-  } else {
+  } else if (prob > 0) {
     bits.push(`${Math.round(prob * 100)}% ${t('rainChance', lang)}`)
   }
   const speedVal = fmt ? fmt.speed(wind) : Math.round(wind)
@@ -87,10 +104,10 @@ export function statement({ current, summary24h, daily, audience = 'everyone', f
 }
 
 /** The four status tiles under the hero. */
-export function briefTiles({ current, summary24h, risk, daily, audience, fmt, lang = 'en' }) {
+export function briefTiles({ current, summary24h, risk, daily, audience, fmt, lang = 'en', warning, warnings = [] }) {
   const mm = summary24h?.rainMm ?? daily?.[0]?.mm ?? null
   const wind = current?.windKmh ?? null
-  const band = risk?.overall || null
+  const band = risk?.overall || (warning && ['orange', 'red'].includes(String(warning.colour).toLowerCase()) ? 'HIGH' : null)
   const tone = band ? RISK_TONE[band] || 'green' : null
 
   const rainTone =
@@ -119,7 +136,7 @@ export function briefTiles({ current, summary24h, risk, daily, audience, fmt, la
   ]
 
   if (audience === 'farm') {
-    const irr = irrigation({ current, summary24h, daily, lang })
+    const irr = irrigation({ current, summary24h, daily, lang, warning, warnings })
     tiles.push({
       key: 'irrigation',
       label: t('irrigationTitle', lang),
@@ -160,9 +177,24 @@ export function briefTiles({ current, summary24h, risk, daily, audience, fmt, la
 /**
  * Irrigation advice with multi-language support.
  */
-export function irrigation({ current, summary24h, daily, lang = 'en' }) {
+export function irrigation({ current, summary24h, daily, lang = 'en', warning, warnings = [] }) {
   const mm = summary24h?.rainMm ?? daily?.[0]?.mm ?? null
   const soon = daily?.slice(0, 2).reduce((a, d) => a + (d.mm || 0), 0) ?? null
+  const severeWarning = warning && ['orange', 'red'].includes(String(warning.colour).toLowerCase())
+
+  if (severeWarning) {
+    return {
+      recommendation: t('irrWait', lang),
+      band: t('irrRainLimited', lang),
+      tone: 'orange',
+      reason: lang === 'hi'
+        ? 'सक्रिय मौसम चेतावनी के कारण सिंचाई स्थगित रखें।'
+        : 'Active severe weather warning in effect — delay irrigation.',
+      confidence: 'HIGH',
+      inputs: ['severe alert', 'rainfall'],
+      missing: [],
+    }
+  }
 
   if (mm == null) {
     return {
@@ -233,17 +265,22 @@ export function irrigation({ current, summary24h, daily, lang = 'en' }) {
 }
 
 /** Today's actions, fully translated. */
-export function actions({ current, summary24h, daily, audience, lang = 'en' }) {
+export function actions({ current, summary24h, daily, audience, lang = 'en', warning, warnings = [], risk }) {
   const mm = summary24h?.rainMm ?? daily?.[0]?.mm ?? 0
   const wind = current?.windKmh ?? 0
   const gust = current?.gustKmh ?? wind
+  const cond = (current?.condition || '').toLowerCase()
+  const isRainyCondition = /rain|drizzle|shower|thunder|storm|squall/i.test(cond)
+  const severeWarning = warning && ['orange', 'red'].includes(String(warning.colour).toLowerCase())
   const out = []
 
   if (audience === 'farm') {
-    if (mm >= RAIN.light) {
+    if (severeWarning || mm >= RAIN.light || isRainyCondition) {
       out.push({
         text: t('actCoverProduce', lang),
-        why: lang === 'hi' ? `24 घंटे में ${Math.round(mm)} मिमी बारिश संभावित` : `${Math.round(mm)} mm forecast in 24 h`,
+        why: severeWarning
+          ? (lang === 'hi' ? `${warning.event} — सक्रिय ऑरेंज अलर्ट` : `${warning.event} — Active Orange Alert`)
+          : (lang === 'hi' ? `24 घंटे में ${Math.round(mm)} मिमी बारिश संभावित` : `${Math.round(mm)} mm forecast in 24 h`),
       })
       out.push({
         text: t('actCheckDrainage', lang),
@@ -253,24 +290,35 @@ export function actions({ current, summary24h, daily, audience, lang = 'en' }) {
         text: t('actDelayIrrigation', lang),
         why: lang === 'hi' ? 'मिट्टी वर्षा का जल सोख लेगी' : 'Soil will absorb rain',
       })
-    }
-    if (mm < RAIN.light && wind <= WIND.breezy) {
-      out.push({
-        text: t('actSprayWindowOpen', lang),
-        why: lang === 'hi' ? `हवा की गति ${Math.round(wind)} किमी/घंटा, सुरक्षित सीमा में` : `Winds ${Math.round(wind)} km/h, below 20 km/h`,
-      })
-    }
-    if (wind >= WIND.strong) {
       out.push({
         text: t('actDoNotSpray', lang),
-        why: lang === 'hi' ? `हवा की गति ${Math.round(wind)} किमी/घंटा — दवा उड़ने का खतरा` : `Winds ${Math.round(wind)} km/h — drift risk`,
+        why: lang === 'hi' ? 'मौसम चेतावनी व वर्षा के कारण छिड़काव टालें' : 'Delay spraying due to precipitation risk',
       })
+    } else {
+      if (wind <= WIND.breezy) {
+        out.push({
+          text: t('actSprayWindowOpen', lang),
+          why: lang === 'hi' ? `हवा की गति ${Math.round(wind)} किमी/घंटा, सुरक्षित सीमा में` : `Winds ${Math.round(wind)} km/h, below 20 km/h`,
+        })
+      }
+      if (wind >= WIND.strong) {
+        out.push({
+          text: t('actDoNotSpray', lang),
+          why: lang === 'hi' ? `हवा की गति ${Math.round(wind)} किमी/घंटा — दवा उड़ने का खतरा` : `Winds ${Math.round(wind)} km/h — drift risk`,
+        })
+      }
     }
   } else {
-    if (mm >= RAIN.light) {
+    if (severeWarning || mm >= RAIN.light || isRainyCondition) {
       out.push({
         text: t('actAvoidRoads', lang),
-        why: lang === 'hi' ? `24 घंटे में ${Math.round(mm)} मिमी बारिश की संभावना` : `${Math.round(mm)} mm forecast in 24 h`,
+        why: severeWarning
+          ? (lang === 'hi' ? `${warning.event} — सक्रिय मौसम अलर्ट` : `${warning.event} — Severe Weather Alert`)
+          : (lang === 'hi' ? `24 घंटे में ${Math.round(mm)} मिमी बारिश की संभावना` : `${Math.round(mm)} mm forecast in 24 h`),
+      })
+      out.push({
+        text: t('actCarryUmbrella', lang),
+        why: lang === 'hi' ? 'वर्षा व बौछारों से बचाव रखें' : 'Precipitation protection recommended',
       })
     }
     if (gust >= WIND.squall) {
