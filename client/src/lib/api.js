@@ -132,6 +132,10 @@ export const api = {
   farmerFriend: (body, token) =>
     req('/api/ai/farmer-friend/chat', { method: 'POST', body, token, timeoutMs: 40000 }),
 
+  /** Transcribe spoken audio via backend Gemini multimodal STT fallback */
+  transcribeVoice: (body, token) =>
+    req('/api/ai/voice/transcribe', { method: 'POST', body, token, timeoutMs: 25000 }),
+
   /* --- saved locations and alert subscriptions (auth required) --------- */
   subscriptions: (token) => req('/api/alerts/subscriptions', { token }),
   subscribe: (body, token) =>
@@ -147,4 +151,29 @@ export const api = {
   login: (email, password) => req('/api/auth/login', { method: 'POST', body: { email, password } }),
   register: (payload) => req('/api/auth/register', { method: 'POST', body: payload }),
   me: (token) => req('/api/auth/me', { token }),
+
+  /* --- Farm Management (Fields, Tasks, Activities, Finance, Timeline) --- */
+  fields: (farmId, token) => req('/api/agriculture/fields' + qs({ farmId }), { token }),
+  createField: (body, token) => req('/api/agriculture/fields', { method: 'POST', body, token }),
+  updateField: (id, body, token) => req(`/api/agriculture/fields/${id}`, { method: 'PATCH', body, token }),
+  deleteField: (id, token) => req(`/api/agriculture/fields/${id}`, { method: 'DELETE', token }),
+
+  tasks: (params, token) => req('/api/agriculture/tasks' + qs(params), { token }),
+  createTask: (body, token) => req('/api/agriculture/tasks', { method: 'POST', body, token }),
+  updateTask: (id, body, token) => req(`/api/agriculture/tasks/${id}`, { method: 'PATCH', body, token }),
+  completeTask: (id, token) => req(`/api/agriculture/tasks/${id}/complete`, { method: 'POST', token }),
+  deleteTask: (id, token) => req(`/api/agriculture/tasks/${id}`, { method: 'DELETE', token }),
+
+  activities: (farmId, token) => req('/api/agriculture/activities' + qs({ farmId }), { token }),
+  createActivity: (body, token) => req('/api/agriculture/activities', { method: 'POST', body, token }),
+
+  finance: (farmId, token) => req('/api/agriculture/finance' + qs({ farmId }), { token }),
+  createFinance: (body, token) => req('/api/agriculture/finance', { method: 'POST', body, token }),
+
+  timeline: (farmId, token) => req('/api/agriculture/timeline' + qs({ farmId }), { token }),
+
+  livestock: (farmId, token) => req('/api/agriculture/livestock' + qs({ farmId }), { token }),
+  createLivestock: (body, token) => req('/api/agriculture/livestock', { method: 'POST', body, token }),
+  updateLivestock: (id, body, token) => req(`/api/agriculture/livestock/${id}`, { method: 'PATCH', body, token }),
+  deleteLivestock: (id, token) => req(`/api/agriculture/livestock/${id}`, { method: 'DELETE', token }),
 }

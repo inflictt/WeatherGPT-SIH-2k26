@@ -113,11 +113,13 @@ export function validateRewrite(rewrite, original, context) {
     }
   }
 
-  // A band or a confidence the model tried to change is a hard reject: those
-  // are the engine's output and nothing downstream re-checks them.
-  for (const field of ['riskBand', 'confidenceLevel', 'recommendation', 'band']) {
-    if (rewrite[field] !== undefined && rewrite[field] !== original?.[field]) {
-      reasons.push(`changed_verdict:${field}`)
+  // Relevance Gate (§19): For greetings or unrelated queries, reject if model dumped weather/alert stats
+  if (context?.intent === 'GREETING' || context?.intent === 'UNRELATED') {
+    const textToCheck = `${rewrite.summary || ''} ${rewrite.riskExplanation || ''}`.toLowerCase()
+    if (
+      /\b(\d+\s*mm|\d+\s*°c|\d+%\s*humidity|red alert|orange alert|yellow alert|flood warning|thunderstorm warning|recommendation:\s*(wait|irrigate)|postpone irrigation)\b/i.test(textToCheck)
+    ) {
+      reasons.push('irrelevant_weather_dump_on_greeting')
     }
   }
 

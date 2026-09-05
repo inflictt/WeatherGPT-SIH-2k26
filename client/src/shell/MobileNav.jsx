@@ -8,6 +8,8 @@ const ICONS = {
   '/forecast': 'chart',
   '/alerts': 'alert',
   '/farm': 'sprout',
+  '/tasks': 'calendar',
+  '/insights': 'gauge',
   '/chat': 'message',
 }
 
@@ -16,16 +18,20 @@ const ICONS = {
  */
 export default function MobileNav({ warningCount = 0, audience = 'everyone', lang = 'en' }) {
   const isFarm = audience === 'farm'
-  const navItems = [
-    { to: '/', short: t('tabToday', lang), end: true },
-    { to: '/forecast', short: t('tabForecast', lang) },
-    { to: '/alerts', short: t('tabAlerts', lang) },
-    ...(isFarm ? [{ to: '/farm', short: t('tabFarmShort', lang) }] : []),
-    {
-      to: '/chat',
-      short: isFarm ? t('tabAskShortFarmer', lang) : t('tabAskShortGeneral', lang),
-    },
-  ]
+  const navItems = isFarm
+    ? [
+        { to: '/', short: t('tabToday', lang), end: true },
+        { to: '/farm', short: t('tabFarmShort', lang) },
+        { to: '/tasks', short: t('tabTasksShort', lang) },
+        { to: '/insights', short: t('tabInsightsShort', lang) },
+        { to: '/chat', short: t('tabAskShortFarmer', lang) },
+      ]
+    : [
+        { to: '/', short: t('tabToday', lang), end: true },
+        { to: '/forecast', short: t('tabForecast', lang) },
+        { to: '/alerts', short: t('tabAlerts', lang) },
+        { to: '/chat', short: t('tabAskShortGeneral', lang) },
+      ]
 
   return (
     <nav

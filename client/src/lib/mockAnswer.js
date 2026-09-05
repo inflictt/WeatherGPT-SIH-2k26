@@ -75,7 +75,7 @@ const ACTIONS = {
 
 const band = (mm) => (mm >= 204.5 ? 'EXTREME' : mm >= 115.6 ? 'HIGH' : mm >= 64.5 ? 'MODERATE' : 'LOW')
 
-export function mockAnswer(text, { persona = 'general', location = null, warnings = [], daily = null } = {}) {
+export function mockAnswer(text, { persona = 'general', location = null, warnings = [], daily = null, farm = null, intelligence = null } = {}) {
   const nlu = parseLocally(text)
   const lang = nlu.language
   const place = nlu.location || location?.name || LOCATION.name
@@ -136,14 +136,31 @@ export function mockAnswer(text, { persona = 'general', location = null, warning
       }
     }
   }
-  // 2. Farm status / condition
-  else if (nlu.intent === 'farm_status' || (/farm|khet|haal|report/i.test(text) && persona === 'farmer')) {
+  // 2. Farm status / condition / Continuous Farm Intelligence
+  else if (nlu.intent === 'farm_status' || (/farm|khet|haal|report|condition|crop status|fasal|फसल|खेत|avashtha|stage/i.test(text) && persona === 'farmer')) {
+    const cropName = farm?.crops?.[0]?.name || 'Wheat (गेहूँ)'
+    const cropStageLabel = intelligence?.cropStage?.label || 'Active Growth'
+    const cropStageDays = intelligence?.cropStage?.days != null ? ` (Day ${intelligence.cropStage.days})` : ''
+    const waterVal = intelligence?.matrix?.find((m) => m.key === 'water')?.value || 'Adequate'
+    const sprayVal = intelligence?.matrix?.find((m) => m.key === 'spray')?.value || 'Window Open'
+    const diseaseVal = intelligence?.matrix?.find((m) => m.key === 'disease')?.value || 'Low'
+
     if (lang === 'hi') {
-      summary = `${place} में खेत की वर्तमान स्थिति बहुत अच्छी है। नमी का स्तर अनुकूल है और ${formattedMm} मिमी वर्षा का अनुमान है। कीटनाशक छिड़काव की अनुकूल खिड़की खुली है और फसल रोग का जोखिम न्यूनतम है।`
+      summary = `${place} में आपके खेत (${farm?.name || 'मुख्य खेत'}) की वर्तमान स्थिति उत्तम (Good) है। फ़सल: ${cropName} (${cropStageLabel}${cropStageDays})। जल व नमी: ${waterVal}। कीटनाशक छिड़काव: ${sprayVal}। रोग जोखिम: ${diseaseVal}। अनुमानित वर्षा: ${formattedMm} मिमी।`
     } else if (lang === 'hinglish') {
-      summary = `${place} mein aapke farm ki overall condition Good hai. Soil moisture adequate hai aur ${formattedMm} mm barish expected hai. Spray window open hai aur disease risk low hai.`
+      summary = `${place} mein aapke farm (${farm?.name || 'Main Farm'}) ki status Good hai. Crop: ${cropName} · ${cropStageLabel}${cropStageDays}. Water level: ${waterVal}. Spray condition: ${sprayVal}. Disease pressure: ${diseaseVal}. Expected rain: ${formattedMm} mm.`
     } else {
-      summary = `Farm Condition is Good in ${place}. Soil moisture profile is well-balanced with around ${formattedMm} mm of rain expected. The spray window remains open and disease risk is low.`
+      summary = `Continuous Farm State for ${farm?.name || 'Main Farm'} in ${place}: Overall condition is Good. Active Crop: ${cropName} at ${cropStageLabel}${cropStageDays}. Soil water level is ${waterVal} with ~${formattedMm} mm rain outlook. Spray window is ${sprayVal}, and disease pressure is ${diseaseVal}.`
+    }
+  }
+  // 2b. Nearest Emergency Shelter & Relief Camp query
+  else if (/shelter|relief camp|rahat|shivir|aashray|suraksha|refuge|cyclone shelter|flood shelter/i.test(lowerText)) {
+    if (lang === 'hi') {
+      summary = `${place} के निकटतम आपातकालीन राहत शिविर: राजकीय वरिष्ठ माध्यमिक विद्यालय, कापड़ीवास (1.2 किमी दूर, खुला व सक्रिय, हेल्पलाइन: 01274-225244) तथा सामुदायिक राहत केंद्र, बावल रोड (3.4 किमी दूर)। आपातकालीन आपदा नियंत्रण हेल्पलाइन: 1077 (ज़िला) एवं 1070 (राज्य)।`
+    } else if (lang === 'hinglish') {
+      summary = `${place} ke nearest emergency relief shelters: Govt. Senior Secondary School, Kapriwas (1.2 km, Open & Ready, Helpline: 01274-225244) aur Community Relief Centre, Bawal Road (3.4 km). 24x7 Emergency Helplines: 1077 (District) & 1070 (State).`
+    } else {
+      summary = `Nearest verified emergency shelters for ${place}: 1. Govt. Senior Secondary School, Kapriwas (1.2 km away, Open & Active with water/medical support, Helpline: 01274-225244). 2. Community Relief Centre, Bawal Road (3.4 km away). 24x7 Disaster Control Helpline: 1077.`
     }
   }
   // 3. Travel advice (including typos like travek)

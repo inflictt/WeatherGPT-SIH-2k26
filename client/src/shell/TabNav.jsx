@@ -9,6 +9,9 @@ const ICONS = {
   '/forecast': 'chart',
   '/alerts': 'alert',
   '/farm': 'sprout',
+  '/tasks': 'calendar',
+  '/journal': 'layers',
+  '/insights': 'gauge',
   '/chat': 'message',
 }
 
@@ -26,16 +29,23 @@ export default function TabNav({
   const placeName = location?.name || location?.district || t('changeLocation', lang)
 
   // Build localized tabs
-  const navItems = [
-    { to: '/', label: t('tabToday', lang), end: true },
-    { to: '/forecast', label: t('tabForecast', lang) },
-    { to: '/alerts', label: t('tabAlerts', lang) },
-    ...(isFarm ? [{ to: '/farm', label: t('tabFarm', lang) }] : []),
-    {
-      to: '/chat',
-      label: isFarm ? t('tabKrishivaani', lang) : t('tabAkashvaani', lang),
-    },
-  ]
+  const navItems = isFarm
+    ? [
+        { to: '/', label: t('tabToday', lang), end: true },
+        { to: '/farm', label: t('tabFarm', lang) },
+        { to: '/tasks', label: t('tabTasks', lang) },
+        { to: '/journal', label: t('tabJournal', lang) },
+        { to: '/insights', label: t('tabInsights', lang) },
+        { to: '/forecast', label: t('tabForecast', lang) },
+        { to: '/alerts', label: t('tabAlerts', lang) },
+        { to: '/chat', label: t('tabKrishivaani', lang) },
+      ]
+    : [
+        { to: '/', label: t('tabToday', lang), end: true },
+        { to: '/forecast', label: t('tabForecast', lang) },
+        { to: '/alerts', label: t('tabAlerts', lang) },
+        { to: '/chat', label: t('tabAkashvaani', lang) },
+      ]
 
   return (
     <div className="hidden border-b border-line bg-surface md:block">

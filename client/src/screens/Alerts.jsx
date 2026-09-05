@@ -8,6 +8,7 @@ import { Card, CardHead, CardBody, Shell, PageHead, SubTabs, Skeleton } from '..
 import { SeverityTile, SeverityChip } from '../ui/Severity'
 import Reveal from '../ui/Reveal'
 import SavedLocations from '../shell/SavedLocations'
+import ShelterSection from '../weather/ShelterSection'
 import { useAuth } from '../lib/useAuth'
 
 export default function Alerts({ prefs, lang = 'en' }) {
@@ -176,6 +177,11 @@ export default function Alerts({ prefs, lang = 'en' }) {
           </Card>
         )}
       </div>
+
+      {/* -------------------------------------------------- nearest shelters */}
+      <Reveal delay={40}>
+        <ShelterSection location={location} lang={lang} />
+      </Reveal>
 
       {/* --------------------------------------------------- saved locations */}
       <Reveal delay={60}>

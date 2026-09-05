@@ -12,6 +12,9 @@ import Today from './screens/Today'
 import Forecast from './screens/Forecast'
 import Alerts from './screens/Alerts'
 import Farm from './screens/Farm'
+import TasksScreen from './screens/TasksScreen'
+import JournalScreen from './screens/JournalScreen'
+import InsightsScreen from './screens/InsightsScreen'
 import Ask from './screens/Ask'
 import Settings from './screens/Settings'
 
@@ -115,6 +118,9 @@ export default function App() {
                   />
                 }
               />
+              <Route path="/tasks" element={<TasksScreen lang={lang} />} />
+              <Route path="/journal" element={<JournalScreen lang={lang} />} />
+              <Route path="/insights" element={<InsightsScreen lang={lang} />} />
               <Route path="/chat" element={<Ask lang={lang} prefs={prefs.value} audience={audience} />} />
               <Route
                 path="/map"
