@@ -17,6 +17,15 @@ export default function Forecast({ prefs, lang = 'en' }) {
   const [open, setOpen] = useState(null)
   const [dismissed, setDismissed] = useState(false)
 
+  const resolvedRainProb =
+    current?.rainProb != null && current.rainProb > 0
+      ? current.rainProb
+      : daily?.[0]?.rainProb != null
+        ? daily[0].rainProb > 1
+          ? daily[0].rainProb / 100
+          : daily[0].rainProb
+        : current?.rainProb ?? 0
+
   const warning = active[0]
   const sev = warning ? SEVERITY[warning.colour] || SEVERITY.green : null
 
