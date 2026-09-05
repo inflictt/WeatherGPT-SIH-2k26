@@ -4,8 +4,11 @@ import { badRequest } from '../utils/AppError.js'
 export const validate = (schema, source = 'body') => (req, _res, next) => {
   const result = schema.safeParse(req[source])
   if (!result.success) {
+    const detailMsg = result.error.issues
+      .map((i) => `${i.path.join('.') || source}: ${i.message}`)
+      .join(', ')
     return next(
-      badRequest('Invalid request', result.error.issues.map((i) => ({
+      badRequest(`Invalid request: ${detailMsg}`, result.error.issues.map((i) => ({
         path: i.path.join('.'),
         message: i.message,
       }))),
