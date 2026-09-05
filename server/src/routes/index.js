@@ -14,7 +14,9 @@ import * as chat from '../controllers/chat.js'
 import * as alerts from '../controllers/alerts.js'
 import { health } from '../controllers/health.js'
 import * as agriculture from '../controllers/agriculture.js'
+import * as farmManagement from '../controllers/farmManagement.js'
 import * as farmerFriend from '../controllers/farmerFriend.js'
+import * as voice from '../controllers/voice.js'
 
 const r = Router()
 
@@ -55,6 +57,31 @@ r.get('/agriculture/farm/:id', requireAuth, wrap(agriculture.getFarm))
 r.patch('/agriculture/farm/:id', requireAuth, validate(agriculture.farmSchema.partial()), wrap(agriculture.updateFarm))
 r.delete('/agriculture/farm/:id', requireAuth, wrap(agriculture.deleteFarm))
 
+/* --- agriculture: farm management (Fields, Tasks, Activities, Finance, Timeline) --- */
+r.get('/agriculture/fields', optionalAuth, wrap(farmManagement.listFields))
+r.post('/agriculture/fields', optionalAuth, validate(farmManagement.fieldSchema), wrap(farmManagement.createField))
+r.patch('/agriculture/fields/:id', optionalAuth, wrap(farmManagement.updateField))
+r.delete('/agriculture/fields/:id', optionalAuth, wrap(farmManagement.deleteField))
+
+r.get('/agriculture/tasks', optionalAuth, wrap(farmManagement.listTasks))
+r.post('/agriculture/tasks', optionalAuth, validate(farmManagement.taskSchema), wrap(farmManagement.createTask))
+r.patch('/agriculture/tasks/:id', optionalAuth, wrap(farmManagement.updateTask))
+r.post('/agriculture/tasks/:id/complete', optionalAuth, wrap(farmManagement.completeTask))
+r.delete('/agriculture/tasks/:id', optionalAuth, wrap(farmManagement.deleteTask))
+
+r.get('/agriculture/activities', optionalAuth, wrap(farmManagement.listActivities))
+r.post('/agriculture/activities', optionalAuth, validate(farmManagement.activitySchema), wrap(farmManagement.createActivity))
+
+r.get('/agriculture/finance', optionalAuth, wrap(farmManagement.listFinance))
+r.post('/agriculture/finance', optionalAuth, validate(farmManagement.financeSchema), wrap(farmManagement.createFinance))
+
+r.get('/agriculture/timeline', optionalAuth, wrap(farmManagement.listTimeline))
+
+r.get('/agriculture/livestock', optionalAuth, wrap(farmManagement.listLivestock))
+r.post('/agriculture/livestock', optionalAuth, validate(farmManagement.livestockSchema), wrap(farmManagement.createLivestock))
+r.patch('/agriculture/livestock/:id', optionalAuth, wrap(farmManagement.updateLivestock))
+r.delete('/agriculture/livestock/:id', optionalAuth, wrap(farmManagement.deleteLivestock))
+
 /* --- agriculture: the brief and the engines ------------------------------ */
 // `optionalAuth`: the brief works for anyone with a location, and gets better
 // when a farm profile exists. Requiring an account to see the weather would
@@ -72,8 +99,9 @@ r.get('/agriculture/models', agriculture.modelStatus)
 r.post('/agriculture/soil/analyze', imageLimiter, optionalAuth, singleImage(), wrap(agriculture.analyseSoil))
 r.post('/agriculture/disease/analyze', imageLimiter, optionalAuth, singleImage(), wrap(agriculture.analyseDisease))
 
-/* --- Farmer's Friend (PRD §13, §43) -------------------------------------- */
+/* --- Farmer's Friend & Voice (PRD §13, §43) ------------------------------ */
 r.post('/ai/farmer-friend/chat', chatLimiter, optionalAuth, validate(farmerFriend.chatSchema), wrap(farmerFriend.chat))
+r.post('/ai/voice/transcribe', chatLimiter, optionalAuth, validate(voice.transcribeSchema), wrap(voice.transcribe))
 
 /* --- saved locations and push -------------------------------------------- */
 // The VAPID key is public by definition and is needed before anyone signs in,
